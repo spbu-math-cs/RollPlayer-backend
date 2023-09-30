@@ -1,6 +1,7 @@
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.config.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -8,14 +9,16 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import kotlinx.serialization.Serializable
 import java.time.Duration
 
 //@Serializable
 //data class AdditionRequest(val num1: Int, val num2: Int)
 object Server {
-    fun launch() {
-        embeddedServer(Netty, port = 8083, host = "0.0.0.0") {
+    fun launch(config: ApplicationConfig) {
+        val port = config.propertyOrNull("ktor.deployment.port")?.getString()?.toIntOrNull() ?: 8083
+        val host = config.propertyOrNull("ktor.deployment.host")?.getString() ?: "0.0.0.0"
+
+        embeddedServer(Netty, port = port, host = host) {
 
             println("Server is ready")
 

@@ -1,4 +1,8 @@
+import com.typesafe.config.ConfigFactory
+import io.ktor.server.config.*
+
 fun main() {
     println("Hello World!")
-    Server.launch()
+    val config = HoconApplicationConfig(ConfigFactory.load())
+    Server.launch(config)
 }
