@@ -1,0 +1,8 @@
+//
+//syntax = "proto3";
+//
+//message AdditionRequest {
+//  int32 num1 = 1;
+//  int32 num2 = 2;
+//}
+//
