@@ -13,8 +13,7 @@ import java.time.Duration
 
 //@Serializable
 //data class AdditionRequest(val num1: Int, val num2: Int)
-object Server {
-    fun launch(config: ApplicationConfig) {
+fun Application.module(config: ApplicationConfig) {
         val port = config.propertyOrNull("ktor.deployment.port")?.getString()?.toIntOrNull() ?: 8083
         val host = config.propertyOrNull("ktor.deployment.host")?.getString() ?: "0.0.0.0"
 
@@ -143,5 +142,5 @@ object Server {
             }
         }.start(wait = true)
     }
-}
+
 
