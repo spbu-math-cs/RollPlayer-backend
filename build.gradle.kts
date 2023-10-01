@@ -1,7 +1,10 @@
 plugins {
     kotlin("jvm") version "1.8.0"
     application
+<<<<<<< HEAD
     id("com.google.protobuf") version "0.8.17"
+=======
+>>>>>>> eda4491e77cfc0b840c7bb77e18cce92400814dc
 }
 
 group = "org.example"
@@ -11,6 +14,7 @@ repositories {
     mavenCentral()
 }
 
+<<<<<<< HEAD
 val ktor_version = "1.6.2"
 
 dependencies {
@@ -30,6 +34,18 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
 //    implementation("io.ktor:ktor-jackson:1.6.10")
 //    implementation("io.ktor:ktor-config:1.6.10")
+=======
+val exposedVersion = "0.40.1"
+
+dependencies {
+    testImplementation(kotlin("test"))
+
+    implementation("com.h2database:h2:2.1.214")
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
+>>>>>>> eda4491e77cfc0b840c7bb77e18cce92400814dc
 
     runtimeOnly("org.slf4j:slf4j-simple:1.7.32")
 }
@@ -42,7 +58,10 @@ kotlin {
     jvmToolchain(8)
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> eda4491e77cfc0b840c7bb77e18cce92400814dc
 application {
     mainClass.set("MainKt")
 }
