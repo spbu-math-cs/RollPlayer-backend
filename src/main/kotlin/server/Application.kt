@@ -66,7 +66,6 @@ private fun Application.extracted() {
                 call.respond(textures.map { mapOf("id" to it.id.toString(), "url" to it.pathToFile) })
             } catch (e: Exception) {
                 val errorInfo: String = e.message ?: "Unknown Error"
-//                println(errorInfo)
                 call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("type" to "error", "message" to errorInfo)
@@ -89,7 +88,6 @@ private fun Application.extracted() {
                 call.respondFile(textureFile)
             } catch (e: Exception) {
                 val errorInfo: String = e.message ?: "Unknown Error"
-//                println(errorInfo)
                 call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("type" to "error", "message" to errorInfo)
@@ -107,26 +105,25 @@ private fun Application.extracted() {
             playerPropertiesByID.forEach {
                 send(Json.encodeToString(Player(it.key, it.value)))
             }
-
             playerPropertiesByID[id] = PlayerProperties(id)
 
             try {
                 connections.forEach {
-                    it.session.send(Json.encodeToString(Player(id, playerPropertiesByID[id]!!)))
+                    it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
                 }
                 for (frame in incoming) {
                     frame as? Frame.Text ?: continue
                     val newProperties = JSONObject(frame.readText())
-                    val oldProperties = playerPropertiesByID[id]!!
+                    val oldProperties = playerPropertiesByID.getValue(id)
                     playerPropertiesByID[id] = updateProperties(oldProperties, newProperties)
                     connections.forEach {
-                        it.session.send(Json.encodeToString(Player(id, playerPropertiesByID[id]!!)))
+                        it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
                     }
                 }
             } catch (e: Exception) {
                 println(e.localizedMessage)
             } finally {
-                val oldProperties = playerPropertiesByID[id]!!
+                val oldProperties = playerPropertiesByID.getValue(id)
                 oldProperties.status = PlayerStatus.DISCONNECTED
                 playerPropertiesByID.remove(id)
 
