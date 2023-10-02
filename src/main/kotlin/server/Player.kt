@@ -6,19 +6,23 @@ import kotlin.reflect.full.memberProperties
 
 import org.json.JSONObject
 
-@Serializable
-data class PlayerProperties(
-    var name: String,
-    var x: Long,
-    var y: Long
-) {
-    constructor(id: Int) : this("player${id}", 0, 0)
+enum class PlayerStatus {
+    DISCONNECTED,
+    ACTIVE
 }
 
 @Serializable
-data class Player(val id: Int, var properties: PlayerProperties) {
-    constructor(id: Int) : this(id, PlayerProperties(id))
+data class PlayerProperties(
+    var name: String,
+    var status: PlayerStatus,
+    var x: Long,
+    var y: Long,
+) {
+    constructor(id: Int) : this("player${id}", PlayerStatus.ACTIVE, 0, 0)
 }
+
+@Serializable
+data class Player(val id: Int, var properties: PlayerProperties)
 
 fun updateProperties(old: PlayerProperties, new: JSONObject): PlayerProperties {
     PlayerProperties::class.memberProperties.forEach {

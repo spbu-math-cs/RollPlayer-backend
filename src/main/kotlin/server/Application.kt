@@ -126,7 +126,13 @@ private fun Application.extracted() {
             } catch (e: Exception) {
                 println(e.localizedMessage)
             } finally {
+                val oldProperties = playerPropertiesByID[id]!!
+                oldProperties.status = PlayerStatus.DISCONNECTED
                 playerPropertiesByID.remove(id)
+
+                connections.forEach {
+                    it.session.send(Json.encodeToString(Player(id, oldProperties)))
+                }
                 connections -= thisConnection
             }
         }
