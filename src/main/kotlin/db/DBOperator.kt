@@ -4,7 +4,6 @@ import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
-import sun.security.pkcs11.wrapper.CK_SESSION_INFO
 import java.io.*
 
 const val dbPath = "./data/roll_player"
