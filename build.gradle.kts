@@ -4,8 +4,20 @@ plugins {
     id("com.google.protobuf") version "0.8.17"
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+application {
+    mainClass.set("io.ktor.server.netty.EngineMain")
+}
+
+sourceSets {
+    main {
+        kotlin {
+            srcDirs("src/main/kotlin")
+        }
+        resources {
+            srcDirs("src/main/resources")
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -32,7 +44,6 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("io.ktor:ktor-server-websockets:$ktor_version")
     implementation("io.ktor:ktor-server-core:$ktor_version")
-    implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
@@ -48,6 +59,6 @@ kotlin {
     jvmToolchain(8)
 }
 
-application {
-    mainClass.set("MainKt")
+project.tasks.named("processResources", Copy::class.java) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
