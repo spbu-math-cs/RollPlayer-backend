@@ -77,7 +77,8 @@ private fun Application.extracted() {
         get("/api/textures/{id}") {
             try {
                 val textureID = call.parameters["id"]?.toIntOrNull() ?: 0
-                val textureFile = File(DBOperator.getTextureByID(textureID).pathToFile)
+                val textureFile = File(DBOperator.getTextureByID(textureID)?.pathToFile
+                    ?: throw IllegalArgumentException("Texture #$textureID does not exist"))
                 call.response.status(HttpStatusCode.OK)
                 call.response.header(
                     HttpHeaders.ContentDisposition,
