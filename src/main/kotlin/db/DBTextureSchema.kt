@@ -4,7 +4,7 @@ import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
 object TextureTable: IntIdTable("texture", "texture_id") {
-    val pathToFile = varchar("path_to_file", 1024).uniqueIndex()
+    val pathToFile = varchar("path_to_file", pathLength).uniqueIndex()
 }
 
 class TextureData(id: EntityID<Int>): IntEntity(id) {
