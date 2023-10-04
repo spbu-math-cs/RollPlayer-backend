@@ -182,17 +182,10 @@ object DBOperator {
         }
     }
 
-    fun setSessionActive(sessionId: Int) = transaction {
+    fun setSessionActive(sessionId: Int, active: Boolean) = transaction {
         SessionData.findById(sessionId)
             .also { if (it == null) return@transaction false }
-            ?.active = true
-        true
-    }
-
-    fun setSessionInactive(sessionId: Int) = transaction {
-        SessionData.findById(sessionId)
-            .also { if (it == null) return@transaction false }
-            ?.active = false
+            ?.active = active
         true
     }
 
