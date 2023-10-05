@@ -46,7 +46,7 @@ private fun Application.extracted() {
     }
 
     DBOperator.connectOrCreate()
-    DBOperator.removeNonExistingMaps()
+    // DBOperator.removeNonExistingMaps()
 
     val connections = Collections.synchronizedSet<Connection?>(LinkedHashSet())
     val playerPropertiesByID = mutableMapOf<Int, PlayerProperties>()

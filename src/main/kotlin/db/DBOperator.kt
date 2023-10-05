@@ -213,20 +213,4 @@ object DBOperator {
         }
         true
     }
-
-    fun removeNonExistingMaps() = transaction {
-        MapData.all()
-            .forEach {
-                if (!fileExists(it.pathToJson))
-                    it.delete()
-            }
-    }
-
-    fun removeNonExistingTextures() = transaction {
-        TextureData.all()
-            .forEach {
-                if (!fileExists(it.pathToFile))
-                    it.delete()
-            }
-    }
 }
