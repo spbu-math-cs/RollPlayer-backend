@@ -1,7 +1,7 @@
 import db.*
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
+import org.testng.annotations.AfterTest
+import org.testng.annotations.BeforeTest
+import org.testng.annotations.Test
 import java.io.File
 import java.time.Instant
 import java.util.*
@@ -12,7 +12,7 @@ private const val sampleMap = "sample_map"
 private const val sampleMapForSession = "sample_map_for_session"
 
 class DBTests {
-    @Test
+    @Test(priority = 1)
     fun sampleUserTest() {
         DBOperator.addUser(UserInfo("Vasiliy", "vasia12345"))
         DBOperator.addUser(UserInfo("Petr", "petya09876"))
@@ -35,7 +35,7 @@ class DBTests {
         assertNull(DBOperator.getUserByID(6))
     }
 
-    @Test
+    @Test(priority = 2)
     fun sampleMapTest() {
         val fileName = sampleMap
         val filePath = "$mapsFolder/$fileName.json"
@@ -66,12 +66,13 @@ class DBTests {
         assertEquals(filePath, DBOperator.getMapByID(existingMap.id)?.pathToJson)
         assertEquals(anotherFilePath, DBOperator.getMapByID(nonExistingMap.id)?.pathToJson)
 
-        // DBOperator.removeNonExistingMaps()
+        DBOperator.removeNonExistingMaps()
 
-        // assertNull(DBOperator.getMapByID(nonExistingMap.id))
+        assertNull(DBOperator.getMapByID(nonExistingMap.id))
+        assertEquals(filePath, DBOperator.getMapByID(existingMap.id)?.pathToJson)
     }
 
-    @Test
+    @Test(priority = 3)
     fun sampleTextureTest() {
         val fileName = UUID.randomUUID().toString()
         val filePath = "$texturesFolder/$testFolder/$fileName.png"
@@ -87,7 +88,7 @@ class DBTests {
         assertNull(DBOperator.getTextureByID(textures[0].id))
     }
 
-    @Test
+    @Test(priority = 4)
     fun sampleSessionTest() {
         val fileName = sampleMapForSession
 
@@ -173,13 +174,13 @@ class DBTests {
 
     companion object {
         @JvmStatic
-        @BeforeAll
+        @BeforeTest
         fun createTestDB() {
             DBOperator.createDBForTests()
         }
 
         @JvmStatic
-        @AfterAll
+        @AfterTest
         fun deleteDB() {
             DBOperator.deleteTestDatabase()
             File("$mapsFolder/$testFolder")
