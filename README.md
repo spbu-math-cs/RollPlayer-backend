@@ -30,6 +30,7 @@ You can configure the server port in the application.conf file located in the re
 ktor {
     deployment {
         port = 9999 # Change this port number to your desired port
+        host = "127.0.0.1"
     }
     # Other configurations...
 }
