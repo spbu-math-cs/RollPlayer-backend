@@ -1,6 +1,6 @@
 # RollPlayer-backend
 
-This is a Kotlin server for a multiplayer game. It handles communication between clients and manages game-related data. The server is built using the Ktor framework.
+This is a Kotlin server for a multiplayer game, built using the Ktor framework. It handles communication between clients and manages game-related data. The server uses the H2 database for storing game data.
 
 # Getting Started
 Before running the server, make sure you have Kotlin and Gradle installed. To build and run the project, follow these steps:
