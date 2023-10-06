@@ -40,3 +40,4 @@ bin/
 
 ### Project files ###
 /data/*
+testFile.log
