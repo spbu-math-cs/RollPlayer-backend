@@ -182,17 +182,10 @@ object DBOperator {
         }
     }
 
-    fun setSessionActive(sessionId: Int) = transaction {
+    fun setSessionActive(sessionId: Int, active: Boolean) = transaction {
         SessionData.findById(sessionId)
             .also { if (it == null) return@transaction false }
-            ?.active = true
-        true
-    }
-
-    fun setSessionInactive(sessionId: Int) = transaction {
-        SessionData.findById(sessionId)
-            .also { if (it == null) return@transaction false }
-            ?.active = false
+            ?.active = active
         true
     }
 
@@ -219,21 +212,5 @@ object DBOperator {
             else it.first().delete()
         }
         true
-    }
-
-    fun removeNonExistingMaps() = transaction {
-        MapData.all()
-            .forEach {
-                if (!fileExists(it.pathToJson))
-                    it.delete()
-            }
-    }
-
-    fun removeNonExistingTextures() = transaction {
-        TextureData.all()
-            .forEach {
-                if (!fileExists(it.pathToFile))
-                    it.delete()
-            }
     }
 }
