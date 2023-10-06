@@ -53,10 +53,10 @@ dependencies {
     implementation("com.h2database:h2:2.1.214")
     implementation("io.grpc:grpc-protobuf:1.40.1")
 
-
     implementation("org.slf4j:slf4j-simple:1.7.32") {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
+
 }
 
 
