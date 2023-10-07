@@ -52,20 +52,31 @@ dependencies {
     implementation("org.json:json:20230618")
     implementation("com.h2database:h2:2.1.214")
     implementation("io.grpc:grpc-protobuf:1.40.1")
+    implementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
+    implementation("org.jetbrains.kotlin:kotlin-test-junit:1.5.21")
+    //implementation("org.jetbrains.kotlin:kotlin-test-junit5:1.5.21")
 
     implementation("org.slf4j:slf4j-simple:1.7.32") {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
-
+    testImplementation("io.ktor:ktor-server-test-host:1.6.1")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.5.21")
+    implementation ("io.ktor:ktor-server-netty:$ktor_version")
+    implementation ("io.ktor:ktor-websockets:$ktor_version")
+    testImplementation ("io.ktor:ktor-server-test-host:$ktor_version")
+    testImplementation ("io.ktor:ktor-client-mock:$ktor_version")
+    testImplementation("com.willowtreeapps.assertk:assertk:0.24")
 }
 
 
 tasks.test {
     useJUnitPlatform()
+    include("HttpServerTest.*")
 }
 
 kotlin {
     jvmToolchain(8)
+
 }
 
 project.tasks.named("processResources", Copy::class.java) {
