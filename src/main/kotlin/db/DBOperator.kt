@@ -204,16 +204,16 @@ object DBOperator {
             throw IllegalArgumentException("User with login `$login` already exists")
     }
 
-    private fun hashPassword(password: String, pswA: Int, pswB: Int): Int {
+    private fun hashPassword(password: String, pswInit: Int, pswFactor: Int): Int {
         fun mathMod(l: Long, m: Long) =
             (l % m).let {
                 if (it < 0) m - it
                 else it
             }
 
-        var hash: Long = pswA.toLong()
+        var hash: Long = pswInit.toLong()
         for (ch in password)
-            hash = mathMod((hash * ch.code + pswB), PASSWORD_HASH_MODULUS)
+            hash = mathMod((hash * pswFactor + ch.code), PASSWORD_HASH_MODULUS)
 
         return hash.toInt()
     }
@@ -223,14 +223,14 @@ object DBOperator {
         verifyPassword(password)
 
         val rand = Random()
-        val pswA = rand.nextInt(PASSWORD_HASH_MODULUS.toInt())
-        val pswB = rand.nextInt(PASSWORD_HASH_MODULUS.toInt())
+        val pswInit = rand.nextInt(PASSWORD_HASH_MODULUS.toInt())
+        val pswFactor = rand.nextInt(PASSWORD_HASH_MODULUS.toInt())
 
         UserData.new {
             this.login = login
-            this.passwordHash = hashPassword(password, pswA, pswB)
-            this.pswHashA = pswA
-            this.pswHashB = pswB
+            this.passwordHash = hashPassword(password, pswInit, pswFactor)
+            this.pswHashInitial = pswInit
+            this.pswHashFactor = pswFactor
         }
     }
 
@@ -238,7 +238,7 @@ object DBOperator {
         val user = UserData.findById(userId)
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
-        hashPassword(password, user.pswHashA, user.pswHashB) == user.passwordHash
+        hashPassword(password, user.pswHashInitial, user.pswHashFactor) == user.passwordHash
     }
 
     fun updateUserLogin(userId: Int, newLogin: String) = transaction {
@@ -256,7 +256,7 @@ object DBOperator {
 
         verifyPassword(newPassword)
 
-        user.passwordHash = hashPassword(newPassword, user.pswHashA, user.pswHashB)
+        user.passwordHash = hashPassword(newPassword, user.pswHashInitial, user.pswHashFactor)
     }
 
     // ====================

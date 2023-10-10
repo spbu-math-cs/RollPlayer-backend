@@ -9,8 +9,8 @@ const val pathLength = 255
 object UserTable: IntIdTable("user", "user_id") {
     val login = varchar("login", indentifierLength).uniqueIndex()
     val passwordHash = integer("password_hash")
-    val pswHashA = integer("psw_hash_a")
-    val pswHashB = integer("psw_hash_b")
+    val pswHashInitial = integer("psw_hash_initial")
+    val pswHashFactor = integer("psw_hash_factor")
 }
 
 class UserData(id: EntityID<Int>): IntEntity(id) {
@@ -18,8 +18,8 @@ class UserData(id: EntityID<Int>): IntEntity(id) {
 
     var login by UserTable.login
     var passwordHash by UserTable.passwordHash
-    var pswHashA by UserTable.pswHashA
-    var pswHashB by UserTable.pswHashB
+    var pswHashInitial by UserTable.pswHashInitial
+    var pswHashFactor by UserTable.pswHashFactor
 
     var sessions by SessionData via SessionPlayerTable
 
