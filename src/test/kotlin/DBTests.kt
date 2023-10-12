@@ -1,10 +1,12 @@
 import db.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import java.io.File
+import java.lang.IllegalArgumentException
 import java.time.Instant
 import java.util.*
-import kotlin.test.*
+import kotlin.NoSuchElementException
 
 private const val TEST_FOLDER = "for_tests"
 private val sampleMapFiles = listOf(
@@ -21,9 +23,9 @@ class DBTests {
         DBOperator.addUser("Dendy", "zmxncbva")
         DBOperator.addUser("Arben", "qwertyzx")
 
-        assertFails { DBOperator.addUser("12345", "abc") }
-        assertFails { DBOperator.addUser("Clara", "alreadyexists") }
-        assertFails { DBOperator.addUser("Kim", "비밀번호에잘못된문자가있습니다") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "abc") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "alreadyexists") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "비밀번호에잘못된문자가있습니다") }
 
         val users = DBOperator.getAllUsers()
         assert(users.any { it.login == "Vasia" })
@@ -32,7 +34,7 @@ class DBTests {
 
         val userVasia = DBOperator.getUserByLogin("Vasia")
         assertNotNull(userVasia)
-        assert(userVasia.login == "Vasia")
+        assertEquals(userVasia!!.login, "Vasia")
         assertEquals("Vasia", DBOperator.getUserByID(userVasia.id)?.login)
         assertNull(DBOperator.getUserByID(DBOperator.getAllUsers().maxOf { it.id } + 1))
 
@@ -47,11 +49,23 @@ class DBTests {
 
     @Test
     fun userManipulationTest() {
+        DBOperator.getAllUsers().forEach { DBOperator.deleteUserByID(it.id) }
+
+        assertTrue(DBOperator.checkLoginAvailability("Vasia"))
+        assertTrue(DBOperator.checkLoginAvailability("Petya"))
+
         DBOperator.addUser("Vasia", "vasia12345")
         DBOperator.addUser("Petya", "petya09876")
         DBOperator.addUser("Clara", "zmxncbva")
         DBOperator.addUser("Dendy", "zmxncbva")
         DBOperator.addUser("Arben", "qwertyzx")
+
+        assertFalse(DBOperator.checkLoginAvailability("Vasia"))
+        assertFalse(DBOperator.checkLoginAvailability("Petya"))
+        assertTrue(DBOperator.checkLoginAvailability("Kira"))
+        assertTrue(DBOperator.checkLoginAvailability("Jumbo"))
+
+        assertFalse(DBOperator.checkLoginAvailability(""))
 
         val userIds = DBOperator.getAllUsers()
             .associateBy({ it.login }) { it.id }
@@ -64,11 +78,23 @@ class DBTests {
         assertFalse(DBOperator.checkUserPassword(userIds["Clara"]!!, "zmxncbvz"))
         assertFalse(DBOperator.checkUserPassword(userIds["Arben"]!!, "qwertyz"))
 
+        assertTrue(DBOperator.checkPasswordValidity("qlaksocifunre"))
+        assertTrue(DBOperator.checkPasswordValidity("imthecoolest"))
+        assertTrue(DBOperator.checkPasswordValidity("|-|e's_/\\_h@Ck3R"))
+        assertTrue(DBOperator.checkPasswordValidity("%a\$b|c*d?e\"f/g&h~i`j"))
+
+        assertFalse(DBOperator.checkPasswordValidity(""))
+        assertFalse(DBOperator.checkPasswordValidity("short"))
+        assertFalse(DBOperator.checkPasswordValidity("###"))
+        assertFalse(DBOperator.checkPasswordValidity("Jsem_nejlepší"))
+        assertFalse(DBOperator.checkPasswordValidity("no spaces in password"))
+        assertFalse(DBOperator.checkPasswordValidity("હુંસૌથીશાનદારછું"))
+
         assertNotNull(DBOperator.getUserByLogin("Vasia"))
 
         DBOperator.updateUserLogin(userIds["Vasia"]!!, "Basil")
 
-        assertFails { DBOperator.updateUserLogin(
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(
             DBOperator.getAllUsers().maxOf { it.id } + 1,
             "DoesNotExist"
         ) }
@@ -85,13 +111,22 @@ class DBTests {
         assertFalse(DBOperator.checkUserPassword(userIds["Petya"]!!, "petya09876"))
         assertTrue(DBOperator.checkUserPassword(userIds["Petya"]!!, "imthecoolest"))
 
-        assertFails { DBOperator.updateUserLogin(userIds["Clara"]!!, "Arben") }
-        assertFails { DBOperator.updateUserLogin(userIds["Clara"]!!, "") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(userIds["Clara"]!!, "Arben") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(userIds["Clara"]!!, "") }
 
-        assertFails { DBOperator.updateUserPassword(userIds["Clara"]!!, "qwe") }
-        assertFails { DBOperator.updateUserPassword(userIds["Arben"]!!, "karaktere_të_pavlefshme") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserPassword(userIds["Clara"]!!, "qwe") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserPassword(userIds["Arben"]!!, "karaktere_të_pavlefshme") }
 
         assertDoesNotThrow { DBOperator.updateUserPassword(userIds["Dendy"]!!, "vasia12345") }
+
+        val hash = DBOperator.hashPassword("imthecoolest", 12345, 67890)
+        assertEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 54321, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 98760))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12344, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 67891))
+        assertNotEquals(hash, DBOperator.hashPassword("qwertyuiop", 12345, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("હુંસૌથીશાનદારછું", 12345, 67890))
     }
 
     @Test
@@ -236,14 +271,14 @@ class DBTests {
 
         DBOperator.deleteSessionByID(sId1)
         assertNull(DBOperator.getSessionByID(sId1))
-        assertFails { DBOperator.getUsersInSession(sId1) }
-        assertFails { DBOperator.getPlayersGameStateOfSession(sId1).first() }
+        assertThrows<IllegalArgumentException> { DBOperator.getUsersInSession(sId1) }
+        assertThrows<NoSuchElementException> { DBOperator.getPlayersGameStateOfSession(sId1).first() }
 
         DBOperator.deleteAllSessions()
         assert(DBOperator.getSessionsOfUser(playerIds["Clara"]!!).isEmpty())
     }
 
-    @AfterTest
+    @AfterEach
     fun clearDatabase() {
         DBOperator.deleteAllSessions()
         DBOperator.getAllMapInfos().forEach { DBOperator.deleteMapInfoByID(it.id) }

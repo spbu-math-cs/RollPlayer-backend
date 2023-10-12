@@ -57,9 +57,6 @@ object DBOperator {
     fun createDBForTests() =
         createDatabase(dbTestPath)
 
-    private fun fileExists(filePath: String) =
-        (File(filePath)).isFile
-
     private fun deleteFileIfExists(filePath: String) =
         (File(filePath)).let { file ->
             if (file.exists())
@@ -175,7 +172,7 @@ object DBOperator {
     // =================
 
     private const val MIN_PASSWORD_CHARACTERS = 8
-    private const val PASSWORD_SPECIAL_CHARS = ",.!@#$%^&*()\":;\'_-+=[]{}~`<>?/\\"
+    private const val PASSWORD_SPECIAL_CHARS = ",.!@#$%^&*()\":;\'_-+=[]|{}~`<>?/\\"
     private val PASSWORD_CHAR_LIST = sequence<Char> {
         yieldAll('A'..'Z')
         yieldAll('a'..'z')
@@ -184,7 +181,15 @@ object DBOperator {
     }.toList()
     private const val PASSWORD_HASH_MODULUS = 2147483647L // простое число; модуль должен быть простым
 
-    private fun verifyPassword(password: String) {
+    private fun failOnInvalidLogin(login: String) {
+        if (login.isBlank())
+            throw IllegalArgumentException("Cannot create user with blank login")
+
+        if (!UserData.find(UserTable.login eq login).empty())
+            throw IllegalArgumentException("User with login `$login` already exists")
+    }
+
+    private fun failOnInvalidPassword(password: String) {
         if (password.length < MIN_PASSWORD_CHARACTERS)
             throw IllegalArgumentException("User password must have at least $MIN_PASSWORD_CHARACTERS characters")
 
@@ -196,15 +201,23 @@ object DBOperator {
         }
     }
 
-    private fun verifyLoginAvailability(login: String) {
-        if (login.isBlank())
-            throw IllegalArgumentException("Cannot create user with blank login")
-
-        if (!UserData.find(UserTable.login eq login).empty())
-            throw IllegalArgumentException("User with login `$login` already exists")
+    // для тестирования
+    fun checkLoginAvailability(login: String) = transaction {
+        try {
+            failOnInvalidLogin(login)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
-    private fun hashPassword(password: String, pswInit: Int, pswFactor: Int): Int {
+    // для тестирования
+    fun checkPasswordValidity(password: String) = try {
+        failOnInvalidPassword(password)
+        true
+    } catch (_: Exception) { false }
+
+    fun hashPassword(password: String, pswInit: Int, pswFactor: Int): Int {
         fun mathMod(l: Long, m: Long) =
             (l % m).let {
                 if (it < 0) m - it
@@ -219,8 +232,8 @@ object DBOperator {
     }
 
     fun addUser(login: String, password: String) = transaction {
-        verifyLoginAvailability(login)
-        verifyPassword(password)
+        failOnInvalidLogin(login)
+        failOnInvalidPassword(password)
 
         val rand = Random()
         val pswInit = rand.nextInt(PASSWORD_HASH_MODULUS.toInt())
@@ -245,7 +258,7 @@ object DBOperator {
         val user = UserData.findById(userId)
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
-        verifyLoginAvailability(newLogin)
+        failOnInvalidLogin(newLogin)
 
         user.login = newLogin
     }
@@ -254,7 +267,7 @@ object DBOperator {
         val user = UserData.findById(userId)
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
-        verifyPassword(newPassword)
+        failOnInvalidPassword(newPassword)
 
         user.passwordHash = hashPassword(newPassword, user.pswHashInitial, user.pswHashFactor)
     }
