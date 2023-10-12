@@ -49,8 +49,6 @@ class DBTests {
 
     @Test
     fun userManipulationTest() {
-        DBOperator.getAllUsers().forEach { DBOperator.deleteUserByID(it.id) }
-
         assertTrue(DBOperator.checkLoginAvailability("Vasia"))
         assertTrue(DBOperator.checkLoginAvailability("Petya"))
 
@@ -77,18 +75,6 @@ class DBTests {
         assertFalse(DBOperator.checkUserPassword(userIds["Vasia"]!!, "petya09876"))
         assertFalse(DBOperator.checkUserPassword(userIds["Clara"]!!, "zmxncbvz"))
         assertFalse(DBOperator.checkUserPassword(userIds["Arben"]!!, "qwertyz"))
-
-        assertTrue(DBOperator.checkPasswordValidity("qlaksocifunre"))
-        assertTrue(DBOperator.checkPasswordValidity("imthecoolest"))
-        assertTrue(DBOperator.checkPasswordValidity("|-|e's_/\\_h@Ck3R"))
-        assertTrue(DBOperator.checkPasswordValidity("%a\$b|c*d?e\"f/g&h~i`j"))
-
-        assertFalse(DBOperator.checkPasswordValidity(""))
-        assertFalse(DBOperator.checkPasswordValidity("short"))
-        assertFalse(DBOperator.checkPasswordValidity("###"))
-        assertFalse(DBOperator.checkPasswordValidity("Jsem_nejlepší"))
-        assertFalse(DBOperator.checkPasswordValidity("no spaces in password"))
-        assertFalse(DBOperator.checkPasswordValidity("હુંસૌથીશાનદારછું"))
 
         assertNotNull(DBOperator.getUserByLogin("Vasia"))
 
@@ -118,6 +104,21 @@ class DBTests {
         assertThrows<IllegalArgumentException> { DBOperator.updateUserPassword(userIds["Arben"]!!, "karaktere_të_pavlefshme") }
 
         assertDoesNotThrow { DBOperator.updateUserPassword(userIds["Dendy"]!!, "vasia12345") }
+    }
+
+    @Test
+    fun passwordValidationTest() {
+        assertTrue(DBOperator.checkPasswordValidity("qlaksocifunre"))
+        assertTrue(DBOperator.checkPasswordValidity("imthecoolest"))
+        assertTrue(DBOperator.checkPasswordValidity("|-|e's_/\\_h@Ck3R"))
+        assertTrue(DBOperator.checkPasswordValidity("%a\$b|c*d?e\"f/g&h~i`j"))
+
+        assertFalse(DBOperator.checkPasswordValidity(""))
+        assertFalse(DBOperator.checkPasswordValidity("short"))
+        assertFalse(DBOperator.checkPasswordValidity("###"))
+        assertFalse(DBOperator.checkPasswordValidity("Jsem_nejlepší"))
+        assertFalse(DBOperator.checkPasswordValidity("no spaces in password"))
+        assertFalse(DBOperator.checkPasswordValidity("હુંસૌથીશાનદારછું"))
 
         val hash = DBOperator.hashPassword("imthecoolest", 12345, 67890)
         assertEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 67890))
