@@ -1,46 +1,142 @@
 import db.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import java.io.File
+import java.lang.IllegalArgumentException
 import java.time.Instant
 import java.util.*
-import kotlin.test.*
+import kotlin.NoSuchElementException
 
-private const val testFolder = "for_tests"
-private const val sampleMap = "sample_map"
-private const val sampleMapForSession = "sample_map_for_session"
+private const val TEST_FOLDER = "for_tests"
+private val sampleMapFiles = listOf(
+    "sample_map_for_test_A",
+    "sample_map_for_test_B"
+)
 
 class DBTests {
     @Test
     fun sampleUserTest() {
-        DBOperator.addUser(UserInfo("Vasiliy", "vasia12345"))
-        DBOperator.addUser(UserInfo("Petr", "petya09876"))
-        DBOperator.addUser(UserInfo("Carl", "zmxncbv"))
-        DBOperator.addUser(UserInfo("Dendy", "zmxncbv"))
-        DBOperator.addUser(UserInfo("Arben", "qwerty"))
+        DBOperator.addUser("Vasia", "vasia12345")
+        DBOperator.addUser("Petya", "petya09876")
+        DBOperator.addUser("Clara", "zmxncbva")
+        DBOperator.addUser("Dendy", "zmxncbva")
+        DBOperator.addUser("Arben", "qwertyzx")
 
-        assertFails { DBOperator.addUser(UserInfo("12345", "")) }
-        assertFails { DBOperator.addUser(UserInfo("Carl", "alreadyexists")) }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "abc") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "alreadyexists") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "비밀번호에잘못된문자가있습니다") }
 
         val users = DBOperator.getAllUsers()
-        assert(users.any { it.login == "Vasiliy" && it.password == "vasia12345" })
-        assert(users.any { it.login == "Carl" && it.password == "zmxncbv" })
-        assert(users.any { it.login == "Dendy" && it.password == "zmxncbv" })
+        assert(users.any { it.login == "Vasia" })
+        assert(users.any { it.login == "Clara" })
+        assert(users.any { it.login == "Dendy" })
 
-        val userVasia = DBOperator.getUserByLogin("Vasiliy")
+        val userVasia = DBOperator.getUserByLogin("Vasia")
         assertNotNull(userVasia)
-        assert(userVasia.login == "Vasiliy" && userVasia.password == "vasia12345")
-        assertEquals("Vasiliy", DBOperator.getUserByID(userVasia.id)?.login)
-        assertNull(DBOperator.getUserByID(6))
+        assertEquals(userVasia!!.login, "Vasia")
+        assertEquals("Vasia", DBOperator.getUserByID(userVasia.id)?.login)
+        assertNull(DBOperator.getUserByID(DBOperator.getAllUsers().maxOf { it.id } + 1))
+
+        DBOperator.deleteUserByID(userVasia.id)
+        assertNull(DBOperator.getUserByID(userVasia.id))
+        assertNull(DBOperator.getUserByLogin("Vasia"))
+
+        DBOperator.getAllUsers()
+            .forEach { DBOperator.deleteUserByID(it.id) }
+        assertNull(DBOperator.getUserByLogin("Clara"))
+    }
+
+    @Test
+    fun userManipulationTest() {
+        assertTrue(DBOperator.checkLoginAvailability("Vasia"))
+        assertTrue(DBOperator.checkLoginAvailability("Petya"))
+
+        DBOperator.addUser("Vasia", "vasia12345")
+        DBOperator.addUser("Petya", "petya09876")
+        DBOperator.addUser("Clara", "zmxncbva")
+        DBOperator.addUser("Dendy", "zmxncbva")
+        DBOperator.addUser("Arben", "qwertyzx")
+
+        assertFalse(DBOperator.checkLoginAvailability("Vasia"))
+        assertFalse(DBOperator.checkLoginAvailability("Petya"))
+        assertTrue(DBOperator.checkLoginAvailability("Kira"))
+        assertTrue(DBOperator.checkLoginAvailability("Jumbo"))
+
+        assertFalse(DBOperator.checkLoginAvailability(""))
+
+        val userIds = DBOperator.getAllUsers()
+            .associateBy({ it.login }) { it.id }
+
+        assertTrue(DBOperator.checkUserPassword(userIds["Vasia"]!!, "vasia12345"))
+        assertTrue(DBOperator.checkUserPassword(userIds["Clara"]!!, "zmxncbva"))
+        assertTrue(DBOperator.checkUserPassword(userIds["Dendy"]!!, "zmxncbva"))
+
+        assertFalse(DBOperator.checkUserPassword(userIds["Vasia"]!!, "petya09876"))
+        assertFalse(DBOperator.checkUserPassword(userIds["Clara"]!!, "zmxncbvz"))
+        assertFalse(DBOperator.checkUserPassword(userIds["Arben"]!!, "qwertyz"))
+
+        assertNotNull(DBOperator.getUserByLogin("Vasia"))
+
+        DBOperator.updateUserLogin(userIds["Vasia"]!!, "Basil")
+
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(
+            DBOperator.getAllUsers().maxOf { it.id } + 1,
+            "DoesNotExist"
+        ) }
+
+        assertNotNull(DBOperator.getUserByLogin("Basil"))
+        assertNull(DBOperator.getUserByLogin("Vasia"))
+        assertEquals(userIds["Vasia"]!!, DBOperator.getUserByLogin("Basil")!!.id)
+        assertTrue(DBOperator.checkUserPassword(userIds["Vasia"]!!, "vasia12345"))
+
+        assertTrue(DBOperator.checkUserPassword(userIds["Petya"]!!, "petya09876"))
+
+        DBOperator.updateUserPassword(userIds["Petya"]!!, "imthecoolest")
+
+        assertFalse(DBOperator.checkUserPassword(userIds["Petya"]!!, "petya09876"))
+        assertTrue(DBOperator.checkUserPassword(userIds["Petya"]!!, "imthecoolest"))
+
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(userIds["Clara"]!!, "Arben") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(userIds["Clara"]!!, "") }
+
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserPassword(userIds["Clara"]!!, "qwe") }
+        assertThrows<IllegalArgumentException> { DBOperator.updateUserPassword(userIds["Arben"]!!, "karaktere_të_pavlefshme") }
+
+        assertDoesNotThrow { DBOperator.updateUserPassword(userIds["Dendy"]!!, "vasia12345") }
+    }
+
+    @Test
+    fun passwordValidationTest() {
+        assertTrue(DBOperator.checkPasswordValidity("qlaksocifunre"))
+        assertTrue(DBOperator.checkPasswordValidity("imthecoolest"))
+        assertTrue(DBOperator.checkPasswordValidity("|-|e's_/\\_h@Ck3R"))
+        assertTrue(DBOperator.checkPasswordValidity("%a\$b|c*d?e\"f/g&h~i`j"))
+
+        assertFalse(DBOperator.checkPasswordValidity(""))
+        assertFalse(DBOperator.checkPasswordValidity("short"))
+        assertFalse(DBOperator.checkPasswordValidity("###"))
+        assertFalse(DBOperator.checkPasswordValidity("Jsem_nejlepší"))
+        assertFalse(DBOperator.checkPasswordValidity("no spaces in password"))
+        assertFalse(DBOperator.checkPasswordValidity("હુંસૌથીશાનદારછું"))
+
+        val hash = DBOperator.hashPassword("imthecoolest", 12345, 67890)
+        assertEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 54321, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 98760))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12344, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("imthecoolest", 12345, 67891))
+        assertNotEquals(hash, DBOperator.hashPassword("qwertyuiop", 12345, 67890))
+        assertNotEquals(hash, DBOperator.hashPassword("હુંસૌથીશાનદારછું", 12345, 67890))
     }
 
     @Test
     fun sampleMapTest() {
-        val fileName = sampleMap
+        val fileName = sampleMapFiles[0]
         val filePath = "$mapsFolder/$fileName.json"
 
         val anotherFileName = UUID.randomUUID().toString()
-        val anotherFilePath = "$mapsFolder/$testFolder/$anotherFileName.json"
+        val anotherFilePath = "$mapsFolder/$TEST_FOLDER/$anotherFileName.json"
 
         DBOperator.createNewMap(fileName, "TestMap")
         assertEquals(
@@ -64,12 +160,19 @@ class DBTests {
 
         assertEquals(filePath, DBOperator.getMapByID(existingMap.id)?.pathToJson)
         assertEquals(anotherFilePath, DBOperator.getMapByID(nonExistingMap.id)?.pathToJson)
+        DBOperator.deleteMapInfoByID(nonExistingMap.id)
+        assertNull(DBOperator.getMapByID(nonExistingMap.id))
+
+        // Также удалит все сессии
+        DBOperator.getAllMapInfos()
+            .forEach { DBOperator.deleteMapInfoByID(it.id) }
+        assertNull(DBOperator.getMapByID(existingMap.id))
     }
 
     @Test
     fun sampleTextureTest() {
         val fileName = UUID.randomUUID().toString()
-        val filePath = "$texturesFolder/$testFolder/$fileName.png"
+        val filePath = "$texturesFolder/$TEST_FOLDER/$fileName.png"
 
         DBOperator.addTexture(TextureInfo(filePath))
 
@@ -77,21 +180,26 @@ class DBTests {
         assertEquals(1, textures.count())
         assertEquals(filePath, textures[0].pathToFile)
         assertEquals(filePath, DBOperator.getTextureByID(textures[0].id)?.pathToFile)
+
+        DBOperator.deleteTextureByID(textures[0].id)
+        assertNull(DBOperator.getTextureByID(textures[0].id))
+        DBOperator.deleteAllTextures()
+        assert(DBOperator.getAllTextures().isEmpty())
     }
 
     @Test
     fun sampleSessionTest() {
-        val fileName = sampleMapForSession
+        val mapFileName = sampleMapFiles[1]
 
-        DBOperator.addUser(UserInfo("Vasia", "vasia12345"))
-        DBOperator.addUser(UserInfo("Petya", "petya09876"))
-        DBOperator.addUser(UserInfo("Clara", "zmxncbv"))
+        DBOperator.addUser("Vasia", "vasia12345")
+        DBOperator.addUser("Petya", "petya09876")
+        DBOperator.addUser("Clara", "zmxncbvz")
 
         val playerIds = DBOperator
             .getAllUsers()
             .associateBy({ it.login }) { it.id }
 
-        DBOperator.createNewMap(fileName, "TestMap")
+        DBOperator.createNewMap(mapFileName, "TestMap")
         DBOperator.addMap(MapInfo("$mapsFolder/${UUID.randomUUID()}.json"))
         val (mapId1, mapId2) = DBOperator.getAllMapInfos().map { it.id }
 
@@ -116,13 +224,13 @@ class DBTests {
         DBOperator.addPlayerToSession(sId2, playerIds["Clara"]!!, 5)
         DBOperator.addPlayerToSession(sId3, playerIds["Clara"]!!)
 
-        assert(DBOperator.getPlayersOfSession(sId1)
+        assert(DBOperator.getUsersInSession(sId1)
             .let { players ->
                 players.any { it.login == "Vasia" } &&
                         players.any { it.login == "Petya" } &&
                         players.none { it.login == "Clara" }
             })
-        assert(DBOperator.getPlayersOfSession(sId2)
+        assert(DBOperator.getUsersInSession(sId2)
             .let { players ->
                 players.any { it.login == "Vasia" } &&
                         players.none { it.login == "Petya" } &&
@@ -148,7 +256,7 @@ class DBTests {
                         sessions.any { it.id == sId2 } &&
                         sessions.none { it.id == sId3 }
             })
-        assert(DBOperator.getPlayersOfSession(sId3)
+        assert(DBOperator.getUsersInSession(sId3)
             .let { players ->
                 players.any { it.login == "Petya" } &&
                         players.none { it.login == "Clara" }
@@ -161,6 +269,22 @@ class DBTests {
         assert(DBOperator.getPlayersGameStateOfSession(sId1)
             .first { it.player.login == "Vasia" }
             .let { it.xPos == 7 && it.yPos == 8 })
+
+        DBOperator.deleteSessionByID(sId1)
+        assertNull(DBOperator.getSessionByID(sId1))
+        assertThrows<IllegalArgumentException> { DBOperator.getUsersInSession(sId1) }
+        assertThrows<NoSuchElementException> { DBOperator.getPlayersGameStateOfSession(sId1).first() }
+
+        DBOperator.deleteAllSessions()
+        assert(DBOperator.getSessionsOfUser(playerIds["Clara"]!!).isEmpty())
+    }
+
+    @AfterEach
+    fun clearDatabase() {
+        DBOperator.deleteAllSessions()
+        DBOperator.getAllMapInfos().forEach { DBOperator.deleteMapInfoByID(it.id) }
+        DBOperator.getAllUsers().forEach { DBOperator.deleteUserByID(it.id) }
+        DBOperator.deleteAllTextures()
     }
 
     companion object {
@@ -174,13 +298,13 @@ class DBTests {
         @AfterAll
         fun deleteDB() {
             DBOperator.deleteTestDatabase()
-            File("$mapsFolder/$testFolder")
+            File("$mapsFolder/$TEST_FOLDER")
                 .let { file -> if (file.isDirectory) file.delete() }
-            File("$mapsFolder/$sampleMap.json")
-                .let { file -> if (file.isFile) file.delete() }
-            File("$mapsFolder/$sampleMapForSession.json")
-                .let { file -> if (file.isFile) file.delete() }
-            File("$texturesFolder/$testFolder")
+            sampleMapFiles
+                .forEach {
+                    File("$mapsFolder/$it.json").apply { if (isFile) delete() }
+                }
+            File("$texturesFolder/$TEST_FOLDER")
                 .let { file -> if (file.isDirectory) file.delete() }
         }
     }
