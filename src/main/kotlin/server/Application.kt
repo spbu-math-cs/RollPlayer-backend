@@ -53,9 +53,8 @@ private fun Application.extracted() {
 
     suspend fun handleRequestError(call: ApplicationCall, path: String, e: Exception) {
         val errorInfo = e.localizedMessage ?: "Unknown Error"
-        val errorMessage = "Error processing $path - $errorInfo"
+        val errorMessage = "Failed GET request to $path : $errorInfo"
         val logger = LoggerFactory.getLogger(Application::class.java)
-
         logger.error(errorMessage, e)
         call.respond(
             HttpStatusCode.BadRequest,
@@ -108,13 +107,13 @@ private fun Application.extracted() {
             logger.info("WebSocket connection established with ${call.request.origin.remoteAddress}")
             connections += thisConnection
             val id = thisConnection.id
-
-            send(createSimpleMap())
-            playerPropertiesByID.forEach {
-                send(Json.encodeToString(Player(it.key, it.value)))
-            }
-            playerPropertiesByID[id] = PlayerProperties(id)
             try {
+                send(createSimpleMap())
+                playerPropertiesByID.forEach {
+                    send(Json.encodeToString(Player(it.key, it.value)))
+                }
+                playerPropertiesByID[id] = PlayerProperties(id)
+
                 connections.forEach {
                     it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
                 }
@@ -128,7 +127,7 @@ private fun Application.extracted() {
                             it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
                         }
                     }
-                    logger.info("WebSocket messages sent to ${connections.size} clients about ${call.request.origin.remoteAddress}")
+                    logger.info("WebSocket messages sent to ${connections.size} clients information of ${call.request.origin.remoteAddress}")
                 }
             } catch (e: Exception) {
                 logger.error("WebSocket error: ${e.localizedMessage}")
@@ -141,7 +140,7 @@ private fun Application.extracted() {
                     it.session.send(Json.encodeToString(Player(id, oldProperties)))
                 }
                 connections -= thisConnection
-                logger.info("WebSocket messages sent to ${connections.size} clients about closing.")
+                logger.info("WebSocket messages sent to ${connections.size} clients about closing of ${call.request.origin.remoteAddress}.")
             }
         }
     }
