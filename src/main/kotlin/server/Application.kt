@@ -8,6 +8,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -20,7 +21,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Duration
 import java.util.*
-
 
 fun Application.module() {
     val port = environment.config.propertyOrNull("ktor.deployment.port")
@@ -49,14 +49,26 @@ private fun Application.extracted() {
 
     val connections = Collections.synchronizedSet<Connection?>(LinkedHashSet())
     val playerPropertiesByID = mutableMapOf<Int, PlayerProperties>()
+    val logger = LoggerFactory.getLogger(Application::class.java)
 
-    println("Server is ready")
+    suspend fun handleRequestError(call: ApplicationCall, path: String, e: Exception) {
+        val errorInfo = e.localizedMessage ?: "Unknown Error"
+        val errorMessage = "Error processing $path - $errorInfo"
+        val logger = LoggerFactory.getLogger(Application::class.java)
+
+        logger.error(errorMessage, e)
+        call.respond(
+            HttpStatusCode.BadRequest,
+            mapOf("type" to "error", "message" to errorInfo)
+        )
+    }
+
+    logger.info("Server is ready")
     routing {
         static {
             staticRootFolder = File("") // project root dir
             files("static") // dir for all static files
         }
-        val logger = LoggerFactory.getLogger(Application::class.java)
 
         /** Send all textures */
         get("/api/textures") {
@@ -64,23 +76,15 @@ private fun Application.extracted() {
                 val textures = DBOperator.getAllTextures()
                 call.response.status(HttpStatusCode.OK)
                 call.respond(textures.map { mapOf("id" to it.id.toString(), "url" to it.pathToFile) })
-                logger.info("GET request: /api/textures - Success")
+                logger.info("GET request: /api/textures was successful. Received from: ${call.request.origin.remoteHost}")
             } catch (e: Exception) {
-                val errorMessage = "Error processing GET request: /api/textures - ${e.localizedMessage}"
-                logger.error(errorMessage, e)
-                val errorInfo: String = e.message ?: "Unknown Error"
-                logger.error("Error processing GET request: /api/textures - $errorInfo", e)
-                call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("type" to "error", "message" to errorInfo)
-                )
+                handleRequestError(call, "/api/textures", e)
             }
         }
 
         /** Send texture by ID */
         get("/api/textures/{id}") {
             val textureID = call.parameters["id"]?.toIntOrNull() ?: 0
-            logger.info("GET request: /api/textures/$textureID")
             try {
                 val textureFile = File(DBOperator.getTextureByID(textureID)?.pathToFile
                     ?: throw IllegalArgumentException("Texture #$textureID does not exist"))
@@ -92,21 +96,15 @@ private fun Application.extracted() {
                         .toString()
                 )
                 call.respondFile(textureFile)
-                logger.info("GET request: /api/textures/$textureID - Success")
+                logger.info("Successful GET request to /api/textures/$textureID from ${call.request.origin.remoteHost}")
             } catch (e: Exception) {
-                val errorMessage = "Error processing GET request: /api/textures/$textureID - ${e.localizedMessage}"
-                logger.error(errorMessage)
-                val errorInfo: String = e.message ?: "Unknown Error"
-                call.respond(
-                    HttpStatusCode.BadRequest,
-                    mapOf("type" to "error", "message" to errorInfo)
-                )
+                handleRequestError(call, "/api/textures/$textureID", e)
             }
         }
 
         /** Get json with some fields of PlayerProperties and new values */
         webSocket("/api/connect") {
-            logger.info("WebSocket connection established.")
+            logger.info("WebSocket connection established with ${call.request.origin.remoteHost}")
             val thisConnection = Connection(this)
             connections += thisConnection
             val id = thisConnection.id
@@ -126,11 +124,15 @@ private fun Application.extracted() {
                     val newProperties = JSONObject(frame.readText())
                     val oldProperties = playerPropertiesByID.getValue(id)
                     playerPropertiesByID[id] = updateProperties(oldProperties, newProperties)
-                    connections.forEach {
-                        it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
+                    connections.forEach { otherConnection ->
+                        if (otherConnection.id != id) {
+                            logger.info("Sending player data from Player #$id to Player #${otherConnection.id}: ${Json.encodeToString(Player(id, playerPropertiesByID.getValue(id)))}")
+                            otherConnection.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
+                        }
                     }
                 }
-                logger.info("WebSocket messages sent successfully.")
+                val numberOfClients = connections.size
+                logger.info("WebSocket messages sent to $numberOfClients clients: All clients, ${playerPropertiesByID.size} players.")
             } catch (e: Exception) {
                 logger.error("WebSocket error: ${e.localizedMessage}")
             } finally {
@@ -142,10 +144,8 @@ private fun Application.extracted() {
                     it.session.send(Json.encodeToString(Player(id, oldProperties)))
                 }
                 connections -= thisConnection
-                logger.info("WebSocket connection closed.")
+                logger.info("WebSocket connection closed with ${call.request.origin.remoteHost}.")
             }
         }
-
-
     }
 }
