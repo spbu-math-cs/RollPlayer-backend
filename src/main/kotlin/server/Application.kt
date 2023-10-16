@@ -76,7 +76,7 @@ private fun Application.extracted() {
                 val textures = DBOperator.getAllTextures()
                 call.response.status(HttpStatusCode.OK)
                 call.respond(textures.map { mapOf("id" to it.id.toString(), "url" to it.pathToFile) })
-                logger.info("GET request: /api/textures was successful. Received from: ${call.request.origin.remoteHost}")
+                logger.info("Successful GET request to /api/textures. Received from: ${call.request.origin.remoteAddress}")
             } catch (e: Exception) {
                 handleRequestError(call, "/api/textures", e)
             }
@@ -96,7 +96,7 @@ private fun Application.extracted() {
                         .toString()
                 )
                 call.respondFile(textureFile)
-                logger.info("Successful GET request to /api/textures/$textureID from ${call.request.origin.remoteHost}")
+                logger.info("Successful GET request to /api/textures/$textureID. Received from: ${call.request.origin.remoteAddress}")
             } catch (e: Exception) {
                 handleRequestError(call, "/api/textures/$textureID", e)
             }
@@ -104,8 +104,8 @@ private fun Application.extracted() {
 
         /** Get json with some fields of PlayerProperties and new values */
         webSocket("/api/connect") {
-            logger.info("WebSocket connection established with ${call.request.origin.remoteHost}")
             val thisConnection = Connection(this)
+            logger.info("WebSocket connection established with ${call.request.origin.remoteAddress}")
             connections += thisConnection
             val id = thisConnection.id
 
@@ -114,7 +114,6 @@ private fun Application.extracted() {
                 send(Json.encodeToString(Player(it.key, it.value)))
             }
             playerPropertiesByID[id] = PlayerProperties(id)
-
             try {
                 connections.forEach {
                     it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
@@ -125,14 +124,12 @@ private fun Application.extracted() {
                     val oldProperties = playerPropertiesByID.getValue(id)
                     playerPropertiesByID[id] = updateProperties(oldProperties, newProperties)
                     connections.forEach { otherConnection ->
-                        if (otherConnection.id != id) {
-                            logger.info("Sending player data from Player #$id to Player #${otherConnection.id}: ${Json.encodeToString(Player(id, playerPropertiesByID.getValue(id)))}")
-                            otherConnection.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
+                        connections.forEach {
+                            it.session.send(Json.encodeToString(Player(id, playerPropertiesByID.getValue(id))))
                         }
                     }
+                    logger.info("WebSocket messages sent to ${connections.size} clients about ${call.request.origin.remoteAddress}")
                 }
-                val numberOfClients = connections.size
-                logger.info("WebSocket messages sent to $numberOfClients clients: All clients, ${playerPropertiesByID.size} players.")
             } catch (e: Exception) {
                 logger.error("WebSocket error: ${e.localizedMessage}")
             } finally {
@@ -144,7 +141,7 @@ private fun Application.extracted() {
                     it.session.send(Json.encodeToString(Player(id, oldProperties)))
                 }
                 connections -= thisConnection
-                logger.info("WebSocket connection closed with ${call.request.origin.remoteHost}.")
+                logger.info("WebSocket messages sent to ${connections.size} clients about closing.")
             }
         }
     }

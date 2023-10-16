@@ -62,7 +62,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host:1.6.1")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.5.21")
     implementation ("io.ktor:ktor-server-netty:$ktor_version")
-    implementation ("io.ktor:ktor-websockets:$ktor_version")
+    implementation("io.ktor:ktor-websockets:2.3.3")
     testImplementation ("io.ktor:ktor-server-test-host:$ktor_version")
     testImplementation ("io.ktor:ktor-client-mock:$ktor_version")
     testImplementation("com.willowtreeapps.assertk:assertk:0.24")
