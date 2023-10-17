@@ -1,7 +1,6 @@
 package server
 
 import kotlinx.serialization.encodeToString
-
 import kotlinx.serialization.json.Json
 
 fun createSimpleMap(): String {
