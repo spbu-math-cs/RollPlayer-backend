@@ -40,3 +40,5 @@ bin/
 
 ### Project files ###
 /data/*
+
+server.log

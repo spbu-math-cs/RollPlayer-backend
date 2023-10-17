@@ -1,60 +1,46 @@
-//import Server
-//import io.ktor.http.*
-//import io.ktor.server.testing.*
-//import junit.framework.TestCase.assertEquals
-//import org.junit.jupiter.api.Test
-//
-//class ServerTest {
-//
-//    @Test
-//    fun testHelloWorldEndpoint() {
-//        withTestApplication({
-//            configureRouting()
-//        }) {
-//            handleRequest(HttpMethod.Get, "/").apply {
-//                assertEquals(HttpStatusCode.OK, response.status())
-//                assertEquals("Hello, World!", response.content)
-//            }
-//        }
-//    }
-//
-//    private fun Application.configureRouting() {
-//        routing {
-//            get("/") {
-//                call.respondText("Hello, World!", ContentType.Text.Plain)
-//            }
-//            // Добавьте другие маршруты вашего приложения здесь
-//        }
-//    }
-//
-//
-////    @Test
-////    fun testNumberRequest() {
-////        withTestApplication({ Server.launch() }) {
-////            handleRequest(HttpMethod.Get, "/number").apply {
-////                assertEquals(HttpStatusCode.OK, response.status())
-////                assertEquals("42", response.content)
-////            }
-////        }
-////    }
-//
-////    @Test
-////    fun testSumRequest() {
-////        withTestApplication({ Server.launch() }) {
-////            handleRequest(HttpMethod.Get, "/sum{10,20}").apply {
-////                assertEquals(HttpStatusCode.OK, response.status())
-////                assertEquals("Сумма чисел: 30", response.content)
-////            }
-////
-////            handleRequest(HttpMethod.Get, "/sum{abc,def}").apply {
-////                assertEquals(HttpStatusCode.BadRequest, response.status())
-////                assertEquals("Invalid format", response.content)
-////            }
-////
-////            handleRequest(HttpMethod.Get, "/sum{10}").apply {
-////                assertEquals(HttpStatusCode.BadRequest, response.status())
-////                assertEquals("Invalid format", response.content)
-////            }
-////        }
-////    }
-//}
+import server.*
+
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import io.ktor.websocket.*
+
+import org.junit.Test
+
+class ServerTest {
+    @Test
+    fun testGetTextures() {
+        withTestApplication({ module() }) {
+            handleRequest(HttpMethod.Get, "/api/textures").apply {
+//                assertThat(response.content).isEqualTo(
+//                    """
+//                    [
+//                        {"id":"1","url":"/path/to/texture1"},
+//                        {"id":"2","url":"/path/to/texture2"}
+//                    ]
+//                    """.trimIndent()
+//                )
+//                assertThat(response.status()).isEqualTo(HttpStatusCode.OK)
+            }
+        }
+    }
+
+    @Test
+    fun testGetTextureById() {
+        withTestApplication({ module() }) {
+            handleRequest(HttpMethod.Get, "/api/textures/1").apply {
+//                assertThat(response.status()).isEqualTo(HttpStatusCode.OK)
+            }
+        }
+    }
+
+    @Test
+    fun testWebSocketConnection() {
+        withTestApplication({ module() }) {
+            handleWebSocketConversation("/api/connect") { incoming, outgoing ->
+                outgoing.send(Frame.Text("""{"property": "value"}"""))
+                val response = (incoming.receive() as Frame.Text).readText()
+//                assertThat(response).isEqualTo("""{"property": "updatedValue"}""")
+            }
+        }
+    }
+}
