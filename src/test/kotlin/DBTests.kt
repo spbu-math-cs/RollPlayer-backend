@@ -1,14 +1,12 @@
 import db.*
-
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.time.Instant
 import java.util.*
 import kotlin.NoSuchElementException
-
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 private const val TEST_FOLDER = "for_tests"
 private val sampleMapFiles = listOf(
