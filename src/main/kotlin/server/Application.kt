@@ -1,7 +1,10 @@
 package server
 
 import db.DBOperator
-
+import db.DBOperator.addPlayerToSession
+import db.DBOperator.addUser
+import db.DBOperator.removePlayerFromSession
+import db.DBOperator.setSessionActive
 import io.ktor.http.*
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.*
@@ -12,6 +15,7 @@ import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -21,8 +25,8 @@ import java.io.File
 import java.time.Duration
 import java.util.*
 
-import org.json.JSONObject
 import mu.KotlinLogging
+import org.json.JSONObject
 
 fun Application.module() {
     val port = environment.config.propertyOrNull("ktor.deployment.port")
@@ -83,8 +87,10 @@ private fun Application.extracted() {
         get("/api/textures/{id}") {
             val textureID = call.parameters["id"]?.toIntOrNull() ?: 0
             try {
-                val textureFile = File(DBOperator.getTextureByID(textureID)?.pathToFile
-                    ?: throw IllegalArgumentException("Texture #$textureID does not exist"))
+                val textureFile = File(
+                    DBOperator.getTextureByID(textureID)?.pathToFile
+                        ?: throw IllegalArgumentException("Texture #$textureID does not exist")
+                )
                 call.response.status(HttpStatusCode.OK)
                 call.response.header(
                     HttpHeaders.ContentDisposition,
@@ -142,6 +148,70 @@ private fun Application.extracted() {
                 }
 
                 connections -= thisConnection
+            }
+        }
+
+        webSocket("/api/register") {
+            val thisConnection = Connection(this)
+            connections += thisConnection
+            //val id = thisConnection.id
+            val reg = call.parameters["register"]?.toIntOrNull() ?: 0
+            logger.info("WebSocket messages with information of /api/textures/$reg request from: ${call.request.origin.remoteAddress}")
+            val parameters = call.receiveParameters()
+            val login = parameters["login"]
+            val password = parameters["password"]
+
+            if (login != null && password != null) {
+                try {
+                    addUser(login, password)
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "User registered successfully"))
+                    logger.info("WebSocket messages with information of user registration from ${call.request.origin.remoteAddress}")
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Registration failed"))
+                }
+            } else {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
+                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+            }
+        }
+
+        post("/api/login") {
+            val parameters = call.receiveParameters()
+            val sessionId = parameters["sessionId"]?.toInt()
+            val userId = parameters["userId"]?.toIntOrNull()
+            val login = parameters["login"]
+            val password = parameters["password"]
+            val status = parameters["status"].toBoolean()
+            val x = parameters["x"]?.toInt()
+            val y = parameters["y"]?.toInt()
+            if (login != null && password != null) {
+                if (y != null && sessionId != null && userId != null && x != null) {
+                    addPlayerToSession(sessionId, userId, x, y)
+                }
+                if (sessionId != null) {
+                    setSessionActive(sessionId, status)
+                }
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Login successful", "userId" to userId))
+                logger.info("WebSocket messages with information of user Login from ${call.request.origin.remoteAddress}")
+            } else {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid login or password"))
+                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+            }
+        }
+
+
+        post("/api/logout") {
+            val parameters = call.receiveParameters()
+            val sessionId = parameters["sessionId"]?.toIntOrNull()
+            val userId = parameters["userId"]?.toIntOrNull()
+
+            if (sessionId != null && userId != null) {
+                removePlayerFromSession(sessionId, userId)
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Logout successful"))
+                logger.info("WebSocket messages with information of user Logout from ${call.request.origin.remoteAddress}")
+            } else {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
+                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
             }
         }
     }
