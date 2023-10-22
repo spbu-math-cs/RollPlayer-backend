@@ -373,7 +373,7 @@ object DBOperator {
             ?.delete() ?: return@transaction false
         true
     }
-
+    
     fun deleteTextureByID(id: Int): Boolean = transaction {
         TextureData.findById(id)
             ?.delete() ?: return@transaction false
@@ -393,7 +393,7 @@ object DBOperator {
             ?.delete() ?: return@transaction false
         true
     }
-
+    
     fun deleteSessionByID(id: Int): Boolean = transaction {
         SessionPlayerData.find(SessionPlayerTable.sessionID eq id)
             .forEach { it.delete() }

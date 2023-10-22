@@ -161,7 +161,7 @@ private fun Application.extracted() {
             if (login != null && email != null && password != null) {
                 try {
                     val id =  addUser(login, email, password)
-                    call.respond(HttpStatusCode.OK, mapOf("message" to "User $id registered successfully"))
+                    call.respond(HttpStatusCode.Created, mapOf("message" to "User $id registered successfully"))
                     logger.info("Successful POST /api/register request from: ${call.request.origin.remoteAddress}")
                 } catch (e: Exception) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to "User already exists"))
@@ -187,26 +187,31 @@ private fun Application.extracted() {
             val login = parameters["login"]
             val email = parameters["email"]
             val password = parameters["password"]
+
             if (password != null) {
                 var user: UserInfo? = null
+
                 if (login != null) {
                     user = DBOperator.getUserByLogin(login)
                 }
+
                 if (email != null) {
                     user = DBOperator.getUserByEmail(email)
                 }
+
                 if (user != null) {
                     val isMatch = DBOperator.checkUserPassword(userId = user.id, password)
                     if (isMatch) {
                         call.respond(HttpStatusCode.OK, mapOf("userId" to user.id))
                     }
                     else {
-                        call.respond(HttpStatusCode.OK, mapOf("message" to "Invalid login/email or password"))
+                        call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid login/email or password"))
                     }
                 }
                 else {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("userId" to -1))
+                    call.respond(HttpStatusCode.NotFound, mapOf("userId" to -1))
                 }
+
                 logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
             } else {
                 logger.info("Bad POST /api/login request from: ${call.request.origin.remoteAddress}")
@@ -251,7 +256,7 @@ private fun Application.extracted() {
                     DBOperator.updateUserPassword(userId, password)
                     logger.debug("Password for User $userId edit successfully")
                 }
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Data for User $userId edit successfully"))
+                call.respond(HttpStatusCode.Created, mapOf("message" to "Data for User $userId edit successfully"))
                 logger.info("Successful POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Data for User $userId edit failed"))
