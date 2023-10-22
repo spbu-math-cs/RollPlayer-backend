@@ -103,6 +103,12 @@ object DBOperator {
             .firstOrNull()
     }
 
+    fun getUserByEmail(email: String): UserInfo? = transaction {
+        UserData.find(UserTable.email eq email)
+            .map { it.raw() }
+            .firstOrNull()
+    }
+
     fun getUsersInSession(sessionId: Int) = transaction {
         SessionData.findById(sessionId)?.players?.map { it.raw() }
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
@@ -126,9 +132,9 @@ object DBOperator {
         val mapPath = "$mapsFolder/${extractFileName(fileName)}.json"
         val mapFile = File(mapPath)
         if (!mapFile.createNewFile())
-            throw FileAlreadyExistsException(mapFile, reason = "Map ${fileName} already exists")
+            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already exists")
         if (!MapData.find(MapTable.pathToJson eq mapPath).empty())
-            throw FileAlreadyExistsException(mapFile, reason = "Map ${fileName} already recorded in the database")
+            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already recorded in the database")
 
         @Language("JSON") val emptyMap = """
             {
@@ -257,7 +263,7 @@ object DBOperator {
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
-        }
+        }.id
     }
 
     fun checkUserPassword(userId: Int, password: String) = transaction {
@@ -274,6 +280,15 @@ object DBOperator {
         failOnInvalidLogin(newLogin)
 
         user.login = newLogin
+    }
+
+    fun updateUserEmail(userId: Int, newEmail: String) = transaction {
+        val user = UserData.findById(userId)
+            ?: throw IllegalArgumentException("User #$userId does not exist")
+
+        failOnInvalidEmail(newEmail)
+
+        user.email = newEmail
     }
 
     fun updateUserPassword(userId: Int, newPassword: String) = transaction {

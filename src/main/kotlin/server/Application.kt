@@ -161,8 +161,8 @@ private fun Application.extracted() {
 
             if (login != null && email != null && password != null) {
                 try {
-                    addUser(login, email, password)
-                    call.respond(HttpStatusCode.OK, mapOf("message" to "User registered successfully"))
+                    val id =  addUser(login, email, password)
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "User $id registered successfully"))
                     logger.info("WebSocket messages with information of user registration from ${call.request.origin.remoteAddress}")
                 } catch (e: Exception) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Registration failed"))
@@ -176,7 +176,7 @@ private fun Application.extracted() {
             try {
                 val users = DBOperator.getAllUsers()
                 call.response.status(HttpStatusCode.OK)
-                call.respond(users.map { mapOf("login" to it.login) })
+                call.respond(users.map { mapOf("email" to it.login) })
                 logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
             } catch (e: Exception) {
                 handleHTTPRequestError(call, "/api/users", e)
@@ -188,11 +188,12 @@ private fun Application.extracted() {
             val sessionId = parameters["sessionId"]?.toInt()
             val userId = parameters["userId"]?.toIntOrNull()
             val login = parameters["login"]
+            val email = parameters["email"]
             val password = parameters["password"]
             val status = parameters["status"].toBoolean()
             val x = parameters["x"]?.toInt()
             val y = parameters["y"]?.toInt()
-            if (login != null && password != null) {
+            if ((login != null ||  email != null) && password != null) {
                 if (y != null && sessionId != null && userId != null && x != null) {
                     addPlayerToSession(sessionId, userId, x, y)
                 }
@@ -220,6 +221,36 @@ private fun Application.extracted() {
             } else {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
                 logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+            }
+        }
+
+        post("/api/edit/{id}") {
+            val userId = call.parameters["id"]?.toIntOrNull() ?: -1
+            val parameters = call.receiveParameters()
+            val login = parameters["login"]
+            val email = parameters["email"]
+            val password = parameters["password"]
+            try {
+                if (login != null) {
+                    logger.info(login)
+                    DBOperator.updateUserLogin(userId, login)
+                    logger.debug("Login for User $userId edit successfully")
+                }
+                if (email != null) {
+                    logger.info(login)
+                    DBOperator.updateUserEmail(userId, email)
+                    logger.debug("Email for User $userId edit successfully")
+                }
+                if (password != null) {
+                    logger.info(login)
+                    DBOperator.updateUserPassword(userId, password)
+                    logger.debug("Password for User $userId edit successfully")
+                }
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Data for User $userId edit successfully"))
+                logger.info("Successful POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Data for User $userId edit failed"))
+                logger.info("Failed POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")
             }
         }
     }
