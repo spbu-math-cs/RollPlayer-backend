@@ -70,6 +70,3 @@ kotlin {
 project.tasks.named("processResources", Copy::class.java) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
-
-System.setProperty("javax.net.ssl.trustStore", "cacerts")
-System.setProperty("javax.net.ssl.trustStorePassword", "changeit")
