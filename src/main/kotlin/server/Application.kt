@@ -1,10 +1,9 @@
 package server
 
 import db.DBOperator
-import db.DBOperator.addPlayerToSession
 import db.DBOperator.addUser
 import db.DBOperator.removePlayerFromSession
-import db.DBOperator.setSessionActive
+import db.UserInfo
 import io.ktor.http.*
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.*
@@ -163,13 +162,13 @@ private fun Application.extracted() {
                 try {
                     val id =  addUser(login, email, password)
                     call.respond(HttpStatusCode.OK, mapOf("message" to "User $id registered successfully"))
-                    logger.info("WebSocket messages with information of user registration from ${call.request.origin.remoteAddress}")
+                    logger.info("Successful POST /api/register request from: ${call.request.origin.remoteAddress}")
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Registration failed"))
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "User already exists"))
                 }
             } else {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
-                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+                logger.info("Bad POST /api/register request from: ${call.request.origin.remoteAddress}")
             }
         }
         get("api/users"){
@@ -185,26 +184,32 @@ private fun Application.extracted() {
 
         post("/api/login") {
             val parameters = call.receiveParameters()
-            val sessionId = parameters["sessionId"]?.toInt()
-            val userId = parameters["userId"]?.toIntOrNull()
             val login = parameters["login"]
             val email = parameters["email"]
             val password = parameters["password"]
-            val status = parameters["status"].toBoolean()
-            val x = parameters["x"]?.toInt()
-            val y = parameters["y"]?.toInt()
-            if ((login != null ||  email != null) && password != null) {
-                if (y != null && sessionId != null && userId != null && x != null) {
-                    addPlayerToSession(sessionId, userId, x, y)
+            if (password != null) {
+                var user: UserInfo? = null
+                if (login != null) {
+                    user = DBOperator.getUserByLogin(login)
                 }
-                if (sessionId != null) {
-                    setSessionActive(sessionId, status)
+                if (email != null) {
+                    user = DBOperator.getUserByEmail(email)
                 }
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Login successful", "userId" to userId))
-                logger.info("WebSocket messages with information of user Login from ${call.request.origin.remoteAddress}")
+                if (user != null) {
+                    val isMatch = DBOperator.checkUserPassword(userId = user.id, password)
+                    if (isMatch) {
+                        call.respond(HttpStatusCode.OK, mapOf("userId" to user.id))
+                    }
+                    else {
+                        call.respond(HttpStatusCode.OK, mapOf("message" to "Invalid login/email or password"))
+                    }
+                }
+                else {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("userId" to -1))
+                }
+                logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
             } else {
-                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid login or password"))
-                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+                logger.info("Bad POST /api/login request from: ${call.request.origin.remoteAddress}")
             }
         }
 
@@ -217,10 +222,10 @@ private fun Application.extracted() {
             if (sessionId != null && userId != null) {
                 removePlayerFromSession(sessionId, userId)
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Logout successful"))
-                logger.info("WebSocket messages with information of user Logout from ${call.request.origin.remoteAddress}")
+                logger.info("Successful POST /api/logout request from: ${call.request.origin.remoteAddress}")
             } else {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
-                logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+                logger.info("Bad POST /api/logout request from: ${call.request.origin.remoteAddress}")
             }
         }
 

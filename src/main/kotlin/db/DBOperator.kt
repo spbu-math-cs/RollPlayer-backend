@@ -4,6 +4,7 @@ import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import sun.security.util.Password
 import java.io.*
 import java.util.Random
 
@@ -108,6 +109,7 @@ object DBOperator {
             .map { it.raw() }
             .firstOrNull()
     }
+
 
     fun getUsersInSession(sessionId: Int) = transaction {
         SessionData.findById(sessionId)?.players?.map { it.raw() }
