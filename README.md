@@ -48,7 +48,7 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
  "layers":[
     {
      "data":[1, 2, 0
-             2, 1, 3],
+             10, 5, 11],
      "height":2,
      "width":3,
     }   
@@ -65,7 +65,7 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
      "source":"tmp2.tsj"
     },
     {
-     "firstgid":3,
+     "firstgid":11,
      "source":"tmp3.tsj"
     }
  ],
@@ -82,8 +82,9 @@ The map itself is stored in `"data"` field. If the value is `0` then this tile i
 ```json
 {
  "image":"/path/to/image.png",
- "imageheight":32,
- "imagewidth":32,
+ "imageheight":96,
+ "imagewidth":96,
+ "tilecount":9,
  "tileheight":32,
  "tilewidth":32
 }
