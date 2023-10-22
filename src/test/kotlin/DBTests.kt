@@ -17,15 +17,15 @@ private val sampleMapFiles = listOf(
 class DBTests {
     @Test
     fun sampleUserTest() {
-        DBOperator.addUser("Vasia", "vasia12345")
-        DBOperator.addUser("Petya", "petya09876")
-        DBOperator.addUser("Clara", "zmxncbva")
-        DBOperator.addUser("Dendy", "zmxncbva")
-        DBOperator.addUser("Arben", "qwertyzx")
+        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
+        DBOperator.addUser("Petya", "petya@mail.ru","petya09876")
+        DBOperator.addUser("Clara", "clara@mail.ru","zmxncbva")
+        DBOperator.addUser("Dendy", "dendy@mail.ru","zmxncbva")
+        DBOperator.addUser("Arben", "albert@mail.ru","qwertyzx")
 
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "abc") }
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "alreadyexists") }
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "비밀번호에잘못된문자가있습니다") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "12345@mail.ru","abc") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "clara2@mail.ru","alreadyexists") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "kim@mail.ru","비밀번호에잘못된문자가있습니다") }
 
         val users = DBOperator.getAllUsers()
         assert(users.any { it.login == "Vasia" })
@@ -52,11 +52,11 @@ class DBTests {
         assertTrue(DBOperator.checkLoginAvailability("Vasia"))
         assertTrue(DBOperator.checkLoginAvailability("Petya"))
 
-        DBOperator.addUser("Vasia", "vasia12345")
-        DBOperator.addUser("Petya", "petya09876")
-        DBOperator.addUser("Clara", "zmxncbva")
-        DBOperator.addUser("Dendy", "zmxncbva")
-        DBOperator.addUser("Arben", "qwertyzx")
+        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
+        DBOperator.addUser("Petya", "petya@mail.ru","petya09876")
+        DBOperator.addUser("Clara", "clara@mail.ru","zmxncbva")
+        DBOperator.addUser("Dendy", "dendy@mail.ru","zmxncbva")
+        DBOperator.addUser("Arben", "albert@mail.ru","qwertyzx")
 
         assertFalse(DBOperator.checkLoginAvailability("Vasia"))
         assertFalse(DBOperator.checkLoginAvailability("Petya"))
@@ -191,9 +191,9 @@ class DBTests {
     fun sampleSessionTest() {
         val mapFileName = sampleMapFiles[1]
 
-        DBOperator.addUser("Vasia", "vasia12345")
-        DBOperator.addUser("Petya", "petya09876")
-        DBOperator.addUser("Clara", "zmxncbvz")
+        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
+        DBOperator.addUser("Petya", "petya@mail.ru","petya09876")
+        DBOperator.addUser("Clara", "clara@mail.ru","zmxncbva")
 
         val playerIds = DBOperator
             .getAllUsers()

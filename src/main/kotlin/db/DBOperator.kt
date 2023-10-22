@@ -81,7 +81,10 @@ object DBOperator {
             .map { it.raw() }
     }
 
-    fun getAllUsers() = transaction { UserData.all().map { it.raw() } }
+    fun getAllUsers() = transaction {
+        UserData.all()
+            .map { it.raw() }
+    }
     fun getAllMapInfos() = transaction { MapData.all().map { it.raw() } }
     fun getAllSessions() = transaction { SessionData.all().map { it.raw() } }
     fun getActiveSessions() = transaction {
@@ -173,6 +176,7 @@ object DBOperator {
 
     private const val MIN_PASSWORD_CHARACTERS = 8
     private const val PASSWORD_SPECIAL_CHARS = ",.!@#$%^&*()\":;\'_-+=[]|{}~`<>?/\\"
+    private const val  EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z.-]+\$"
     private val PASSWORD_CHAR_LIST = sequence<Char> {
         yieldAll('A'..'Z')
         yieldAll('a'..'z')
@@ -187,6 +191,13 @@ object DBOperator {
 
         if (!UserData.find(UserTable.login eq login).empty())
             throw IllegalArgumentException("User with login `$login` already exists")
+    }
+
+    private fun failOnInvalidEmail(email: String) {
+        if (!email.matches(EMAIL_REGEX.toRegex()))
+            throw IllegalArgumentException("Cannot create user with blank login")
+        if (!UserData.find(UserTable.email eq email).empty())
+            throw IllegalArgumentException("User with login `$email` already exists")
     }
 
     private fun failOnInvalidPassword(password: String) {
@@ -231,8 +242,9 @@ object DBOperator {
         return hash.toInt()
     }
 
-    fun addUser(login: String, password: String) = transaction {
+    fun addUser(login: String, email: String, password: String) = transaction {
         failOnInvalidLogin(login)
+        failOnInvalidEmail(email)
         failOnInvalidPassword(password)
 
         val rand = Random()
@@ -241,6 +253,7 @@ object DBOperator {
 
         UserData.new {
             this.login = login
+            this.email = email
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
@@ -343,7 +356,7 @@ object DBOperator {
             ?.delete() ?: return@transaction false
         true
     }
-    
+
     fun deleteTextureByID(id: Int): Boolean = transaction {
         TextureData.findById(id)
             ?.delete() ?: return@transaction false
@@ -363,7 +376,7 @@ object DBOperator {
             ?.delete() ?: return@transaction false
         true
     }
-    
+
     fun deleteSessionByID(id: Int): Boolean = transaction {
         SessionPlayerData.find(SessionPlayerTable.sessionID eq id)
             .forEach { it.delete() }

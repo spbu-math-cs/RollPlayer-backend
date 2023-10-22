@@ -50,7 +50,7 @@ private fun Application.extracted() {
         masking = false
     }
 
-//    DBOperator.connectOrCreate()
+    DBOperator.connectOrCreate()
 
     val logger = KotlinLogging.logger {}
     val connections = Collections.synchronizedSet<Connection?>(LinkedHashSet())
@@ -151,19 +151,17 @@ private fun Application.extracted() {
             }
         }
 
-        webSocket("/api/register") {
-            val thisConnection = Connection(this)
-            connections += thisConnection
-            //val id = thisConnection.id
+        post("/api/register") {
             val reg = call.parameters["register"]?.toIntOrNull() ?: 0
             logger.info("WebSocket messages with information of /api/textures/$reg request from: ${call.request.origin.remoteAddress}")
             val parameters = call.receiveParameters()
             val login = parameters["login"]
             val password = parameters["password"]
+            val email = parameters["email"]
 
-            if (login != null && password != null) {
+            if (login != null && email != null && password != null) {
                 try {
-                    addUser(login, password)
+                    addUser(login, email, password)
                     call.respond(HttpStatusCode.OK, mapOf("message" to "User registered successfully"))
                     logger.info("WebSocket messages with information of user registration from ${call.request.origin.remoteAddress}")
                 } catch (e: Exception) {
@@ -172,6 +170,16 @@ private fun Application.extracted() {
             } else {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameters"))
                 logger.info("WebSocket messages with information of Invalid request parameters from ${call.request.origin.remoteAddress}")
+            }
+        }
+        get("api/users"){
+            try {
+                val users = DBOperator.getAllUsers()
+                call.response.status(HttpStatusCode.OK)
+                call.respond(users.map { mapOf("login" to it.login) })
+                logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
+            } catch (e: Exception) {
+                handleHTTPRequestError(call, "/api/users", e)
             }
         }
 
