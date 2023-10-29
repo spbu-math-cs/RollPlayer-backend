@@ -3,9 +3,9 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import java.io.File
-import java.lang.IllegalArgumentException
 import java.time.Instant
 import java.util.*
+import kotlin.IllegalArgumentException
 import kotlin.NoSuchElementException
 
 private const val TEST_FOLDER = "for_tests"
@@ -18,14 +18,18 @@ class DBTests {
     @Test
     fun sampleUserTest() {
         DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
-        DBOperator.addUser("Petya", "petya@mail.ru","petya09876")
-        DBOperator.addUser("Clara", "clara@mail.ru","zmxncbva")
-        DBOperator.addUser("Dendy", "dendy@mail.ru","zmxncbva")
-        DBOperator.addUser("Arben", "albert@mail.ru","qwertyzx")
+        DBOperator.addUser("Petya", "petya@yandex.ru","petya09876")
+        DBOperator.addUser("Clara", "clara@gmail.com","zmxncbva")
+        DBOperator.addUser("Dendy", "dendy100100_0101@404.com","zmxncbva")
+        DBOperator.addUser("Arben", "arben@postashqiptare.al","qwertyzx")
 
         assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "12345@mail.ru","abc") }
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "clara2@mail.ru","alreadyexists") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "clara2@gmail.com","loginalreadyexists") }
         assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "kim@mail.ru","비밀번호에잘못된문자가있습니다") }
+
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("12346", "petya@yandex.ru","emailalreadyexists") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Wendy", "h@ck3r@O_o.|&|","emailincorrect") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "kimmail.ru","emailincorrect") }
 
         val users = DBOperator.getAllUsers()
         assert(users.any { it.login == "Vasia" })
@@ -35,12 +39,15 @@ class DBTests {
         val userVasia = DBOperator.getUserByLogin("Vasia")
         assertNotNull(userVasia)
         assertEquals(userVasia!!.login, "Vasia")
+        assertEquals(userVasia.email, "vasia@mail.ru")
         assertEquals("Vasia", DBOperator.getUserByID(userVasia.id)?.login)
-        assertNull(DBOperator.getUserByID(DBOperator.getAllUsers().maxOf { it.id } + 1))
+        assertEquals("Vasia", DBOperator.getUserByEmail(userVasia.email)?.login)
+        assertNull(DBOperator.getUserByID(DBOperator.getAllUsers().maxOf { it.id } + 1u))
 
         DBOperator.deleteUserByID(userVasia.id)
         assertNull(DBOperator.getUserByID(userVasia.id))
         assertNull(DBOperator.getUserByLogin("Vasia"))
+        assertNull(DBOperator.getUserByEmail("vasia@mail.ru"))
 
         DBOperator.getAllUsers()
             .forEach { DBOperator.deleteUserByID(it.id) }
@@ -53,17 +60,27 @@ class DBTests {
         assertTrue(DBOperator.checkLoginAvailability("Petya"))
 
         DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
-        DBOperator.addUser("Petya", "petya@mail.ru","petya09876")
-        DBOperator.addUser("Clara", "clara@mail.ru","zmxncbva")
-        DBOperator.addUser("Dendy", "dendy@mail.ru","zmxncbva")
-        DBOperator.addUser("Arben", "albert@mail.ru","qwertyzx")
+        DBOperator.addUser("Petya", "petya@yandex.ru","petya09876")
+        DBOperator.addUser("Clara", "clara@gmail.com","zmxncbva")
+        DBOperator.addUser("Dendy", "dendy@yahoo.com","zmxncbva")
+        DBOperator.addUser("Arben", "arben@postashqiptare.al","qwertyzx")
 
         assertFalse(DBOperator.checkLoginAvailability("Vasia"))
         assertFalse(DBOperator.checkLoginAvailability("Petya"))
+        assertFalse(DBOperator.checkLoginAvailability(""))
         assertTrue(DBOperator.checkLoginAvailability("Kira"))
         assertTrue(DBOperator.checkLoginAvailability("Jumbo"))
 
-        assertFalse(DBOperator.checkLoginAvailability(""))
+        assertFalse(DBOperator.checkEmailAvailability("dendy@yahoo.com"))
+        assertFalse(DBOperator.checkEmailAvailability("arben@postashqiptare.al"))
+        assertFalse(DBOperator.checkEmailAvailability("napoléon@gmail.com"))
+        assertFalse(DBOperator.checkEmailAvailability("petya_yandex.ru"))
+        assertFalse(DBOperator.checkEmailAvailability("petya@yandexru"))
+        assertFalse(DBOperator.checkEmailAvailability(""))
+
+        assertTrue(DBOperator.checkEmailAvailability("kira@gmail.com"))
+        assertTrue(DBOperator.checkEmailAvailability("jumbo@mumbo.jumbo"))
+        assertTrue(DBOperator.checkEmailAvailability("dendy@yandex.ru"))
 
         val userIds = DBOperator.getAllUsers()
             .associateBy({ it.login }) { it.id }
@@ -81,7 +98,7 @@ class DBTests {
         DBOperator.updateUserLogin(userIds["Vasia"]!!, "Basil")
 
         assertThrows<IllegalArgumentException> { DBOperator.updateUserLogin(
-            DBOperator.getAllUsers().maxOf { it.id } + 1,
+            DBOperator.getAllUsers().maxOf { it.id } + 1u,
             "DoesNotExist"
         ) }
 
@@ -148,7 +165,7 @@ class DBTests {
                 .readText()
         )
 
-        DBOperator.addMap(MapInfo(anotherFilePath))
+        DBOperator.addMap(anotherFilePath)
 
         val maps = DBOperator.getAllMapInfos()
         val existingMap = maps.firstOrNull {
@@ -174,7 +191,7 @@ class DBTests {
         val fileName = UUID.randomUUID().toString()
         val filePath = "$texturesFolder/$TEST_FOLDER/$fileName.png"
 
-        DBOperator.addTexture(TextureInfo(filePath))
+        DBOperator.addTexture(filePath)
 
         val textures = DBOperator.getAllTextures()
         assertEquals(1, textures.count())
@@ -200,22 +217,26 @@ class DBTests {
             .associateBy({ it.login }) { it.id }
 
         DBOperator.createNewMap(mapFileName, "TestMap")
-        DBOperator.addMap(MapInfo("$mapsFolder/${UUID.randomUUID()}.json"))
+        DBOperator.addMap("$mapsFolder/${UUID.randomUUID()}.json")
         val (mapId1, mapId2) = DBOperator.getAllMapInfos().map { it.id }
 
-        DBOperator.addSession(SessionInfo(mapId1, true, Instant.now()))
-        DBOperator.addSession(SessionInfo(mapId1, true, Instant.EPOCH))
-        DBOperator.addSession(SessionInfo(mapId2, false, Instant.now()))
+        DBOperator.addSession(mapId1, true, Instant.now())
+        DBOperator.addSession(mapId1, true, Instant.EPOCH)
+        DBOperator.addSession(mapId2, false, Instant.now())
         val (sId1, sId2, sId3) = DBOperator.getAllSessions().map { it.id }
 
         assert(DBOperator.getAllSessions().any { it.mapID == mapId2 })
         assert(DBOperator.getActiveSessions().all { it.mapID == mapId1 })
 
         assertTrue(DBOperator.getSessionByID(sId2)?.active ?: false)
-        assertTrue(DBOperator.setSessionActive(sId2, false))
+        assertDoesNotThrow { DBOperator.setSessionActive(sId2, false) }
         assertFalse(DBOperator.getSessionByID(sId2)?.active ?: true)
-        assertTrue(DBOperator.setSessionActive(sId2, true))
+        assertDoesNotThrow { DBOperator.setSessionActive(sId2, true) }
         assertTrue(DBOperator.getSessionByID(sId2)?.active ?: false)
+
+        assertThrows<IllegalArgumentException> {
+            DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
+        }
 
         DBOperator.addPlayerToSession(sId1, playerIds["Vasia"]!!, 1, 2)
         DBOperator.addPlayerToSession(sId2, playerIds["Vasia"]!!, 1, 3)

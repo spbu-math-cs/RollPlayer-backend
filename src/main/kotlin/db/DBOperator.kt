@@ -4,8 +4,8 @@ import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
-import sun.security.util.Password
 import java.io.*
+import java.time.Instant
 import java.util.Random
 
 const val dbPath = "./data/roll_player"
@@ -93,10 +93,10 @@ object DBOperator {
             .map { it.raw() }
     }
 
-    fun getUserByID(id: Int) = transaction { UserData.findById(id)?.raw() }
-    fun getTextureByID(id: Int) = transaction { TextureData.findById(id)?.raw() }
-    fun getMapByID(id: Int) = transaction { MapData.findById(id)?.raw() }
-    fun getSessionByID(id: Int) = transaction { SessionData.findById(id)?.raw() }
+    fun getUserByID(id: UInt) = transaction { UserData.findById(id.toInt())?.raw() }
+    fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
+    fun getMapByID(id: UInt) = transaction { MapData.findById(id.toInt())?.raw() }
+    fun getSessionByID(id: UInt) = transaction { SessionData.findById(id.toInt())?.raw() }
 
     fun getUserByLogin(login: String): UserInfo? = transaction {
         UserData.find(UserTable.login eq login)
@@ -111,18 +111,18 @@ object DBOperator {
     }
 
 
-    fun getUsersInSession(sessionId: Int) = transaction {
-        SessionData.findById(sessionId)?.players?.map { it.raw() }
+    fun getUsersInSession(sessionId: UInt) = transaction {
+        SessionData.findById(sessionId.toInt())?.players?.map { it.raw() }
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
     }
 
-    fun getPlayersGameStateOfSession(sessionId: Int) = transaction {
-        SessionPlayerData.find(SessionPlayerTable.sessionID eq sessionId)
+    fun getPlayersGameStateOfSession(sessionId: UInt) = transaction {
+        SessionPlayerData.find(SessionPlayerTable.sessionID eq sessionId.toInt())
             .map { it.raw() }
     }
 
-    fun getSessionsOfUser(userId: Int) = transaction {
-        UserData.findById(userId)?.sessions?.map { it.raw() }
+    fun getSessionsOfUser(userId: UInt) = transaction {
+        UserData.findById(userId.toInt())?.sessions?.map { it.raw() }
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
 
@@ -151,31 +151,31 @@ object DBOperator {
         }.raw()
     }
 
-    fun addTexture(textureInfo: TextureInfo) = transaction {
-        if (!TextureData.find(TextureTable.pathToFile eq textureInfo.pathToFile).empty())
-            throw IllegalArgumentException("Texture `${textureInfo.pathToFile}` already recorded in the database")
+    fun addTexture(pathToFile: String) = transaction {
+        if (!TextureData.find(TextureTable.pathToFile eq pathToFile).empty())
+            throw IllegalArgumentException("Texture `${pathToFile}` already recorded in the database")
 
         TextureData.new {
-            pathToFile = textureInfo.pathToFile
-        }
+            this.pathToFile = pathToFile
+        }.id.value
     }
 
-    fun addMap(mapInfo: MapInfo) = transaction {
-        if (!MapData.find(MapTable.pathToJson eq mapInfo.pathToJson).empty())
-            throw IllegalArgumentException("Map `${mapInfo.pathToJson}` already recorded in the database")
+    fun addMap(pathToJson: String) = transaction {
+        if (!MapData.find(MapTable.pathToJson eq pathToJson).empty())
+            throw IllegalArgumentException("Map `${pathToJson}` already recorded in the database")
 
         MapData.new {
-            pathToJson = mapInfo.pathToJson
-        }
+            this.pathToJson = pathToJson
+        }.id.value
     }
 
-    fun addSession(sessionInfo: SessionInfo) = transaction {
+    fun addSession(mapID: UInt, active: Boolean, started: Instant?) = transaction {
         SessionData.new {
-            map = MapData.findById(sessionInfo.mapID)
-                ?: throw IllegalArgumentException("Map #${sessionInfo.mapID} does not exist")
-            active = sessionInfo.active
-            started = sessionInfo.started
-        }
+            map = MapData.findById(mapID.toInt())
+                ?: throw IllegalArgumentException("Map #${mapID} does not exist")
+            this.active = active
+            this.started = started
+        }.id.value
     }
 
     // =================
@@ -203,9 +203,9 @@ object DBOperator {
 
     private fun failOnInvalidEmail(email: String) {
         if (!email.matches(EMAIL_REGEX.toRegex()))
-            throw IllegalArgumentException("Cannot create user with blank login")
+            throw IllegalArgumentException("Email does not match regex $EMAIL_REGEX")
         if (!UserData.find(UserTable.email eq email).empty())
-            throw IllegalArgumentException("User with login `$email` already exists")
+            throw IllegalArgumentException("User with email `$email` already exists")
     }
 
     private fun failOnInvalidPassword(password: String) {
@@ -224,6 +224,16 @@ object DBOperator {
     fun checkLoginAvailability(login: String) = transaction {
         try {
             failOnInvalidLogin(login)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // для тестирования
+    fun checkEmailAvailability(email: String) = transaction {
+        try {
+            failOnInvalidEmail(email)
             true
         } catch (e: Exception) {
             false
@@ -265,18 +275,18 @@ object DBOperator {
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
-        }.id
+        }.id.value
     }
 
-    fun checkUserPassword(userId: Int, password: String) = transaction {
-        val user = UserData.findById(userId)
+    fun checkUserPassword(userId: UInt, password: String) = transaction {
+        val user = UserData.findById(userId.toInt())
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
         hashPassword(password, user.pswHashInitial, user.pswHashFactor) == user.passwordHash
     }
 
-    fun updateUserLogin(userId: Int, newLogin: String) = transaction {
-        val user = UserData.findById(userId)
+    fun updateUserLogin(userId: UInt, newLogin: String) = transaction {
+        val user = UserData.findById(userId.toInt())
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
         failOnInvalidLogin(newLogin)
@@ -284,8 +294,8 @@ object DBOperator {
         user.login = newLogin
     }
 
-    fun updateUserEmail(userId: Int, newEmail: String) = transaction {
-        val user = UserData.findById(userId)
+    fun updateUserEmail(userId: UInt, newEmail: String) = transaction {
+        val user = UserData.findById(userId.toInt())
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
         failOnInvalidEmail(newEmail)
@@ -293,8 +303,8 @@ object DBOperator {
         user.email = newEmail
     }
 
-    fun updateUserPassword(userId: Int, newPassword: String) = transaction {
-        val user = UserData.findById(userId)
+    fun updateUserPassword(userId: UInt, newPassword: String) = transaction {
+        val user = UserData.findById(userId.toInt())
             ?: throw IllegalArgumentException("User #$userId does not exist")
 
         failOnInvalidPassword(newPassword)
@@ -306,28 +316,27 @@ object DBOperator {
     // SESSION MANIPULATION
     // ====================
 
-    fun addPlayerToSession(sId: Int, uId: Int, x: Int = 0, y: Int = 0) = transaction {
+    fun addPlayerToSession(sId: UInt, uId: UInt, x: Int = 0, y: Int = 0) = transaction {
         SessionPlayerData.new {
-            session = SessionData.findById(sId)
+            session = SessionData.findById(sId.toInt())
                 ?: throw IllegalArgumentException("Session #$sId does not exist")
-            player = UserData.findById(uId)
+            player = UserData.findById(uId.toInt())
                 ?: throw IllegalArgumentException("User #$uId does not exist")
             xPos = x
             yPos = y
         }
     }
 
-    fun setSessionActive(sessionId: Int, active: Boolean) = transaction {
-        SessionData.findById(sessionId)
-            .also { if (it == null) return@transaction false }
-            ?.active = active
-        true
+    fun setSessionActive(sessionId: UInt, active: Boolean) = transaction {
+        (SessionData.findById(sessionId.toInt())
+                ?: throw IllegalArgumentException("Session #$sessionId does not exist"))
+            .active = active
     }
 
-    fun movePlayer(sessionId: Int, playerId: Int, moveToX: Int, moveToY: Int) = transaction {
+    fun movePlayer(sessionId: UInt, playerId: UInt, moveToX: Int, moveToY: Int) = transaction {
         SessionPlayerData.find(
-            SessionPlayerTable.sessionID eq sessionId and
-                    (SessionPlayerTable.playerID eq playerId)
+            SessionPlayerTable.sessionID eq sessionId.toInt() and
+                    (SessionPlayerTable.playerID eq playerId.toInt())
         ).let {
             if (it.count() == 0L)
                 throw IllegalArgumentException("Player #$playerId is not present in session #$sessionId or session does not exist")
@@ -338,10 +347,10 @@ object DBOperator {
         }
     }
 
-    fun removePlayerFromSession(sId: Int, uId: Int) = transaction {
+    fun removePlayerFromSession(sId: UInt, uId: UInt) = transaction {
         SessionPlayerData.find(
-            SessionPlayerTable.sessionID eq sId and
-                    (SessionPlayerTable.playerID eq uId)
+            SessionPlayerTable.sessionID eq sId.toInt() and
+                    (SessionPlayerTable.playerID eq uId.toInt())
         ).let {
             if (it.count() == 0L) return@transaction false
             else it.first().delete()
@@ -366,38 +375,38 @@ object DBOperator {
     }
 
     // ВНИМАНИЕ: также этот пользователь выйдет из всех сессий
-    fun deleteUserByID(id: Int): Boolean = transaction {
-        SessionPlayerData.find(SessionPlayerTable.playerID eq id)
+    fun deleteUserByID(id: UInt): Boolean = transaction {
+        SessionPlayerData.find(SessionPlayerTable.playerID eq id.toInt())
             .forEach { it.delete() }
-        UserData.findById(id)
+        UserData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
     
-    fun deleteTextureByID(id: Int): Boolean = transaction {
-        TextureData.findById(id)
+    fun deleteTextureByID(id: UInt): Boolean = transaction {
+        TextureData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
 
     // ВНИМАНИЕ: также удалит все сессии на этой карте
     // Это делается для ненарушения ссылочной целостности
-    fun deleteMapInfoByID(id: Int): Boolean = transaction {
-        SessionData.find(SessionTable.mapID eq id)
+    fun deleteMapInfoByID(id: UInt): Boolean = transaction {
+        SessionData.find(SessionTable.mapID eq id.toInt())
             .forEach {
                 SessionPlayerData.find(SessionPlayerTable.sessionID eq it.id)
                     .forEach { it.delete() }
                 it.delete()
             }
-        MapData.findById(id)
+        MapData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
     
-    fun deleteSessionByID(id: Int): Boolean = transaction {
-        SessionPlayerData.find(SessionPlayerTable.sessionID eq id)
+    fun deleteSessionByID(id: UInt): Boolean = transaction {
+        SessionPlayerData.find(SessionPlayerTable.sessionID eq id.toInt())
             .forEach { it.delete() }
-        SessionData.findById(id)
+        SessionData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }

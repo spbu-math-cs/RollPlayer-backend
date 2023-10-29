@@ -27,22 +27,18 @@ class UserData(id: EntityID<Int>): IntEntity(id) {
     var sessions by SessionData via SessionPlayerTable
 
     fun raw(): UserInfo = UserInfo(
-        login = login,
-        email = email,
-        passwordHash = passwordHash,
-        pswHashInitial = pswHashInitial,
-        pswHashFactor = pswHashFactor,
-        id = id.value
+        id.value.toUInt(),
+        login,
+        email,
+        passwordHash,
     )
 }
 
 data class UserInfo(
-    val id: Int = -1,
+    val id: UInt,
     val login: String,
     val email: String,
-    val passwordHash: Int,
-    val pswHashInitial: Int,
-    val pswHashFactor: Int
+    val passwordHash: Int
 ){
-    fun load(): User = User(login = login, email = email, password = passwordHash, id = id)
+    fun load(): User = User(id, login, email, passwordHash)
 }

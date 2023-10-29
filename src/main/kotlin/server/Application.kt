@@ -84,7 +84,7 @@ private fun Application.extracted() {
 
         /** Send texture by ID */
         get("/api/textures/{id}") {
-            val textureID = call.parameters["id"]?.toIntOrNull() ?: 0
+            val textureID = call.parameters["id"]?.toUIntOrNull() ?: 0u
             try {
                 val textureFile = File(
                     DBOperator.getTextureByID(textureID)?.pathToFile
@@ -221,8 +221,8 @@ private fun Application.extracted() {
 
         post("/api/logout") {
             val parameters = call.receiveParameters()
-            val sessionId = parameters["sessionId"]?.toIntOrNull()
-            val userId = parameters["userId"]?.toIntOrNull()
+            val sessionId = parameters["sessionId"]?.toUIntOrNull()
+            val userId = parameters["userId"]?.toUIntOrNull()
 
             if (sessionId != null && userId != null) {
                 removePlayerFromSession(sessionId, userId)
@@ -235,29 +235,34 @@ private fun Application.extracted() {
         }
 
         post("/api/edit/{id}") {
-            val userId = call.parameters["id"]?.toIntOrNull() ?: -1
+            val userId = call.parameters["id"]?.toUIntOrNull()
             val parameters = call.receiveParameters()
             val login = parameters["login"]
             val email = parameters["email"]
             val password = parameters["password"]
             try {
-                if (login != null) {
-                    logger.info(login)
-                    DBOperator.updateUserLogin(userId, login)
-                    logger.debug("Login for User $userId edit successfully")
+                if (userId != null) {
+                    if (login != null) {
+                        logger.info(login)
+                        DBOperator.updateUserLogin(userId, login)
+                        logger.debug("Login for User $userId edit successfully")
+                    }
+                    if (email != null) {
+                        logger.info(login)
+                        DBOperator.updateUserEmail(userId, email)
+                        logger.debug("Email for User $userId edit successfully")
+                    }
+                    if (password != null) {
+                        logger.info(login)
+                        DBOperator.updateUserPassword(userId, password)
+                        logger.debug("Password for User $userId edit successfully")
+                    }
+                    call.respond(HttpStatusCode.Created, mapOf("message" to "Data for User $userId edit successfully"))
+                    logger.info("Successful POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid request parameter 'id'"))
+                    logger.info("Bad POST /api/logout request from: ${call.request.origin.remoteAddress}")
                 }
-                if (email != null) {
-                    logger.info(login)
-                    DBOperator.updateUserEmail(userId, email)
-                    logger.debug("Email for User $userId edit successfully")
-                }
-                if (password != null) {
-                    logger.info(login)
-                    DBOperator.updateUserPassword(userId, password)
-                    logger.debug("Password for User $userId edit successfully")
-                }
-                call.respond(HttpStatusCode.Created, mapOf("message" to "Data for User $userId edit successfully"))
-                logger.info("Successful POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Data for User $userId edit failed"))
                 logger.info("Failed POST /api/edit/{id} request from: ${call.request.origin.remoteAddress}")

@@ -12,10 +12,10 @@ class MapData(id: EntityID<Int>): IntEntity(id) {
 
     var pathToJson by MapTable.pathToJson
 
-    fun raw(): MapInfo = MapInfo(pathToJson, id.value)
+    fun raw(): MapInfo = MapInfo(id.value.toUInt(), pathToJson)
 }
 
-data class MapInfo(val pathToJson: String, val id: Int = -1) {
+data class MapInfo(val id: UInt, val pathToJson: String) {
     fun load(): Map = Map(pathToJson)
 }
 
