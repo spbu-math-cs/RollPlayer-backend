@@ -22,10 +22,10 @@ class SessionData(id: EntityID<Int>): IntEntity(id) {
 
     var players by UserData via SessionPlayerTable
 
-    fun raw() = SessionInfo(map.id.value, active, started, id.value)
+    fun raw() = SessionInfo(id.value.toUInt(), map.id.value.toUInt(), active, started)
 }
 
-data class SessionInfo(val mapID: Int, val active: Boolean, val started: Instant?, val id: Int = -1)
+data class SessionInfo(val id: UInt, val mapID: UInt, val active: Boolean, val started: Instant?)
 
 object SessionPlayerTable: IntIdTable("session_player", "recording_id") {
     val sessionID = reference("session_id", SessionTable)

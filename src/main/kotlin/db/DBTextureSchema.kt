@@ -12,10 +12,10 @@ class TextureData(id: EntityID<Int>): IntEntity(id) {
 
     var pathToFile by TextureTable.pathToFile
 
-    fun raw(): TextureInfo = TextureInfo(pathToFile, id.value)
+    fun raw(): TextureInfo = TextureInfo(id.value.toUInt(), pathToFile)
 }
 
-data class TextureInfo(val pathToFile: String, val id: Int = -1) {
+data class TextureInfo(val id: UInt, val pathToFile: String) {
     fun load(): Texture = Texture(pathToFile)
 }
 

@@ -8,6 +8,7 @@ application {
     mainClass.set("io.ktor.server.netty.EngineMain")
 }
 
+
 sourceSets {
     main {
         kotlin {
@@ -47,6 +48,9 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     implementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
+    // https://mvnrepository.com/artifact/com.h2database/h2
+    implementation("com.h2database:h2:2.1.214")
+
 
     implementation("org.json:json:20230618")
     implementation ("io.github.microutils:kotlin-logging-jvm:2.0.11")
