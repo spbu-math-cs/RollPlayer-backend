@@ -1,8 +1,8 @@
 package db
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
-import server.User
 
 const val indentifierLength = 255
 const val pathLength = 255
@@ -14,6 +14,14 @@ object UserTable: IntIdTable("user", "user_id") {
     val pswHashInitial = integer("psw_hash_initial")
     val pswHashFactor = integer("psw_hash_factor")
 }
+
+@Serializable
+data class UserInfo(
+    val id: UInt,
+    val login: String,
+    val email: String,
+    val passwordHash: Int
+)
 
 class UserData(id: EntityID<Int>): IntEntity(id) {
     companion object: IntEntityClass<UserData>(UserTable)
@@ -32,13 +40,4 @@ class UserData(id: EntityID<Int>): IntEntity(id) {
         email,
         passwordHash,
     )
-}
-
-data class UserInfo(
-    val id: UInt,
-    val login: String,
-    val email: String,
-    val passwordHash: Int
-){
-    fun load(): User = User(id, login, email, passwordHash)
 }

@@ -275,7 +275,7 @@ object DBOperator {
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
-        }.id.value
+        }.id.value.toUInt()
     }
 
     fun checkUserPassword(userId: UInt, password: String) = transaction {
