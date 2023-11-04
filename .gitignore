@@ -39,6 +39,6 @@ bin/
 .DS_Store
 
 ### Project files ###
-/data/*
+data/
 
 server.log

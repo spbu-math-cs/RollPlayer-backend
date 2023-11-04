@@ -87,13 +87,13 @@ object DBOperator {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
     }
-    fun getAllPlayerCharacters() = transaction { CharacterData.all().map { it.raw() } }
+    fun getAllCharacters() = transaction { CharacterData.all().map { it.raw() } }
 
     fun getUserByID(id: UInt) = transaction { UserData.findById(id.toInt())?.raw() }
     fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
     fun getMapByID(id: UInt) = transaction { MapData.findById(id.toInt())?.raw() }
     fun getSessionByID(id: UInt) = transaction { SessionData.findById(id.toInt())?.raw() }
-    fun getPlayerCharacterByID(id: UInt) = transaction { CharacterData.findById(id.toInt())?.raw() }
+    fun getCharacterByID(id: UInt) = transaction { CharacterData.findById(id.toInt())?.raw() }
 
     fun getUserByLogin(login: String): UserInfo? = transaction {
         UserData.find(UserTable.login eq login)
@@ -112,18 +112,18 @@ object DBOperator {
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
     }
 
-    fun getAllPlayerCharactersInSession(sessionId: UInt) = transaction {
+    fun getAllCharactersInSession(sessionId: UInt) = transaction {
         CharacterData.find(CharacterTable.sessionID eq sessionId.toInt())
             .map { it.raw() }
     }
 
-    fun getAllPlayerCharactersOfUser(userId: UInt) = transaction {
+    fun getAllCharactersOfUser(userId: UInt) = transaction {
         CharacterData.find(
             CharacterTable.userID eq userId.toInt())
             .map { it.raw() }
     }
 
-    fun getAllPlayerCharactersOfUserInSession(userId: UInt, sessionId: UInt) = transaction {
+    fun getAllCharactersOfUserInSession(userId: UInt, sessionId: UInt) = transaction {
         CharacterData.find(
             CharacterTable.userID eq userId.toInt() and
                     (CharacterTable.sessionID eq sessionId.toInt()))
@@ -187,14 +187,14 @@ object DBOperator {
         }.id.value
     }
 
-    fun addPlayerCharacter(userId: UInt,
-                           sessionId: UInt,
-                           name: String,
-                           x: Int = 0,
-                           y: Int = 0) = transaction {
+    fun addCharacter(userId: UInt,
+                     sessionId: UInt,
+                     name: String,
+                     x: Int = 0,
+                     y: Int = 0) = transaction {
         CharacterData.new {
-            session = SessionData.findById(sessionId.toInt())
-                ?: throw IllegalArgumentException("Session #$sessionId does not exist")
+//            session = SessionData.findById(sessionId.toInt())
+//                ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
@@ -351,7 +351,7 @@ object DBOperator {
     // PLAYER CHARACTER MANIPULATION
     // =============================
 
-    fun movePlayerCharacter(characterId: UInt, newRow: Int, newCol: Int) = transaction {
+    fun moveCharacter(characterId: UInt, newRow: Int, newCol: Int) = transaction {
         CharacterData
             .findById(characterId.toInt())
             ?.apply {
@@ -413,13 +413,13 @@ object DBOperator {
         true
     }
 
-    fun deletePlayerCharacterByID(id: UInt): Boolean = transaction {
+    fun deleteCharacterById(id: UInt): Boolean = transaction {
         CharacterData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
 
-    fun deleteAllPlayerCharactersOfUserFromSession(uId: UInt, sId: UInt) = transaction {
+    fun deleteAllCharactersOfUserFromSession(uId: UInt, sId: UInt) = transaction {
         CharacterData.find(
             CharacterTable.sessionID eq sId.toInt() and
                     (CharacterTable.userID eq uId.toInt())

@@ -239,27 +239,27 @@ class DBTests {
             DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
         }
 
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId1, "Mad Professor", 1, 2)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId1, "Sensei", 2, 3)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId3, "Kongzilla", 3, 4)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId3, "Hippoceros", 3, 4)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId2, "Heffalump", 5, 3)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId3, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Clara"]!!, sId2, "Dragonosaur",5)
-        DBOperator.addPlayerCharacter(playerIds["Clara"]!!, sId3, "Jabberwock")
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Mad Professor", 1, 2)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
+        DBOperator.addCharacter(playerIds["Petya"]!!, sId1, "Sensei", 2, 3)
+        DBOperator.addCharacter(playerIds["Petya"]!!, sId3, "Kongzilla", 3, 4)
+        DBOperator.addCharacter(playerIds["Petya"]!!, sId3, "Hippoceros", 3, 4)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Heffalump", 5, 3)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId3, "Terminator", 1, 3)
+        DBOperator.addCharacter(playerIds["Clara"]!!, sId2, "Dragonosaur",5)
+        DBOperator.addCharacter(playerIds["Clara"]!!, sId3, "Jabberwock")
 
-        assert(DBOperator.getAllPlayerCharacters()
+        assert(DBOperator.getAllCharacters()
             .count { it.name == "Dragonosaur" } == 2)
-        assert(DBOperator.getAllPlayerCharacters()
+        assert(DBOperator.getAllCharacters()
             .count { it.name == "Terminator" } == 3)
-        assert(DBOperator.getAllPlayerCharacters()
+        assert(DBOperator.getAllCharacters()
             .filter { it.name == "Terminator" }
             .all { it.userId == playerIds["Vasia"]!! })
 
-        val petyaCharacters = DBOperator.getAllPlayerCharactersOfUser(playerIds["Petya"]!!)
+        val petyaCharacters = DBOperator.getAllCharactersOfUser(playerIds["Petya"]!!)
         assertEquals(3, petyaCharacters.count())
         assertEquals(listOf("Hippoceros", "Kongzilla", "Sensei"), petyaCharacters.map { it.name }.sorted())
         assertEquals(Pair(3, 4),
@@ -269,16 +269,16 @@ class DBTests {
         petyaCharacters.filter { it.name == "Hippoceros" }
             .first()
             .let { hippo ->
-                DBOperator.getPlayerCharacterByID(hippo.id)
+                DBOperator.getCharacterByID(hippo.id)
                 .let {
                     assertNotNull(it)
                     assert(it!!.name == "Hippoceros")
                     assert(it.userId == playerIds["Petya"])
                 } }
 
-        assertEquals(0, DBOperator.getAllPlayerCharactersOfUser(playerIds["Dendy"]!!).count())
+        assertEquals(0, DBOperator.getAllCharactersOfUser(playerIds["Dendy"]!!).count())
 
-        val session3Characters = DBOperator.getAllPlayerCharactersInSession(sId3)
+        val session3Characters = DBOperator.getAllCharactersInSession(sId3)
         assertEquals(4, session3Characters.count())
         assertEquals(2, session3Characters.filter { it.userId == playerIds["Petya"]!! }.count())
         assertEquals(Pair(0, 0), session3Characters
@@ -293,75 +293,75 @@ class DBTests {
                 .map { it.name })
 
         assertEquals(listOf<CharacterInfo>(),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Petya"]!!, sId2))
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Petya"]!!, sId2))
         assertEquals(listOf("Heffalump", "Terminator", "Terminator"),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Vasia"]!!, sId2)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId2)
                 .map { it.name }
                 .sorted())
         assertEquals(listOf("Hippoceros", "Kongzilla"),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Petya"]!!, sId3)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Petya"]!!, sId3)
                 .map { it.name }
                 .sorted())
 
         val dragonosaurId: UInt
         assertEquals(Pair(1, 2),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
                 .first { it.name == "Dragonosaur" }
                 .also { dragonosaurId = it.id }
                 .let { Pair(it.row, it.col) })
-        DBOperator.movePlayerCharacter(dragonosaurId, 3, 5)
+        DBOperator.moveCharacter(dragonosaurId, 3, 5)
         assertEquals(Pair(3, 5),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
                 .first { it.name == "Dragonosaur" }
                 .let { Pair(it.row, it.col) })
-        DBOperator.deletePlayerCharacterByID(dragonosaurId)
+        DBOperator.deleteCharacterById(dragonosaurId)
         assertEquals(listOf("Mad Professor"),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
                 .map { it.name })
-        assertNull(DBOperator.getPlayerCharacterByID(dragonosaurId))
+        assertNull(DBOperator.getCharacterByID(dragonosaurId))
 
-        DBOperator.addPlayerCharacter(playerIds["Dendy"]!!, sId1,
+        DBOperator.addCharacter(playerIds["Dendy"]!!, sId1,
             "Bandersnatch", 6, 7)
-        DBOperator.addPlayerCharacter(playerIds["Dendy"]!!, sId3,
+        DBOperator.addCharacter(playerIds["Dendy"]!!, sId3,
             "Kraken", 8)
-        DBOperator.addPlayerCharacter(playerIds["Dendy"]!!, sId2,
+        DBOperator.addCharacter(playerIds["Dendy"]!!, sId2,
             "Fantômas", -1, -3)
         DBOperator.deleteUserByID(playerIds["Petya"]!!) // all Petya characters removed from sessions
 
         assertEquals(listOf("Bandersnatch", "Mad Professor"),
-            DBOperator.getAllPlayerCharactersInSession(sId1)
+            DBOperator.getAllCharactersInSession(sId1)
                 .map { it.name }
                 .sorted())
         assertEquals(listOf("Bandersnatch", "Fantômas", "Kraken"),
-            DBOperator.getAllPlayerCharactersOfUser(playerIds["Dendy"]!!)
+            DBOperator.getAllCharactersOfUser(playerIds["Dendy"]!!)
                 .map { it.name }
                 .sorted())
         assertEquals(listOf("Fantômas"),
-            DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Dendy"]!!, sId2)
+            DBOperator.getAllCharactersOfUserInSession(playerIds["Dendy"]!!, sId2)
                 .map { it.name })
         assertEquals(Pair(8, 0),
-            DBOperator.getAllPlayerCharacters()
+            DBOperator.getAllCharacters()
                 .first { it.name == "Kraken" }
                 .let { Pair(it.row, it.col) })
 
         DBOperator.deleteSessionByID(sId1)
         assertNull(DBOperator.getSessionByID(sId1))
         assertThrows<IllegalArgumentException> { DBOperator.getUsersInSession(sId1) }
-        assertThrows<NoSuchElementException> { DBOperator.getAllPlayerCharactersInSession(sId1).first() }
+        assertThrows<NoSuchElementException> { DBOperator.getAllCharactersInSession(sId1).first() }
         assertEquals(listOf("Fantômas", "Kraken"),
-            DBOperator.getAllPlayerCharactersOfUser(playerIds["Dendy"]!!)
+            DBOperator.getAllCharactersOfUser(playerIds["Dendy"]!!)
                 .map { it.name }
                 .sorted())
 
-        assertEquals(3, DBOperator.getAllPlayerCharacters()
+        assertEquals(3, DBOperator.getAllCharacters()
             .count { it.name == "Terminator" })
-        DBOperator.deleteAllPlayerCharactersOfUserFromSession(playerIds["Vasia"]!!, sId2)
-        assertEquals(1, DBOperator.getAllPlayerCharacters()
+        DBOperator.deleteAllCharactersOfUserFromSession(playerIds["Vasia"]!!, sId2)
+        assertEquals(1, DBOperator.getAllCharacters()
             .count { it.name == "Terminator" })
-        assertEquals(0, DBOperator.getAllPlayerCharacters()
+        assertEquals(0, DBOperator.getAllCharacters()
             .count { it.name == "Heffalump" })
-        assertEquals(1, DBOperator.getAllPlayerCharactersOfUser(playerIds["Vasia"]!!).count())
-        assertEquals(0, DBOperator.getAllPlayerCharactersOfUserInSession(playerIds["Vasia"]!!, sId2).count())
+        assertEquals(1, DBOperator.getAllCharactersOfUser(playerIds["Vasia"]!!).count())
+        assertEquals(0, DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId2).count())
 
         DBOperator.deleteAllSessions()
         assert(DBOperator.getAllSessionsWithUser(playerIds["Clara"]!!).isEmpty())

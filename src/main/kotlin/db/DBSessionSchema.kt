@@ -9,6 +9,11 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 
+// Хранить whoCanMove Int
+// Хранить персонажей (только айдишники), юзеры не нужны
+
+// Методы: сохранить мою сессион дата в бд и загрузить мою сессион дата в бд.
+
 object SessionTable: IntIdTable("session", "session_id") {
     val mapID = reference("map_id", MapTable)
     val active = bool("active")
