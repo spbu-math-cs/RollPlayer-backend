@@ -32,7 +32,7 @@ class UserData(id: EntityID<Int>): IntEntity(id) {
     var pswHashInitial by UserTable.pswHashInitial
     var pswHashFactor by UserTable.pswHashFactor
 
-    var sessions by SessionData via SessionPlayerTable
+    var sessions by SessionData via CharacterTable
 
     fun raw(): UserInfo = UserInfo(
         id.value.toUInt(),

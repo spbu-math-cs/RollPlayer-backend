@@ -1,5 +1,6 @@
 package db
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
@@ -15,6 +16,7 @@ class TextureData(id: EntityID<Int>): IntEntity(id) {
     fun raw(): TextureInfo = TextureInfo(id.value.toUInt(), pathToFile)
 }
 
+@Serializable
 data class TextureInfo(val id: UInt, val pathToFile: String) {
     fun load(): Texture = Texture(pathToFile)
 }

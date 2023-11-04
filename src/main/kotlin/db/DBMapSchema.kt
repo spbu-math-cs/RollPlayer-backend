@@ -1,5 +1,6 @@
 package db
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
@@ -15,6 +16,7 @@ class MapData(id: EntityID<Int>): IntEntity(id) {
     fun raw(): MapInfo = MapInfo(id.value.toUInt(), pathToJson)
 }
 
+@Serializable
 data class MapInfo(val id: UInt, val pathToJson: String) {
     fun load(): Map = Map(pathToJson)
 }

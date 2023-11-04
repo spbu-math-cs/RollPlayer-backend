@@ -48,6 +48,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     implementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.214")
 
@@ -60,6 +61,10 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     include("HttpServerTest.*")
+}
+
+tasks.withType<Jar> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 kotlin {

@@ -6,6 +6,9 @@ import kotlin.reflect.full.memberProperties
 
 import org.json.JSONObject
 
+// TODO: посмотри, пожалуйста
+// Зачем это вообще? Лучше использовать БД-шный DTO CharacterInfo.
+/*
 @Serializable
 data class Character(
     val id: UInt,
@@ -15,6 +18,7 @@ data class Character(
     var row: Int,
     var col: Int,
 )
+*/
 
 //fun updateProperties(old: PlayerProperties, new: JSONObject): PlayerProperties {
 //    PlayerProperties::class.memberProperties.forEach {

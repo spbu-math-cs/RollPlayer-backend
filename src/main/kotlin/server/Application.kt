@@ -1,5 +1,6 @@
 package server
 
+import db.CharacterInfo
 import db.DBOperator
 
 import io.ktor.http.*
@@ -21,7 +22,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Duration
-import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashSet
@@ -61,7 +61,10 @@ private fun Application.extracted() {
     val logger = KotlinLogging.logger {}
     val sessions = Collections.synchronizedMap<UInt, SessionData>(mutableMapOf())
 
-    val charactersByID = Collections.synchronizedMap<UInt, Character>(mutableMapOf()) // TODO: db character
+    // Мне кажется, лучше не хранить список персонажей,
+    // а обращаться к БД всякий раз, когда понадобятся
+    // конкретные персонажи.
+    // val charactersByID = Collections.synchronizedMap<UInt, Character>(mutableMapOf())
 
     suspend fun handleHTTPRequestException(
         call: ApplicationCall,
@@ -88,31 +91,36 @@ private fun Application.extracted() {
         conn.send(JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
     }
 
-    // TODO: db
-    fun getCharactersByUserSession(userId: UInt, sessionId: UInt): Set<Character> {
-        return charactersByID.filter {
-            it.value.userId == userId && it.value.sessionId == sessionId
-        }.values.toSet()
+    // Вообще у меня есть сомнения в правильности этого метода.
+    // Если два персонажа одного игрока встанут на одну клетку,
+    // то один исчезнет.
+    fun getCharactersByUserSession(userId: UInt, sessionId: UInt): Set<CharacterInfo> {
+        return DBOperator.getAllPlayerCharactersOfUserInSession(userId, sessionId)
+            .toSet()
     }
 
-    suspend fun addCharacterToConn(character: Character, conn: WebSocketServerSession, own: Boolean) {
+    suspend fun addCharacterToConn(character: CharacterInfo, conn: WebSocketServerSession, own: Boolean) {
         val characterInfo = JSONObject(Json.encodeToString(character))
         characterInfo.put("type", "character:new")
         characterInfo.put("own", own)
         conn.send(characterInfo.toString())
     }
 
-    suspend fun addNewCharacter(character: Character, sessionId: UInt, connId: Int, conn: WebSocketServerSession) {
-        sessions.getValue(sessionId).characters.add(character.id)
+    // параметр sessionId не нужен, он зашит в CharacterInfo
+    suspend fun addNewCharacter(character: CharacterInfo,
+                                connId: Int,
+                                conn: WebSocketServerSession) {
+        // персонаж добавляется в БД раньше
+        // val character = DBOperator.addPlayerCharacter(userId, sessionId, x, y)
 
-        val characterInfo = JSONObject(Json.encodeToString(character))
-        characterInfo.put("type", "character:new")
-        characterInfo.put("own", true)
-        conn.send(characterInfo.toString())
-        characterInfo.put("own", false)
-        sessions.getValue(sessionId).connections.forEach {
+        val characterJson = JSONObject(Json.encodeToString(character))
+        characterJson.put("type", "character:new")
+        characterJson.put("own", true)
+        conn.send(characterJson.toString())
+        characterJson.put("own", false)
+        sessions.getValue(character.sessionId).connections.forEach {
             if (it.id != connId) {
-                it.session.send(characterInfo.toString())
+                it.session.send(characterJson.toString())
             }
         }
         logger.info("WebSocket: sent new character with ID ${character.id}")
@@ -128,13 +136,15 @@ private fun Application.extracted() {
         logger.info("WebSocket: sent leaving character with ID $characterId")
     }
 
-    suspend fun moveCharacter(character: Character, sessionId: UInt) {
+    suspend fun moveCharacter(character: CharacterInfo,
+                              newRow: Int,
+                              newCol: Int) {
         val message = JSONObject()
         message.put("type", "character:move")
         message.put("id", character.id)
-        message.put("row", character.row)
-        message.put("col", character.col)
-        sessions.getValue(sessionId).connections.forEach { it.session.send(message.toString()) }
+        message.put("row", newRow)
+        message.put("col", newCol)
+        sessions.getValue(character.sessionId).connections.forEach { it.session.send(message.toString()) }
         logger.info("WebSocket: sent move character with ID ${character.id}")
     }
 
@@ -170,11 +180,17 @@ private fun Application.extracted() {
             try {
                 send(createSimpleMap())
                 session.characters.forEach {
-                    addCharacterToConn(charactersByID.getValue(it), this, false)
+                    addCharacterToConn(
+                        DBOperator.getPlayerCharacterByID(it)
+                            ?: throw IllegalArgumentException("Character #$it not found in the database"),
+                        this, false)
                 }
                 logger.info("WebSocket: sent active characters in session $sessionId to $userId")
                 for (character in getCharactersByUserSession(userId, sessionId)) { // get from db
-                    addNewCharacter(character, sessionId, connId, this)
+                    addNewCharacter(
+                        character,
+                        connId,
+                        this)
                 }
 
                 for (frame in incoming) {
@@ -189,14 +205,20 @@ private fun Application.extracted() {
                                 val characterRow = message.optInt("row", 1)
                                 val characterCol = message.optInt("col", 1)
 
-                                // TODO: db
-                                val characterId = (LocalDateTime.now().hour.toString() +
-                                        LocalDateTime.now().minute.toString() +
-                                        LocalDateTime.now().second.toString()).toUInt()
-                                val character = Character(characterId, userId, sessionId, characterName, characterRow, characterCol)
-                                charactersByID[characterId] = character
+                                // Примечание: ID персонажа автоматически генерируется БД.
+                                // Генерировать его вручную не нужно.
+                                // val characterId = (LocalDateTime.now().hour.toString() +
+                                //         LocalDateTime.now().minute.toString() +
+                                //         LocalDateTime.now().second.toString()).toUInt()
+                                val character = DBOperator.addPlayerCharacter(
+                                    userId,
+                                    sessionId,
+                                    characterName,
+                                    characterRow,
+                                    characterCol)
+                                    // CharacterInfo(characterId, userId, sessionId, characterName, characterRow, characterCol)
 
-                                addNewCharacter(character, sessionId, connId, this)
+                                addNewCharacter(character, connId, this)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                             }
@@ -205,13 +227,11 @@ private fun Application.extracted() {
                             try {
                                 val characterId = message.getInt("id").toUInt()
 
-                                // TODO: db
-                                if (!charactersByID.contains(characterId))
-                                    throw Exception("Character with ID $characterId does not exist")
-                                val character = charactersByID.getValue(characterId)
+                                val character = DBOperator.getPlayerCharacterByID(characterId)
+                                    ?: throw Exception("Character with ID $characterId does not exist")
                                 if (character.userId != userId || character.sessionId != sessionId)
                                     throw Exception("Character with ID $characterId doesn't belong to you")
-                                charactersByID.remove(characterId)
+                                DBOperator.deletePlayerCharacterByID(character.id)
 
                                 deleteCharacterFromSession(characterId, sessionId)
                             } catch (e: Exception) {
@@ -222,18 +242,20 @@ private fun Application.extracted() {
                             try {
                                 val characterId = message.getInt("id").toUInt()
 
-                                // TODO: db
-                                if (!charactersByID.contains(characterId))
-                                    throw Exception("Character with ID $characterId does not exist")
-                                val character = charactersByID.getValue(characterId)
+                                val character = DBOperator.getPlayerCharacterByID(characterId)
+                                    ?: throw Exception("Character with ID $characterId does not exist")
                                 if (character.userId != userId || character.sessionId != sessionId)
                                     throw Exception("Character with ID $characterId doesn't belong to you")
-                                character.row = message.getInt("row")
-                                character.col = message.getInt("col")
+                                val newRow = message.getInt("row")
+                                val newCol = message.getInt("col")
+
+                                DBOperator.movePlayerCharacter(
+                                    character.id,
+                                    newRow, newCol)
 
                                 if (connId != session.whoCanMove.get())
                                     throw Exception("Can not move")
-                                moveCharacter(character, sessionId)
+                                moveCharacter(character, newRow, newCol)
 
                                 // TODO: Здесь небезопасная ерунда написана, я знаю, но пока так.
                                 val cur = session.connections.indexOfFirst { it.id == session.whoCanMove.get() }
@@ -255,7 +277,7 @@ private fun Application.extracted() {
                 handleWebsocketIncorrectMessage(this, userId, "", e)
             } finally {
                 session.characters
-                    .filter { charactersByID.getValue(it).userId == userId }
+                    .filter { DBOperator.getUserByID(userId)?.id == userId }
                     .forEach { deleteCharacterFromSession(it, sessionId) }
                 session.connections.remove(thisConnection)
 
@@ -360,7 +382,7 @@ private fun Application.extracted() {
                 val data = JSONObject(call.receiveText())
                 val userId = data.getInt("userId").toUInt()
 
-//                DBOperator.removePlayerFromSession(sessionId, userId)
+//                DBOperator.removeAllPlayerCharactersOfUserFromSession(sessionId, userId)
 //                if (data.has("sessionId")) {
 //                    val sessionId = data.getString("sessionId").toUInt()
 //                }

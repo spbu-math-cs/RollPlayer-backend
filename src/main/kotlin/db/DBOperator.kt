@@ -28,6 +28,8 @@ object DBOperator {
             .removeSuffix(".png")
             .removeSuffix(".bmp")
             .removeSuffix(".json")
+            .removeSuffix(".tmj")
+            .removeSuffix(".tsj")
 
     private fun createDatabase(filePath: String) {
         val exists = File("$filePath.mv.db").isFile
@@ -41,7 +43,7 @@ object DBOperator {
                 SchemaUtils.create(TextureTable)
                 SchemaUtils.create(MapTable)
                 SchemaUtils.create(SessionTable)
-                SchemaUtils.create(SessionPlayerTable)
+                SchemaUtils.create(CharacterTable)
             }
         }
 
@@ -77,26 +79,21 @@ object DBOperator {
     // GET FUNCTIONS
     // =============
 
-    fun getAllTextures() = transaction {
-        TextureData.all()
-            .map { it.raw() }
-    }
-
-    fun getAllUsers() = transaction {
-        UserData.all()
-            .map { it.raw() }
-    }
+    fun getAllTextures() = transaction { TextureData.all().map { it.raw() } }
+    fun getAllUsers() = transaction { UserData.all().map { it.raw() } }
     fun getAllMapInfos() = transaction { MapData.all().map { it.raw() } }
     fun getAllSessions() = transaction { SessionData.all().map { it.raw() } }
     fun getActiveSessions() = transaction {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
     }
+    fun getAllPlayerCharacters() = transaction { CharacterData.all().map { it.raw() } }
 
     fun getUserByID(id: UInt) = transaction { UserData.findById(id.toInt())?.raw() }
     fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
     fun getMapByID(id: UInt) = transaction { MapData.findById(id.toInt())?.raw() }
     fun getSessionByID(id: UInt) = transaction { SessionData.findById(id.toInt())?.raw() }
+    fun getPlayerCharacterByID(id: UInt) = transaction { CharacterData.findById(id.toInt())?.raw() }
 
     fun getUserByLogin(login: String): UserInfo? = transaction {
         UserData.find(UserTable.login eq login)
@@ -110,18 +107,30 @@ object DBOperator {
             .firstOrNull()
     }
 
-
     fun getUsersInSession(sessionId: UInt) = transaction {
         SessionData.findById(sessionId.toInt())?.players?.map { it.raw() }
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
     }
 
-    fun getPlayersGameStateOfSession(sessionId: UInt) = transaction {
-        SessionPlayerData.find(SessionPlayerTable.sessionID eq sessionId.toInt())
+    fun getAllPlayerCharactersInSession(sessionId: UInt) = transaction {
+        CharacterData.find(CharacterTable.sessionID eq sessionId.toInt())
             .map { it.raw() }
     }
 
-    fun getSessionsOfUser(userId: UInt) = transaction {
+    fun getAllPlayerCharactersOfUser(userId: UInt) = transaction {
+        CharacterData.find(
+            CharacterTable.userID eq userId.toInt())
+            .map { it.raw() }
+    }
+
+    fun getAllPlayerCharactersOfUserInSession(userId: UInt, sessionId: UInt) = transaction {
+        CharacterData.find(
+            CharacterTable.userID eq userId.toInt() and
+                    (CharacterTable.sessionID eq sessionId.toInt()))
+            .map { it.raw() }
+    }
+
+    fun getAllSessionsWithUser(userId: UInt) = transaction {
         UserData.findById(userId.toInt())?.sessions?.map { it.raw() }
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
@@ -169,13 +178,29 @@ object DBOperator {
         }.id.value
     }
 
-    fun addSession(mapID: UInt, active: Boolean, started: Instant?) = transaction {
+    fun addSession(mapID: UInt, active: Boolean, started: Instant) = transaction {
         SessionData.new {
             map = MapData.findById(mapID.toInt())
                 ?: throw IllegalArgumentException("Map #${mapID} does not exist")
             this.active = active
             this.started = started
         }.id.value
+    }
+
+    fun addPlayerCharacter(userId: UInt,
+                           sessionId: UInt,
+                           name: String,
+                           x: Int = 0,
+                           y: Int = 0) = transaction {
+        CharacterData.new {
+            session = SessionData.findById(sessionId.toInt())
+                ?: throw IllegalArgumentException("Session #$sessionId does not exist")
+            user = UserData.findById(userId.toInt())
+                ?: throw IllegalArgumentException("User #$userId does not exist")
+            this.name = name
+            row = x
+            col = y
+        }.raw()
     }
 
     // =================
@@ -316,46 +341,23 @@ object DBOperator {
     // SESSION MANIPULATION
     // ====================
 
-    fun addPlayerToSession(sId: UInt, uId: UInt, x: Int = 0, y: Int = 0) = transaction {
-        SessionPlayerData.new {
-            session = SessionData.findById(sId.toInt())
-                ?: throw IllegalArgumentException("Session #$sId does not exist")
-            player = UserData.findById(uId.toInt())
-                ?: throw IllegalArgumentException("User #$uId does not exist")
-            xPos = x
-            yPos = y
-        }
-    }
-
     fun setSessionActive(sessionId: UInt, active: Boolean) = transaction {
         (SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist"))
             .active = active
     }
 
-    fun movePlayer(sessionId: UInt, playerId: UInt, moveToX: Int, moveToY: Int) = transaction {
-        SessionPlayerData.find(
-            SessionPlayerTable.sessionID eq sessionId.toInt() and
-                    (SessionPlayerTable.playerID eq playerId.toInt())
-        ).let {
-            if (it.count() == 0L)
-                throw IllegalArgumentException("Player #$playerId is not present in session #$sessionId or session does not exist")
-            else it.first().let { rec ->
-                rec.xPos = moveToX
-                rec.yPos = moveToY
-            }
-        }
-    }
+    // =============================
+    // PLAYER CHARACTER MANIPULATION
+    // =============================
 
-    fun removePlayerFromSession(sId: UInt, uId: UInt) = transaction {
-        SessionPlayerData.find(
-            SessionPlayerTable.sessionID eq sId.toInt() and
-                    (SessionPlayerTable.playerID eq uId.toInt())
-        ).let {
-            if (it.count() == 0L) return@transaction false
-            else it.first().delete()
-        }
-        true
+    fun movePlayerCharacter(characterId: UInt, newRow: Int, newCol: Int) = transaction {
+        CharacterData
+            .findById(characterId.toInt())
+            ?.apply {
+                row = newRow
+                col = newCol
+            }?.raw()
     }
 
     // ================
@@ -368,7 +370,7 @@ object DBOperator {
     }
 
     fun deleteAllSessions() = transaction {
-        SessionPlayerData.all()
+        CharacterData.all()
             .forEach { it.delete() }
         SessionData.all()
             .forEach { it.delete() }
@@ -376,7 +378,7 @@ object DBOperator {
 
     // ВНИМАНИЕ: также этот пользователь выйдет из всех сессий
     fun deleteUserByID(id: UInt): Boolean = transaction {
-        SessionPlayerData.find(SessionPlayerTable.playerID eq id.toInt())
+        CharacterData.find(CharacterTable.userID eq id.toInt())
             .forEach { it.delete() }
         UserData.findById(id.toInt())
             ?.delete() ?: return@transaction false
@@ -394,7 +396,7 @@ object DBOperator {
     fun deleteMapInfoByID(id: UInt): Boolean = transaction {
         SessionData.find(SessionTable.mapID eq id.toInt())
             .forEach {
-                SessionPlayerData.find(SessionPlayerTable.sessionID eq it.id)
+                CharacterData.find(CharacterTable.sessionID eq it.id)
                     .forEach { it.delete() }
                 it.delete()
             }
@@ -404,10 +406,25 @@ object DBOperator {
     }
     
     fun deleteSessionByID(id: UInt): Boolean = transaction {
-        SessionPlayerData.find(SessionPlayerTable.sessionID eq id.toInt())
+        CharacterData.find(CharacterTable.sessionID eq id.toInt())
             .forEach { it.delete() }
         SessionData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
+    }
+
+    fun deletePlayerCharacterByID(id: UInt): Boolean = transaction {
+        CharacterData.findById(id.toInt())
+            ?.delete() ?: return@transaction false
+        true
+    }
+
+    fun deleteAllPlayerCharactersOfUserFromSession(uId: UInt, sId: UInt) = transaction {
+        CharacterData.find(
+            CharacterTable.sessionID eq sId.toInt() and
+                    (CharacterTable.userID eq uId.toInt())
+        ).forEach {
+            it.delete()
+        }
     }
 }
