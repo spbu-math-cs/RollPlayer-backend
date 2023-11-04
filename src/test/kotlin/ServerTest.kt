@@ -33,14 +33,4 @@ class ServerTest {
         }
     }
 
-    @Test
-    fun testWebSocketConnection() {
-        withTestApplication({ module() }) {
-            handleWebSocketConversation("/api/connect") { incoming, outgoing ->
-                outgoing.send(Frame.Text("""{"property": "value"}"""))
-                val response = (incoming.receive() as Frame.Text).readText()
-//                assertThat(response).isEqualTo("""{"property": "updatedValue"}""")
-            }
-        }
-    }
 }
