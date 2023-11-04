@@ -3,6 +3,7 @@ import server.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
+import org.hamcrest.MatcherAssert.assertThat
 
 import org.junit.Test
 
@@ -28,7 +29,7 @@ class ServerTest {
     fun testGetTextureById() {
         withTestApplication({ module() }) {
             handleRequest(HttpMethod.Get, "/api/textures/1").apply {
-//                assertThat(response.status()).isEqualTo(HttpStatusCode.OK)
+                //assertThat(response.status()).isEqualTo(HttpStatusCode.OK)
             }
         }
     }
