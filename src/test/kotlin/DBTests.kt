@@ -327,18 +327,6 @@ class DBTests {
         DBOperator.addPlayerCharacter(playerIds["Dendy"]!!, sId2,
             "Fantômas", -1, -3)
         DBOperator.deleteUserByID(playerIds["Petya"]!!) // all Petya characters removed from sessions
-        /*
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId1, "Mad Professor", 1, 2)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId1, "Sensei", 2, 3)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId3, "Kongzilla", 3, 4)
-        DBOperator.addPlayerCharacter(playerIds["Petya"]!!, sId3, "Hippoceros", 3, 4)
-        DBOperator.addPlayerCharacter(playerIds["Vasia"]!!, sId3, "Terminator", 1, 3)
-        DBOperator.addPlayerCharacter(playerIds["Clara"]!!, sId2, "Dragonosaur", 5)
-        DBOperator.addPlayerCharacter(playerIds["Clara"]!!, sId3, "Jabberwock")
-         */
 
         assertEquals(listOf("Bandersnatch", "Mad Professor"),
             DBOperator.getAllPlayerCharactersInSession(sId1)

@@ -22,6 +22,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashSet
@@ -338,7 +339,7 @@ private fun Application.extracted() {
                 handleHTTPRequestException(call, "POST /api/register", e)
             }
         }
-
+        
         get("/api/users"){
             try {
                 val users = DBOperator.getAllUsers()
