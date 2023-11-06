@@ -167,7 +167,7 @@ class DBTests {
 
         DBOperator.addMap(anotherFilePath)
 
-        val maps = DBOperator.getAllMapInfos()
+        val maps = DBOperator.getAllMaps()
         val existingMap = maps.firstOrNull {
             it.pathToJson == filePath
         } ?: fail()
@@ -177,12 +177,12 @@ class DBTests {
 
         assertEquals(filePath, DBOperator.getMapByID(existingMap.id)?.pathToJson)
         assertEquals(anotherFilePath, DBOperator.getMapByID(nonExistingMap.id)?.pathToJson)
-        DBOperator.deleteMapInfoByID(nonExistingMap.id)
+        DBOperator.deleteMapByID(nonExistingMap.id)
         assertNull(DBOperator.getMapByID(nonExistingMap.id))
 
         // Также удалит все сессии
-        DBOperator.getAllMapInfos()
-            .forEach { DBOperator.deleteMapInfoByID(it.id) }
+        DBOperator.getAllMaps()
+            .forEach { DBOperator.deleteMapByID(it.id) }
         assertNull(DBOperator.getMapByID(existingMap.id))
     }
 
@@ -218,7 +218,7 @@ class DBTests {
 
         DBOperator.createNewMap(mapFileName, "TestMap")
         DBOperator.addMap("$mapsFolder/${UUID.randomUUID()}.json")
-        val (mapId1, mapId2) = DBOperator.getAllMapInfos().map { it.id }
+        val (mapId1, mapId2) = DBOperator.getAllMaps().map { it.id }
 
         DBOperator.addSession(mapId1, true, Instant.now())
         DBOperator.addSession(mapId1, true, Instant.EPOCH)
@@ -303,7 +303,7 @@ class DBTests {
     @AfterEach
     fun clearDatabase() {
         DBOperator.deleteAllSessions()
-        DBOperator.getAllMapInfos().forEach { DBOperator.deleteMapInfoByID(it.id) }
+        DBOperator.getAllMaps().forEach { DBOperator.deleteMapByID(it.id) }
         DBOperator.getAllUsers().forEach { DBOperator.deleteUserByID(it.id) }
         DBOperator.deleteAllTextures()
     }
