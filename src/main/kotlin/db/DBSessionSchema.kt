@@ -29,12 +29,16 @@ class SessionData(id: EntityID<Int>): IntEntity(id) {
 
     var players by UserData via CharacterTable
 
-    fun raw() = SessionInfo(id.value.toUInt(), map.id.value.toUInt(), active,
-        started.toKotlinInstant())
+    // здесь надо поменять будет, так как я добавила два новых поля в SessionInfo
+    fun raw() = SessionInfo(id.value.toUInt(), map.id.value.toUInt(), active, started.toKotlinInstant())
 }
 
 @Serializable
-data class SessionInfo(val id: UInt,
-                       val mapID: UInt,
-                       val active: Boolean,
-                       val started: Instant)
+data class SessionInfo(
+    val id: UInt,
+    val mapID: UInt,
+    val active: Boolean,
+    val started: Instant,
+    val whoCanMove: Int,
+    val characters: Set<UInt>
+)
