@@ -10,8 +10,9 @@ import java.util.Random
 
 const val dbPath = "./data/roll_player"
 const val dbTestPath = "./data/test_db"
-const val mapsFolder = "./maps"
 const val texturesFolder = "./textures"
+const val tilesetsFolder = "./tilesets"
+const val mapsFolder = "./maps"
 
 object DBOperator {
     // =================
@@ -31,7 +32,19 @@ object DBOperator {
             .removeSuffix(".tmj")
             .removeSuffix(".tsj")
 
-    private fun createDatabase(filePath: String) {
+    private fun initTextures(textureDir: File) {
+        textureDir.listFiles().forEach { addTexture(it.path) }
+    }
+
+    private fun initTilesets(tilesetDir: File) {
+        tilesetDir.listFiles().forEach { addTileset(it.path) }
+    }
+
+    private fun initMaps(mapDir: File) {
+        mapDir.listFiles().forEach { addMap(it.path) }
+    }
+
+    private fun createDatabase(filePath: String, initTables: Boolean = false) {
         val exists = File("$filePath.mv.db").isFile
 
         Database.connect("jdbc:h2:$filePath")
@@ -41,24 +54,33 @@ object DBOperator {
             transaction {
                 SchemaUtils.create(UserTable)
                 SchemaUtils.create(TextureTable)
+                SchemaUtils.create(TilesetTable)
                 SchemaUtils.create(MapTable)
                 SchemaUtils.create(SessionTable)
                 SchemaUtils.create(CharacterTable)
             }
         }
 
-        // создать папки с картами и текстурами, если их нет
+        // создать папки с текстурами, тайлсетами и картами, если их нет
+        val textureDir = File(texturesFolder)
+        val tilesetDir = File(tilesetsFolder)
         val mapDir = File(mapsFolder)
-        val txtrDir = File(texturesFolder)
+        textureDir.mkdirs()
+        tilesetDir.mkdirs()
         mapDir.mkdirs()
-        txtrDir.mkdirs()
+
+        if (initTables) {
+            initTextures(textureDir)
+            initTilesets(tilesetDir)
+            initMaps(mapDir)
+        }
     }
 
-    fun connectOrCreate() =
-        createDatabase(dbPath)
+    fun connectOrCreate(initTables: Boolean = false) =
+        createDatabase(dbPath, initTables)
 
-    fun createDBForTests() =
-        createDatabase(dbTestPath)
+    fun createDBForTests(initTables: Boolean = false) =
+        createDatabase(dbTestPath, initTables)
 
     private fun deleteFileIfExists(filePath: String) =
         (File(filePath)).let { file ->
@@ -79,10 +101,31 @@ object DBOperator {
     // GET FUNCTIONS
     // =============
 
-    fun getAllTextures() = transaction { TextureData.all().map { it.raw() } }
-    fun getAllUsers() = transaction { UserData.all().map { it.raw() } }
-    fun getAllMapInfos() = transaction { MapData.all().map { it.raw() } }
-    fun getAllSessions() = transaction { SessionData.all().map { it.raw() } }
+    fun getAllTextures() = transaction {
+        TextureData.all()
+            .map { it.raw() }
+    }
+
+    fun getAllTilesets() = transaction {
+        TilesetData.all()
+            .map { it.raw() }
+    }
+
+    fun getAllMaps() = transaction {
+        MapData.all()
+            .map { it.raw() }
+    }
+
+    fun getAllUsers() = transaction {
+        UserData.all()
+            .map { it.raw() }
+    }
+
+    fun getAllSessions() = transaction {
+        SessionData.all()
+            .map { it.raw() }
+    }
+
     fun getActiveSessions() = transaction {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
@@ -91,6 +134,7 @@ object DBOperator {
 
     fun getUserByID(id: UInt) = transaction { UserData.findById(id.toInt())?.raw() }
     fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
+    fun getTilesetByID(id: UInt) = transaction { TilesetData.findById(id.toInt())?.raw() }
     fun getMapByID(id: UInt) = transaction { MapData.findById(id.toInt())?.raw() }
     fun getSessionByID(id: UInt) = transaction { SessionData.findById(id.toInt())?.raw() }
     fun getCharacterByID(id: UInt) = transaction { CharacterData.findById(id.toInt())?.raw() }
@@ -160,22 +204,34 @@ object DBOperator {
         }.raw()
     }
 
-    fun addTexture(pathToFile: String) = transaction {
+    fun addTexture(pathToFile: String): Boolean = transaction {
         if (!TextureData.find(TextureTable.pathToFile eq pathToFile).empty())
-            throw IllegalArgumentException("Texture `${pathToFile}` already recorded in the database")
+            return@transaction false
 
         TextureData.new {
             this.pathToFile = pathToFile
         }.id.value
+        return@transaction true
     }
 
-    fun addMap(pathToJson: String) = transaction {
+    fun addTileset(pathToJson: String): Boolean = transaction {
+        if (!TilesetData.find(TilesetTable.pathToJson eq pathToJson).empty())
+            return@transaction false
+
+        TilesetData.new {
+            this.pathToJson = pathToJson
+        }.id.value
+        return@transaction true
+    }
+
+    fun addMap(pathToJson: String): Boolean = transaction {
         if (!MapData.find(MapTable.pathToJson eq pathToJson).empty())
-            throw IllegalArgumentException("Map `${pathToJson}` already recorded in the database")
+            return@transaction false
 
         MapData.new {
             this.pathToJson = pathToJson
         }.id.value
+        return@transaction true
     }
 
     fun addSession(mapID: UInt, active: Boolean, started: Instant) = transaction {
@@ -391,14 +447,19 @@ object DBOperator {
         true
     }
 
+    fun deleteTilesetByID(id: UInt): Boolean = transaction {
+        TilesetData.findById(id.toInt())
+            ?.delete() ?: return@transaction false
+        true
+    }
+
     // ВНИМАНИЕ: также удалит все сессии на этой карте
     // Это делается для ненарушения ссылочной целостности
-    fun deleteMapInfoByID(id: UInt): Boolean = transaction {
+    fun deleteMapByID(id: UInt): Boolean = transaction {
         SessionData.find(SessionTable.mapID eq id.toInt())
-            .forEach {
-                CharacterData.find(CharacterTable.sessionID eq it.id)
-                    .forEach { it.delete() }
-                it.delete()
+            .forEach { sessionData ->
+                CharacterData.find(CharacterTable.sessionID eq sessionData.id).forEach { it.delete() }
+                sessionData.delete()
             }
         MapData.findById(id.toInt())
             ?.delete() ?: return@transaction false
