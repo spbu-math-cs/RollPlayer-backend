@@ -24,7 +24,8 @@ class ActiveSessionData(
         sessionInfo.id,
         sessionInfo.mapID,
         sessionInfo.started,
-        characters = sessionInfo.characters.toMutableSet(),
+        // characters = sessionInfo.characters.toMutableSet(),
+        characters = mutableSetOf(),
         moveProperties = MoveProperties(AtomicInteger(sessionInfo.whoCanMove))
     )
 
@@ -34,12 +35,12 @@ class ActiveSessionData(
             mapId,
             true,
             started,
-            moveProperties.whoCanMove.get(),
-            characters
+            moveProperties.whoCanMove.get()
+            // characters
         )
     }
 
-    // FIX: Здесь небезопасная ерунда написана, я знаю, но пока так.
+    // FIXME: Здесь небезопасная ерунда написана, я знаю, но пока так.
     suspend fun updateMoveProperties() {
         val cur = connections.indexOfFirst { it.id == moveProperties.whoCanMove.get() }
         val messageStatus = JSONObject()

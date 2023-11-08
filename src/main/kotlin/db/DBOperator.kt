@@ -33,15 +33,15 @@ object DBOperator {
             .removeSuffix(".tsj")
 
     private fun initTextures(textureDir: File) {
-        textureDir.listFiles().forEach { addTexture(it.path) }
+        textureDir.listFiles()?.forEach { addTexture(it.path) }
     }
 
     private fun initTilesets(tilesetDir: File) {
-        tilesetDir.listFiles().forEach { addTileset(it.path) }
+        tilesetDir.listFiles()?.forEach { addTileset(it.path) }
     }
 
     private fun initMaps(mapDir: File) {
-        mapDir.listFiles().forEach { addMap(it.path) }
+        mapDir.listFiles()?.forEach { addMap(it.path) }
     }
 
     private fun createDatabase(filePath: String, initTables: Boolean = false) {
@@ -152,7 +152,7 @@ object DBOperator {
     }
 
     fun getUsersInSession(sessionId: UInt) = transaction {
-        SessionData.findById(sessionId.toInt())?.players?.map { it.raw() }
+        SessionData.findById(sessionId.toInt())?.users?.map { it.raw() }
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
     }
 
@@ -204,43 +204,40 @@ object DBOperator {
         }.raw()
     }
 
-    fun addTexture(pathToFile: String): Boolean = transaction {
+    fun addTexture(pathToFile: String) = transaction {
         if (!TextureData.find(TextureTable.pathToFile eq pathToFile).empty())
-            return@transaction false
+            throw IllegalArgumentException("Texture with file path $pathToFile is already present in the DB")
 
         TextureData.new {
             this.pathToFile = pathToFile
-        }.id.value
-        return@transaction true
+        }.raw()
     }
 
-    fun addTileset(pathToJson: String): Boolean = transaction {
+    fun addTileset(pathToJson: String) = transaction {
         if (!TilesetData.find(TilesetTable.pathToJson eq pathToJson).empty())
-            return@transaction false
+            throw IllegalArgumentException("Tileset with file path $pathToJson is already present in the DB")
 
         TilesetData.new {
             this.pathToJson = pathToJson
-        }.id.value
-        return@transaction true
+        }.raw()
     }
 
-    fun addMap(pathToJson: String): Boolean = transaction {
+    fun addMap(pathToJson: String) = transaction {
         if (!MapData.find(MapTable.pathToJson eq pathToJson).empty())
-            return@transaction false
+            throw IllegalArgumentException("Map with file path $pathToJson is already present in the DB")
 
         MapData.new {
             this.pathToJson = pathToJson
-        }.id.value
-        return@transaction true
+        }.raw()
     }
 
-    fun addSession(mapID: UInt, active: Boolean, started: Instant) = transaction {
+    fun addSession(mapID: UInt = 1u, active: Boolean = true, started: Instant = Instant.now()) = transaction {
         SessionData.new {
             map = MapData.findById(mapID.toInt())
                 ?: throw IllegalArgumentException("Map #${mapID} does not exist")
             this.active = active
             this.started = started
-        }.id.value
+        }.raw()
     }
 
     fun addCharacter(userId: UInt,
@@ -249,8 +246,8 @@ object DBOperator {
                      x: Int = 0,
                      y: Int = 0) = transaction {
         CharacterData.new {
-//            session = SessionData.findById(sessionId.toInt())
-//                ?: throw IllegalArgumentException("Session #$sessionId does not exist")
+            session = SessionData.findById(sessionId.toInt())
+                ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
@@ -265,7 +262,7 @@ object DBOperator {
 
     private const val MIN_PASSWORD_CHARACTERS = 8
     private const val PASSWORD_SPECIAL_CHARS = ",.!@#$%^&*()\":;\'_-+=[]|{}~`<>?/\\"
-    private const val  EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z.-]+\$"
+    private const val EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z.-]+\$"
     private val PASSWORD_CHAR_LIST = sequence<Char> {
         yieldAll('A'..'Z')
         yieldAll('a'..'z')
@@ -401,6 +398,15 @@ object DBOperator {
         (SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist"))
             .active = active
+    }
+
+    fun updateSession(sessionInfo: SessionInfo) = transaction {
+        TODO()
+        (SessionData.findById(sessionInfo.id.toInt())
+            ?: throw IllegalArgumentException("Session #${sessionInfo.id} does not exist"))
+            .apply {
+                
+            }.raw()
     }
 
     // =============================

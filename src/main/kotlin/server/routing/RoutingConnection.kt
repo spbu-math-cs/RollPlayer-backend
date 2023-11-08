@@ -111,9 +111,10 @@ fun Route.requestsConnection(activeSessions: MutableMap<UInt, ActiveSessionData>
                 activeSessions[sessionId] = ActiveSessionData(session)
             }
             else {
-                // TODO: add DBOperator.createSession
-                val newSession = ActiveSessionData(DBOperator.createSession())
-                activeSessions[sessionId] = newSession
+                // TODO: изменить поведение при несуществующей сессии
+                throw IllegalArgumentException("Active session #sessionId does not exist")
+                // val newSession = ActiveSessionData(DBOperator.addSession())
+                // activeSessions[sessionId] = newSession
             }
         }
         val session = activeSessions.getValue(sessionId)
