@@ -2,34 +2,41 @@ import db.DBOperator
 import io.mockk.*
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import java.io.File
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DBOperatorTests {
 
+//    @BeforeAll
+//    fun initDatabase() {
+//        DBOperator.connectOrCreate(initTables = true)
+//    }
+
     @BeforeEach
     fun setup() {
         mockkObject(DBOperator)
-        every { DBOperator.connectOrCreate(any()) } just runs
         every { DBOperator.createDBForTests(any()) } just runs
     }
 
+    @AfterAll
+    fun cleanup() {
+        unmockkAll()
+    }
+
+
 //    @Test
 //    fun `test addTexture`() {
-//        val pathToFile = "test_texture.jpg"
+//        val pathToFile = ".\\textures\\test_texture.png"
 //
-//        // Mock DBOperator.addTexture
 //        every { DBOperator.addTexture(any()) } returns mockk {
-//            every { raw() } returns TextureInfo(id = 1u, pathToFile = pathToFile)
+//            every { id } returns 1u
+//            every { pathToFile } returns pathToFile
 //        }
 //
-//        // Execute the function you want to test
 //        val texture = DBOperator.addTexture(pathToFile)
 //
-//        // Assertions
+//
 //        verify { DBOperator.addTexture(pathToFile) }
 //        assertEquals(1u, texture.id)
 //        assertEquals(pathToFile, texture.pathToFile)
