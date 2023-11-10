@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import java.time.Instant as JavaInstant
 
-val distantPastInstant = Instant.fromEpochSeconds(JavaInstant.MIN.epochSecond)
 class ActiveSessionDataTest {
 
     @MockK(relaxed = true)
