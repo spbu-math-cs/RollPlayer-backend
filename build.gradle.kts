@@ -37,6 +37,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     implementation("io.mockk:mockk:1.12.0")
+    testImplementation ("io.ktor:ktor-server-test-host:$ktorVersion")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
 
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
