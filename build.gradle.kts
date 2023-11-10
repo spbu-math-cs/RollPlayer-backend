@@ -40,6 +40,7 @@ dependencies {
     testImplementation ("io.ktor:ktor-server-test-host:$ktorVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
 
+
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
