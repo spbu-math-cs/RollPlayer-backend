@@ -205,31 +205,34 @@ object DBOperator {
         }.raw()
     }
 
-    fun addTexture(pathToFile: String) = transaction {
+    fun addTexture(pathToFile: String): Boolean = transaction {
         if (!TextureData.find(TextureTable.pathToFile eq pathToFile).empty())
-            throw IllegalArgumentException("Texture with file path $pathToFile is already present in the DB")
+            return@transaction false
 
         TextureData.new {
             this.pathToFile = pathToFile
         }.raw()
+        return@transaction true
     }
 
-    fun addTileset(pathToJson: String) = transaction {
+    fun addTileset(pathToJson: String): Boolean = transaction {
         if (!TilesetData.find(TilesetTable.pathToJson eq pathToJson).empty())
-            throw IllegalArgumentException("Tileset with file path $pathToJson is already present in the DB")
+            return@transaction false
 
         TilesetData.new {
             this.pathToJson = pathToJson
         }.raw()
+        return@transaction true
     }
 
-    fun addMap(pathToJson: String) = transaction {
+    fun addMap(pathToJson: String): Boolean = transaction {
         if (!MapData.find(MapTable.pathToJson eq pathToJson).empty())
-            throw IllegalArgumentException("Map with file path $pathToJson is already present in the DB")
+            return@transaction false
 
         MapData.new {
             this.pathToJson = pathToJson
         }.raw()
+        return@transaction true
     }
 
     fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now()) = transaction {
