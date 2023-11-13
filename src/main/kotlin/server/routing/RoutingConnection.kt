@@ -1,101 +1,14 @@
 package server.routing
 
-import db.CharacterInfo
 import db.DBOperator
 import io.ktor.server.plugins.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import server.ActiveSessionData
 import server.Connection
 import server.handleWebsocketIncorrectMessage
-import server.logger
-import java.util.concurrent.atomic.AtomicInteger
-
-suspend fun startConnection(session: ActiveSessionData, userId: UInt, connection: Connection, address: String) {
-    session.connections.add(connection)
-    logger.info("WebSocket: start connection with $address")
-
-    session.characters.forEach {
-        addCharacterToConn(
-            DBOperator.getCharacterByID(it)
-                ?: throw Exception("Character with ID $it does not exist"),
-            connection.connection,
-            false
-        )
-    }
-    logger.info("WebSocket: active characters in session ${session.sessionId} to $userId")
-    for (character in DBOperator.getAllCharactersOfUserInSession(userId, session.sessionId).toSet()) {
-        addCharacterToSession(character, connection, session)
-    }
-}
-
-suspend fun finishConnection(session: ActiveSessionData, userId: UInt, connection: Connection, address: String) {
-    session.characters
-        .filter { DBOperator.getUserByID(userId)?.id == userId }
-        .forEach { removeCharacterFromSession(it, session) }
-    session.connections.remove(connection)
-    logger.info("WebSocket: start connection with $address")
-}
-
-fun getValidCharacter(message: JSONObject, userId: UInt, sessionId: UInt): CharacterInfo {
-    val characterId = message.getInt("id").toUInt()
-    val character = DBOperator.getCharacterByID(characterId)
-        ?: throw Exception("Character with ID $characterId does not exist")
-    if (character.userId != userId || character.sessionId != sessionId)
-        throw Exception("Character with ID $characterId doesn't belong to you")
-    return character
-}
-
-suspend fun addCharacterToConn(character: CharacterInfo, conn: WebSocketServerSession, own: Boolean) {
-    val characterJson = JSONObject(Json.encodeToString(character))
-    characterJson.put("type", "character:new")
-    characterJson.put("own", own)
-    conn.send(characterJson.toString())
-}
-
-suspend fun addCharacterToSession(
-    character: CharacterInfo,
-    connection: Connection,
-    session: ActiveSessionData
-) {
-    session.characters.add(character.id)
-
-    val characterJson = JSONObject(Json.encodeToString(character))
-    characterJson.put("type", "character:new")
-    characterJson.put("own", true)
-    connection.connection.send(characterJson.toString())
-    characterJson.put("own", false)
-    session.connections.forEach {
-        if (it.id != connection.id) {
-            it.connection.send(characterJson.toString())
-        }
-    }
-    logger.info("WebSocket: new character with ID ${character.id}")
-}
-
-suspend fun removeCharacterFromSession(characterId: UInt, session: ActiveSessionData) {
-    session.characters.remove(characterId)
-
-    val message = JSONObject()
-    message.put("type", "character:leave")
-    message.put("id", characterId)
-    session.connections.forEach { it.connection.send(message.toString()) }
-    logger.info("WebSocket: remove character with ID $characterId")
-}
-
-suspend fun moveCharacter(character: CharacterInfo, session: ActiveSessionData) {
-    val message = JSONObject()
-    message.put("type", "character:move")
-    message.put("id", character.id)
-    message.put("row", character.row)
-    message.put("col", character.col)
-    session.connections.forEach { it.connection.send(message.toString()) }
-    logger.info("WebSocket: move character with ID ${character.id}")
-}
 
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
@@ -118,11 +31,10 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         val session = activeSessions.getValue(sessionId)
 
         val conn = Connection(this)
-        val connectionId = conn.id
 
         try {
             conn.connection.send(session.toJson())
-            startConnection(session, userId, conn, call.request.origin.remoteAddress)
+            session.startConnection(userId, conn, call.request.origin.remoteAddress)
 
             for (frame in incoming) {
                 frame as? Frame.Text ?: continue
@@ -142,32 +54,31 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 characterName,
                                 characterRow,
                                 characterCol)
-                            addCharacterToSession(character, conn, session)
+                            session.addCharacterToSession(character, conn)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                         }
                     }
                     "character:remove" -> {
                         try {
-                            val character = getValidCharacter(message, userId, sessionId)
+                            val character = session.getValidCharacter(message, userId)
+
                             DBOperator.deleteCharacterById(character.id)
-                            removeCharacterFromSession(character.id, session)
+                            session.removeCharacterFromSession(character.id)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
                         }
                     }
                     "character:move" -> {
                         try {
-                            val character = getValidCharacter(message, userId, sessionId)
+                            val character = session.getValidCharacter(message, userId)
                             val newRow = message.getInt("row")
                             val newCol = message.getInt("col")
 
-                            session.validateMove(connectionId)
+                            session.validateMoveAndUpdateMoveProperties(character.id)
 
                             val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
-                            moveCharacter(newCharacter!!, session)
-
-                            session.updateMoveProperties()
+                            session.moveCharacter(newCharacter!!)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:move", e)
                         }
@@ -177,7 +88,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         } catch (e: Exception) {
             handleWebsocketIncorrectMessage(this, userId, "", e)
         } finally {
-            finishConnection(session, userId, conn, call.request.origin.remoteAddress)
+            session.finishConnection(userId, conn, call.request.origin.remoteAddress)
 
             if (session.connections.isEmpty()) {
                 DBOperator.updateSession(session.toSessionInfo())

@@ -43,7 +43,6 @@ private fun Application.extracted() {
     }
 
     val activeSessions = Collections.synchronizedMap<UInt, ActiveSessionData>(mutableMapOf())
-    // val charactersByID = Collections.synchronizedMap<UInt, Character>(mutableMapOf())
 
     DBOperator.connectOrCreate(true)
 
