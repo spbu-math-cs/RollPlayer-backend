@@ -10,6 +10,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -58,6 +59,10 @@ fun Route.requestsUser(){
 
             if (user != null) {
                 if (DBOperator.checkUserPassword(userId = user.id, password)) {
+                    call.respond(HttpStatusCode.OK, mapOf(
+                        "message" to "User ${user.id} logged in successfully",
+                        "userInfo" to Json.encodeToString(user)
+                    ))
                     call.respond(HttpStatusCode.OK, mapOf("userId" to user.id))
                 } else throw Exception("Invalid request POST /api/login: invalid login/email or password")
             }
@@ -114,13 +119,28 @@ fun Route.requestsUser(){
             }
 
             call.respond(
-                HttpStatusCode.Created, mapOf(
+                HttpStatusCode.OK, mapOf(
                 "message" to "Data for User $userId edit successfully",
                 "userInfo" to Json.encodeToString(DBOperator.getUserByID(userId)!!)
             ))
             logger.info("Successful POST /api/edit/{userId} request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
             handleHTTPRequestException(call, "POST /api/edit/{userId}", e)
+        }
+    }
+
+    get("/api/{userId}/sessions") {
+        try {
+            val userId = call.parameters["userId"]?.toUIntOrNull()
+                ?: throw Exception("Invalid request GET /api/edit/{userId}: invalid userId, must be UInt")
+
+            call.respond(
+                HttpStatusCode.OK,
+                JSONArray(DBOperator.getAllSessionsWithUser(userId).map { Json.encodeToString(it) }).toString()
+            )
+            logger.info("Successful GET /api/{userId}/sessions request from: ${call.request.origin.remoteAddress}")
+        } catch (e: Exception) {
+            handleHTTPRequestException(call, "GET /api/{userId}/sessions", e)
         }
     }
 }

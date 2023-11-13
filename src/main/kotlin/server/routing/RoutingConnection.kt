@@ -16,17 +16,20 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         val sessionIdPrev = call.parameters["sessionId"]?.toUIntOrNull()
         if (userIdPrev == null || sessionIdPrev == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId or sessionId: must be UInt"))
+            return@webSocket
         }
 
         val userId = userIdPrev!!
         if (DBOperator.getUserByID(userId) == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId: user does not exist"))
+            return@webSocket
         }
 
         val sessionId = sessionIdPrev!!
         val sessionFromDB = DBOperator.getSessionByID(sessionId)
         if (sessionFromDB == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid sessionId: session does not exist"))
+            return@webSocket
         }
         if (!activeSessions.contains(sessionId)) {
             activeSessions[sessionId] = ActiveSessionData(sessionFromDB!!)
