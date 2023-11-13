@@ -1,5 +1,6 @@
 package db
 
+import kotlinx.datetime.toJavaInstant
 import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -401,11 +402,15 @@ object DBOperator {
     }
 
     fun updateSession(sessionInfo: SessionInfo) = transaction {
-        TODO()
         (SessionData.findById(sessionInfo.id.toInt())
             ?: throw IllegalArgumentException("Session #${sessionInfo.id} does not exist"))
             .apply {
-                
+                // Возможно, карту менять не нужно (выполнять лишние действия)?
+                map = MapData.findById(sessionInfo.mapID.toInt())
+                    ?: throw IllegalArgumentException("Map #${sessionInfo.id} does not exist")
+                started = sessionInfo.started.toJavaInstant()
+                active = sessionInfo.active
+                whoCanMove = sessionInfo.whoCanMove
             }.raw()
     }
 
