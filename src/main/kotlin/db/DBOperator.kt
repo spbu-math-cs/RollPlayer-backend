@@ -232,7 +232,7 @@ object DBOperator {
         }.raw()
     }
 
-    fun addSession(mapID: UInt = 1u, active: Boolean = true, started: Instant = Instant.now()) = transaction {
+    fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now()) = transaction {
         SessionData.new {
             map = MapData.findById(mapID.toInt())
                 ?: throw IllegalArgumentException("Map #${mapID} does not exist")

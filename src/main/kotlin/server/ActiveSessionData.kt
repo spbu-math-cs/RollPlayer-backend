@@ -8,26 +8,32 @@ import kotlin.collections.LinkedHashSet
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
-data class MoveProperties(
-    var whoCanMove: AtomicInteger = AtomicInteger(0)
-)
-
 class ActiveSessionData(
     val sessionId: UInt,
     val mapId: UInt,
     val started: Instant,
+    var moveProperties: MoveProperties = MoveProperties(),
     val connections: MutableList<Connection> = Collections.synchronizedList(mutableListOf()),
-    val characters: MutableSet<UInt> = Collections.synchronizedSet(LinkedHashSet()),
-    var moveProperties: MoveProperties = MoveProperties()
+    val characters: MutableSet<UInt> = Collections.synchronizedSet(LinkedHashSet())
 ) {
+    data class MoveProperties(
+        var whoCanMove: AtomicInteger = AtomicInteger(0)
+    )
+
     constructor(sessionInfo: SessionInfo): this(
         sessionInfo.id,
         sessionInfo.mapID,
         sessionInfo.started,
-        // characters = sessionInfo.characters.toMutableSet(),
-        characters = mutableSetOf(),
-        moveProperties = MoveProperties(AtomicInteger(sessionInfo.whoCanMove))
+        MoveProperties(AtomicInteger(sessionInfo.whoCanMove))
     )
+
+    fun toJson(): String {
+        val json = JSONObject()
+        json.put("sessionId", sessionId)
+        json.put("mapId", mapId)
+        json.put("started", started)
+        return json.toString()
+    }
 
     fun toSessionInfo(): SessionInfo {
         return SessionInfo(
@@ -36,7 +42,6 @@ class ActiveSessionData(
             true,
             started,
             moveProperties.whoCanMove.get()
-            // characters
         )
     }
 

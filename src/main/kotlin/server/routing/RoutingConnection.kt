@@ -22,8 +22,10 @@ suspend fun startConnection(session: ActiveSessionData, userId: UInt, connection
     session.characters.forEach {
         addCharacterToConn(
             DBOperator.getCharacterByID(it)
-                ?: throw IllegalArgumentException("Character #$it not found in the database"),
-            connection.connection, false)
+                ?: throw Exception("Character with ID $it does not exist"),
+            connection.connection,
+            false
+        )
     }
     logger.info("WebSocket: active characters in session ${session.sessionId} to $userId")
     for (character in DBOperator.getAllCharactersOfUserInSession(userId, session.sessionId).toSet()) {
@@ -95,7 +97,7 @@ suspend fun moveCharacter(character: CharacterInfo, session: ActiveSessionData) 
     logger.info("WebSocket: move character with ID ${character.id}")
 }
 
-fun Route.requestsConnection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
+fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
         val userIdPrev = call.parameters["userId"]?.toUIntOrNull()
         val sessionIdPrev = call.parameters["sessionId"]?.toUIntOrNull()
@@ -107,23 +109,20 @@ fun Route.requestsConnection(activeSessions: MutableMap<UInt, ActiveSessionData>
         val sessionId = sessionIdPrev!!
         if (!activeSessions.contains(sessionId)) {
             val session = DBOperator.getSessionByID(sessionId)
-            if (session != null) {
-                activeSessions[sessionId] = ActiveSessionData(session)
+            if (session == null) {
+                close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid sessionId: session does not exist"))
             }
-            else {
-                // TODO: изменить поведение при несуществующей сессии
-                throw IllegalArgumentException("Active session #sessionId does not exist")
-                // val newSession = ActiveSessionData(DBOperator.addSession())
-                // activeSessions[sessionId] = newSession
-            }
+            activeSessions[sessionId] = ActiveSessionData(session!!)
+            DBOperator.setSessionActive(sessionId, true)
         }
         val session = activeSessions.getValue(sessionId)
 
-        val connection = Connection(this)
-        val connectionId = connection.id
+        val conn = Connection(this)
+        val connectionId = conn.id
 
         try {
-            startConnection(session, userId, connection, call.request.origin.remoteAddress)
+            conn.connection.send(session.toJson())
+            startConnection(session, userId, conn, call.request.origin.remoteAddress)
 
             if (session.connections.size == 1) {
                 session.moveProperties.whoCanMove = AtomicInteger(connectionId)
@@ -147,7 +146,7 @@ fun Route.requestsConnection(activeSessions: MutableMap<UInt, ActiveSessionData>
                                 characterName,
                                 characterRow,
                                 characterCol)
-                            addCharacterToSession(character, connection, session)
+                            addCharacterToSession(character, conn, session)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                         }
@@ -182,10 +181,9 @@ fun Route.requestsConnection(activeSessions: MutableMap<UInt, ActiveSessionData>
         } catch (e: Exception) {
             handleWebsocketIncorrectMessage(this, userId, "", e)
         } finally {
-            finishConnection(session, userId, connection, call.request.origin.remoteAddress)
+            finishConnection(session, userId, conn, call.request.origin.remoteAddress)
 
             if (session.connections.isEmpty()) {
-                // TODO: add DBOperator.updateSession
                 DBOperator.updateSession(session.toSessionInfo())
                 DBOperator.setSessionActive(sessionId, false)
                 activeSessions.remove(sessionId)

@@ -53,6 +53,8 @@ private fun Application.extracted() {
 
         requestsUser()
         requestsMap()
-        requestsConnection(activeSessions)
+
+        createSession()
+        connection(activeSessions)
     }
 }
