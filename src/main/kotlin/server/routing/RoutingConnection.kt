@@ -124,10 +124,6 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
             conn.connection.send(session.toJson())
             startConnection(session, userId, conn, call.request.origin.remoteAddress)
 
-            if (session.connections.size == 1) {
-                session.moveProperties.whoCanMove = AtomicInteger(connectionId)
-            }
-
             for (frame in incoming) {
                 frame as? Frame.Text ?: continue
                 val frameText = frame.readText()

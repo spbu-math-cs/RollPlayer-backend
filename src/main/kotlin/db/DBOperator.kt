@@ -152,7 +152,7 @@ object DBOperator {
             .firstOrNull()
     }
 
-    fun getUsersInSession(sessionId: UInt) = transaction {
+    fun getAllUsersInSession(sessionId: UInt) = transaction {
         SessionData.findById(sessionId.toInt())?.users?.map { it.raw() }
             ?: throw IllegalArgumentException("Session #$sessionId does not exist")
     }
@@ -235,12 +235,13 @@ object DBOperator {
         return@transaction true
     }
 
-    fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now()) = transaction {
+    fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now(), whoCanMove: UInt = 0u) = transaction {
         SessionData.new {
             map = MapData.findById(mapID.toInt())
                 ?: throw IllegalArgumentException("Map #${mapID} does not exist")
             this.active = active
             this.started = started
+            this.whoCanMove = whoCanMove.toInt()
         }.raw()
     }
 

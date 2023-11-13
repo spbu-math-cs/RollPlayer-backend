@@ -346,7 +346,7 @@ class DBTests {
 
         DBOperator.deleteSessionByID(sId1)
         assertNull(DBOperator.getSessionByID(sId1))
-        assertThrows<IllegalArgumentException> { DBOperator.getUsersInSession(sId1) }
+        assertThrows<IllegalArgumentException> { DBOperator.getAllUsersInSession(sId1) }
         assertThrows<NoSuchElementException> { DBOperator.getAllCharactersInSession(sId1).first() }
         assertEquals(listOf("Fantômas", "Kraken"),
             DBOperator.getAllCharactersOfUser(playerIds["Dendy"]!!)

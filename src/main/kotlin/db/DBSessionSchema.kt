@@ -9,8 +9,6 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 
-// Методы: сохранить мою сессион дата в бд и загрузить мою сессион дата в бд.
-
 object SessionTable: IntIdTable("session", "session_id") {
     val mapID = reference("map_id", MapTable)
     val active = bool("active")
@@ -34,8 +32,8 @@ class SessionData(id: EntityID<Int>): IntEntity(id) {
         map.id.value.toUInt(),
         active,
         started.toKotlinInstant(),
-        whoCanMove)
-        //characters.map { it.id.value.toUInt() }.toSet())
+        whoCanMove
+    )
 }
 
 @Serializable
@@ -45,5 +43,4 @@ data class SessionInfo(
     val active: Boolean,
     val started: Instant,
     val whoCanMove: Int
-    // val characters: Set<UInt>
 )
