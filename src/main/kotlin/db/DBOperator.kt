@@ -407,7 +407,7 @@ object DBOperator {
             .apply {
                 // Возможно, карту менять не нужно (выполнять лишние действия)?
                 map = MapData.findById(sessionInfo.mapID.toInt())
-                    ?: throw IllegalArgumentException("Map #${sessionInfo.id} does not exist")
+                    ?: throw IllegalArgumentException("Map #${sessionInfo.mapID} does not exist")
                 started = sessionInfo.started.toJavaInstant()
                 active = sessionInfo.active
                 whoCanMove = sessionInfo.whoCanMove
