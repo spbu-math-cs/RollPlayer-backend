@@ -19,13 +19,17 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         }
 
         val userId = userIdPrev!!
+        if (DBOperator.getUserByID(userId) == null) {
+            close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId: user does not exist"))
+        }
+
         val sessionId = sessionIdPrev!!
+        val sessionFromDB = DBOperator.getSessionByID(sessionId)
+        if (sessionFromDB == null) {
+            close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid sessionId: session does not exist"))
+        }
         if (!activeSessions.contains(sessionId)) {
-            val session = DBOperator.getSessionByID(sessionId)
-            if (session == null) {
-                close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid sessionId: session does not exist"))
-            }
-            activeSessions[sessionId] = ActiveSessionData(session!!)
+            activeSessions[sessionId] = ActiveSessionData(sessionFromDB!!)
             DBOperator.setSessionActive(sessionId, true)
         }
         val session = activeSessions.getValue(sessionId)
