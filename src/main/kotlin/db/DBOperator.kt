@@ -131,7 +131,11 @@ object DBOperator {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
     }
-    fun getAllCharacters() = transaction { CharacterData.all().map { it.raw() } }
+    fun getAllCharacters() = transaction {
+        CharacterData.all()
+            .orderBy(CharacterTable.id to SortOrder.ASC)
+            .map { it.raw() }
+    }
 
     fun getUserByID(id: UInt) = transaction { UserData.findById(id.toInt())?.raw() }
     fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
@@ -159,12 +163,14 @@ object DBOperator {
 
     fun getAllCharactersInSession(sessionId: UInt) = transaction {
         CharacterData.find(CharacterTable.sessionID eq sessionId.toInt())
+            .orderBy(CharacterTable.id to SortOrder.ASC)
             .map { it.raw() }
     }
 
     fun getAllCharactersOfUser(userId: UInt) = transaction {
         CharacterData.find(
             CharacterTable.userID eq userId.toInt())
+            .orderBy(CharacterTable.id to SortOrder.ASC)
             .map { it.raw() }
     }
 
@@ -172,6 +178,7 @@ object DBOperator {
         CharacterData.find(
             CharacterTable.userID eq userId.toInt() and
                     (CharacterTable.sessionID eq sessionId.toInt()))
+            .orderBy(CharacterTable.id to SortOrder.ASC)
             .map { it.raw() }
     }
 
