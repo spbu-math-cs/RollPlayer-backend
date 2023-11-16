@@ -24,11 +24,11 @@ suspend fun handleHTTPRequestException(
 }
 
 suspend fun handleWebsocketIncorrectMessage(
-    conn: WebSocketServerSession,
+    connection: WebSocketServerSession,
     userId: UInt,
     on: String,
     e: Exception
 ) {
-    logger.info("Failed websocket message type $on from user with ID $userId (${conn.call.request.origin.remoteAddress})", e)
-    conn.send(JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
+    logger.info("Failed websocket message type $on from user with ID $userId (${connection.call.request.origin.remoteAddress})", e)
+    connection.send(JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
 }
