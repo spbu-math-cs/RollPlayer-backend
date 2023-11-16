@@ -22,27 +22,33 @@ fun Route.requestsUser(){
             val email = data.getString("email")
             val password = data.getString("password")
 
-            val id = DBOperator.addUser(login, email, password)
-            call.respond(HttpStatusCode.Created, mapOf(
-                "message" to "User $id registered successfully",
-                "userInfo" to Json.encodeToString(DBOperator.getUserByID(id)!!)
-            ))
+            val userId = DBOperator.addUser(login, email, password)
+            call.respond(HttpStatusCode.Created, JSONObject()
+                .put("type", "ok")
+                .put("message", "User $userId registered successfully")
+                .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                .toString()
+            )
+
             logger.info("Successful POST /api/register request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestException(call, "POST /api/register", e, "Invalid body for request POST /api/register")
+            handleHTTPRequestBad(call, "POST /api/register", e, "Invalid body for request POST /api/register")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/register", e)
+            handleHTTPRequestBad(call, "POST /api/register", e)
         }
     }
 
     get("/api/users"){
         try {
             val users = DBOperator.getAllUsers()
-            call.response.status(HttpStatusCode.OK)
-            call.respond(users.map { mapOf("login" to it.login, "email" to it.email) })
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", JSONArray(users.map { JSONObject(Json.encodeToString(it)) }))
+                .toString()
+            )
             logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/users", e)
+            handleHTTPRequestBad(call, "GET /api/users", e)
         }
     }
 
@@ -58,22 +64,21 @@ fun Route.requestsUser(){
             } else throw Exception("Invalid request POST /api/login: missing login and email")
 
             if (user != null) {
-                if (DBOperator.checkUserPassword(userId = user.id, password)) {
-                    call.respond(HttpStatusCode.OK, mapOf(
-                        "message" to "User ${user.id} logged in successfully",
-                        "userInfo" to Json.encodeToString(user)
-                    ))
-                    call.respond(HttpStatusCode.OK, mapOf("userId" to user.id))
+                if (DBOperator.checkUserPassword(user.id, password)) {
+                    call.respond(HttpStatusCode.OK, JSONObject()
+                        .put("type", "ok")
+                        .put("message", "User ${user.id} logged in successfully")
+                        .put("result", JSONObject(Json.encodeToString(user)))
+                        .toString()
+                    )
                 } else throw Exception("Invalid request POST /api/login: invalid login/email or password")
-            }
-            else {
-                call.respond(HttpStatusCode.NotFound, mapOf("message" to "User with this login/email is not exist"))
-            }
+            } else throw Exception("User with this login/email is not exist")
+
             logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestException(call, "POST /api/login", e, "Invalid body for request POST /api/login")
+            handleHTTPRequestBad(call, "POST /api/login", e, "Invalid body for request POST /api/login")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/login", e)
+            handleHTTPRequestBad(call, "POST /api/login", e)
         }
     }
 
@@ -82,17 +87,16 @@ fun Route.requestsUser(){
             val data = JSONObject(call.receiveText())
             val userId = data.getInt("userId").toUInt()
 
-//                DBOperator.removeAllPlayerCharactersOfUserFromSession(sessionId, userId)
-//                if (data.has("sessionId")) {
-//                    val sessionId = data.getString("sessionId").toUInt()
-//                }
-
-            call.respond(HttpStatusCode.OK, mapOf("message" to "Logout successful"))
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("message", "User $userId logged out successfully")
+                .toString()
+            )
             logger.info("Successful POST /api/logout request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestException(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
+            handleHTTPRequestBad(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/logout", e)
+            handleHTTPRequestBad(call, "POST /api/logout", e)
         }
     }
 
@@ -118,14 +122,16 @@ fun Route.requestsUser(){
                 logger.info("Password for User $userId edit successfully")
             }
 
-            call.respond(
-                HttpStatusCode.OK, mapOf(
-                "message" to "Data for User $userId edit successfully",
-                "userInfo" to Json.encodeToString(DBOperator.getUserByID(userId)!!)
-            ))
-            logger.info("Successful POST /api/edit/{userId} request from: ${call.request.origin.remoteAddress}")
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("message", "Data for user $userId edit successfully")
+                .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                .toString()
+            )
+
+            logger.info("Successful POST /api/edit/${userId} request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/edit/{userId}", e)
+            handleHTTPRequestBad(call, "POST /api/edit/{userId}", e)
         }
     }
 
@@ -134,13 +140,14 @@ fun Route.requestsUser(){
             val userId = call.parameters["userId"]?.toUIntOrNull()
                 ?: throw Exception("Invalid request GET /api/edit/{userId}: invalid userId, must be UInt")
 
-            call.respond(
-                HttpStatusCode.OK,
-                JSONArray(DBOperator.getAllSessionsWithUser(userId).map { Json.encodeToString(it) }).toString()
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", JSONArray(DBOperator.getAllSessionsWithUser(userId).map { JSONObject(Json.encodeToString(it)) }))
+                .toString()
             )
-            logger.info("Successful GET /api/{userId}/sessions request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful GET /api/${userId}/sessions request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/{userId}/sessions", e)
+            handleHTTPRequestBad(call, "GET /api/{userId}/sessions", e)
         }
     }
 }

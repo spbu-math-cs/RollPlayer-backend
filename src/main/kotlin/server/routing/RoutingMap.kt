@@ -1,23 +1,28 @@
 package server.routing
 
-import db.*
+import db.DBOperator
 import server.*
+
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.json.JSONObject
 import java.io.File
 
 fun Route.requestsMap() {
     get("/api/textures") {
         try {
             val textures = DBOperator.getAllTextures()
-            call.response.status(HttpStatusCode.OK)
-            call.respond(textures.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToFile) })
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", textures.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToFile) })
+                .toString()
+            )
             logger.info("Successful GET /api/textures request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/textures", e)
+            handleHTTPRequestBad(call, "GET /api/textures", e)
         }
     }
 
@@ -36,20 +41,26 @@ fun Route.requestsMap() {
                     .toString()
             )
             call.respondFile(textureFile)
+
             logger.info("Successful GET /api/textures/$textureID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/textures/$textureID", e)
+            handleHTTPRequestBad(call, "/api/textures/$textureID", e)
         }
     }
 
     get("/api/tilesets") {
         try {
             val tilesets = DBOperator.getAllTilesets()
-            call.response.status(HttpStatusCode.OK)
-            call.respond(tilesets.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+            call.respond(
+                HttpStatusCode.OK,
+                JSONObject()
+                    .put("type", "ok")
+                    .put("result", tilesets.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+                    .toString()
+            )
             logger.info("Successful GET /api/tilesets request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/tilesets", e)
+            handleHTTPRequestBad(call, "GET /api/tilesets", e)
         }
     }
 
@@ -62,20 +73,26 @@ fun Route.requestsMap() {
             )
             call.response.status(HttpStatusCode.OK)
             call.respond(tilesetFile.readText())
+
             logger.info("Successful GET /api/tilesets/$tilesetID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/tilesets/$tilesetID", e)
+            handleHTTPRequestBad(call, "/api/tilesets/$tilesetID", e)
         }
     }
 
     get("/api/maps") {
         try {
             val maps = DBOperator.getAllMaps()
-            call.response.status(HttpStatusCode.OK)
-            call.respond(maps.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+            call.respond(
+                HttpStatusCode.OK,
+                JSONObject()
+                    .put("type", "ok")
+                    .put("result", maps.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+                    .toString()
+            )
             logger.info("Successful GET /api/maps request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/maps", e)
+            handleHTTPRequestBad(call, "GET /api/maps", e)
         }
     }
 
@@ -88,9 +105,10 @@ fun Route.requestsMap() {
             )
             call.response.status(HttpStatusCode.OK)
             call.respond(mapFile.readText())
+
             logger.info("Successful GET /api/maps/$mapID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/maps/$mapID", e)
+            handleHTTPRequestBad(call, "/api/maps/$mapID", e)
         }
     }
 }
