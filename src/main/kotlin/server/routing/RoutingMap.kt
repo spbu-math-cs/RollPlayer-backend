@@ -51,12 +51,10 @@ fun Route.requestsMap() {
     get("/api/tilesets") {
         try {
             val tilesets = DBOperator.getAllTilesets()
-            call.respond(
-                HttpStatusCode.OK,
-                JSONObject()
-                    .put("type", "ok")
-                    .put("result", tilesets.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
-                    .toString()
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", tilesets.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+                .toString()
             )
             logger.info("Successful GET /api/tilesets request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
@@ -83,12 +81,10 @@ fun Route.requestsMap() {
     get("/api/maps") {
         try {
             val maps = DBOperator.getAllMaps()
-            call.respond(
-                HttpStatusCode.OK,
-                JSONObject()
-                    .put("type", "ok")
-                    .put("result", maps.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
-                    .toString()
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", maps.map { mapOf("id" to it.id.toString(), "filepath" to it.pathToJson) })
+                .toString()
             )
             logger.info("Successful GET /api/maps request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
