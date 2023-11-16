@@ -51,6 +51,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.214")
+    implementation("io.mockk:mockk:1.12.0")
+    testImplementation ("io.ktor:ktor-server-test-host:$ktorVersion")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
 
 
     implementation("org.json:json:20230618")
