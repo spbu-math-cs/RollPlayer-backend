@@ -28,7 +28,7 @@ fun Route.createSession() {
 
             logger.info("Successful POST /api/game/create request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "POST /api/game/create", e)
+            handleHTTPRequestException(call, "POST /api/game/create", e)
         }
     }
 }

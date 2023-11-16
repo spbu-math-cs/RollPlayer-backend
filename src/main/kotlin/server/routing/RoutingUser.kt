@@ -32,9 +32,9 @@ fun Route.requestsUser(){
 
             logger.info("Successful POST /api/register request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestBad(call, "POST /api/register", e, "Invalid body for request POST /api/register")
+            handleHTTPRequestException(call, "POST /api/register", e, "Invalid body for request POST /api/register")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "POST /api/register", e)
+            handleHTTPRequestException(call, "POST /api/register", e)
         }
     }
 
@@ -48,7 +48,7 @@ fun Route.requestsUser(){
             )
             logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "GET /api/users", e)
+            handleHTTPRequestException(call, "GET /api/users", e)
         }
     }
 
@@ -76,9 +76,9 @@ fun Route.requestsUser(){
 
             logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestBad(call, "POST /api/login", e, "Invalid body for request POST /api/login")
+            handleHTTPRequestException(call, "POST /api/login", e, "Invalid body for request POST /api/login")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "POST /api/login", e)
+            handleHTTPRequestException(call, "POST /api/login", e)
         }
     }
 
@@ -94,9 +94,9 @@ fun Route.requestsUser(){
             )
             logger.info("Successful POST /api/logout request from: ${call.request.origin.remoteAddress}")
         } catch (e: JSONException) {
-            handleHTTPRequestBad(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
+            handleHTTPRequestException(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "POST /api/logout", e)
+            handleHTTPRequestException(call, "POST /api/logout", e)
         }
     }
 
@@ -131,7 +131,7 @@ fun Route.requestsUser(){
 
             logger.info("Successful POST /api/edit/${userId} request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "POST /api/edit/{userId}", e)
+            handleHTTPRequestException(call, "POST /api/edit/{userId}", e)
         }
     }
 
@@ -147,7 +147,7 @@ fun Route.requestsUser(){
             )
             logger.info("Successful GET /api/${userId}/sessions request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "GET /api/{userId}/sessions", e)
+            handleHTTPRequestException(call, "GET /api/{userId}/sessions", e)
         }
     }
 }

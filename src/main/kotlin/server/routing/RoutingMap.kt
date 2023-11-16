@@ -22,7 +22,7 @@ fun Route.requestsMap() {
             )
             logger.info("Successful GET /api/textures request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "GET /api/textures", e)
+            handleHTTPRequestException(call, "GET /api/textures", e)
         }
     }
 
@@ -44,7 +44,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/textures/$textureID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "/api/textures/$textureID", e)
+            handleHTTPRequestException(call, "/api/textures/$textureID", e)
         }
     }
 
@@ -60,7 +60,7 @@ fun Route.requestsMap() {
             )
             logger.info("Successful GET /api/tilesets request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "GET /api/tilesets", e)
+            handleHTTPRequestException(call, "GET /api/tilesets", e)
         }
     }
 
@@ -76,7 +76,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/tilesets/$tilesetID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "/api/tilesets/$tilesetID", e)
+            handleHTTPRequestException(call, "/api/tilesets/$tilesetID", e)
         }
     }
 
@@ -92,7 +92,7 @@ fun Route.requestsMap() {
             )
             logger.info("Successful GET /api/maps request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "GET /api/maps", e)
+            handleHTTPRequestException(call, "GET /api/maps", e)
         }
     }
 
@@ -108,7 +108,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/maps/$mapID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestBad(call, "/api/maps/$mapID", e)
+            handleHTTPRequestException(call, "/api/maps/$mapID", e)
         }
     }
 }

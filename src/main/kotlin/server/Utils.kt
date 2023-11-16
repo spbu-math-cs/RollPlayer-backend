@@ -8,7 +8,7 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import org.json.JSONObject
 
-suspend fun handleHTTPRequestBad(
+suspend fun handleHTTPRequestException(
     call: ApplicationCall,
     requestInfo: String,
     e: Exception,
