@@ -17,14 +17,4 @@ class TextureData(id: EntityID<Int>): IntEntity(id) {
 }
 
 @Serializable
-data class TextureInfo(val id: UInt, val pathToFile: String) {
-    // fun load(): Texture = Texture(pathToFile)
-}
-
-/*
-class Texture(pathToFile: String) {
-    init {
-        TODO(): удалить
-    }
-}
-*/
+data class TextureInfo(val id: UInt, val pathToFile: String)
