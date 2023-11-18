@@ -59,6 +59,7 @@ object DBOperator {
                 SchemaUtils.create(MapTable)
                 SchemaUtils.create(SessionTable)
                 SchemaUtils.create(CharacterTable)
+                SchemaUtils.create(PropertyTable)
             }
         }
 
@@ -131,6 +132,7 @@ object DBOperator {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
     }
+
     fun getAllCharacters() = transaction {
         CharacterData.all()
             .orderBy(CharacterTable.id to SortOrder.ASC)
@@ -169,7 +171,8 @@ object DBOperator {
 
     fun getAllCharactersOfUser(userId: UInt) = transaction {
         CharacterData.find(
-            CharacterTable.userID eq userId.toInt())
+            CharacterTable.userID eq userId.toInt()
+        )
             .orderBy(CharacterTable.id to SortOrder.ASC)
             .map { it.raw() }
     }
@@ -177,7 +180,8 @@ object DBOperator {
     fun getAllCharactersOfUserInSession(userId: UInt, sessionId: UInt) = transaction {
         CharacterData.find(
             CharacterTable.userID eq userId.toInt() and
-                    (CharacterTable.sessionID eq sessionId.toInt()))
+                    (CharacterTable.sessionID eq sessionId.toInt())
+        )
             .orderBy(CharacterTable.id to SortOrder.ASC)
             .map { it.raw() }
     }
@@ -242,29 +246,42 @@ object DBOperator {
         return@transaction true
     }
 
-    fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now(), whoCanMove: Int = -1) = transaction {
-        SessionData.new {
-            map = MapData.findById(mapID.toInt())
-                ?: throw IllegalArgumentException("Map #${mapID} does not exist")
-            this.active = active
-            this.started = started
-            this.whoCanMove = whoCanMove
-        }.raw()
-    }
+    fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now(), whoCanMove: Int = -1) =
+        transaction {
+            SessionData.new {
+                map = MapData.findById(mapID.toInt())
+                    ?: throw IllegalArgumentException("Map #${mapID} does not exist")
+                this.active = active
+                this.started = started
+                this.whoCanMove = whoCanMove
+            }.raw()
+        }
 
-    fun addCharacter(userId: UInt,
-                     sessionId: UInt,
-                     name: String,
-                     x: Int = 0,
-                     y: Int = 0) = transaction {
+    fun addCharacter(
+        userId: UInt,
+        sessionId: UInt,
+        name: String,
+        row: Int = 0,
+        col: Int = 0,
+        properties: Map<String, Int> = mapOf()
+    ) = transaction {
         CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
-            row = x
-            col = y
+            this.row = row
+            this.col = col
+
+            val thisCharacter = this
+            for ((propName, propValue) in properties) {
+                PropertyData.new {
+                    this.character = thisCharacter
+                    this.name = propName
+                    this.value = propValue
+                }
+            }
         }.raw()
     }
 
@@ -304,9 +321,11 @@ object DBOperator {
 
         password.forEach {
             if (it !in PASSWORD_CHAR_LIST)
-                throw IllegalArgumentException("Invalid character `$it` in password:" +
-                        " password must contain only characters" +
-                        " A-Z a-z 0-9 $PASSWORD_SPECIAL_CHARS")
+                throw IllegalArgumentException(
+                    "Invalid character `$it` in password:" +
+                            " password must contain only characters" +
+                            " A-Z a-z 0-9 $PASSWORD_SPECIAL_CHARS"
+                )
         }
     }
 
@@ -334,7 +353,9 @@ object DBOperator {
     fun checkPasswordValidity(password: String) = try {
         failOnInvalidPassword(password)
         true
-    } catch (_: Exception) { false }
+    } catch (_: Exception) {
+        false
+    }
 
     fun hashPassword(password: String, pswInit: Int, pswFactor: Int): Int {
         fun mathMod(l: Long, m: Long) =
@@ -408,7 +429,7 @@ object DBOperator {
 
     fun setSessionActive(sessionId: UInt, active: Boolean) = transaction {
         (SessionData.findById(sessionId.toInt())
-                ?: throw IllegalArgumentException("Session #$sessionId does not exist"))
+            ?: throw IllegalArgumentException("Session #$sessionId does not exist"))
             .active = active
     }
 
@@ -425,9 +446,9 @@ object DBOperator {
             }.raw()
     }
 
-    // =============================
-    // PLAYER CHARACTER MANIPULATION
-    // =============================
+    // ======================
+    // CHARACTER MANIPULATION
+    // ======================
 
     fun moveCharacter(characterId: UInt, newRow: Int, newCol: Int) = transaction {
         CharacterData
@@ -436,6 +457,36 @@ object DBOperator {
                 row = newRow
                 col = newCol
             }?.raw()
+    }
+
+    private fun setCharacterPropertyNoTransaction(character: CharacterData, propName: String, propValue: Int) {
+        PropertyData.find(PropertyTable.characterID eq character.id.value and
+                (PropertyTable.name eq propName))
+            .firstOrNull()
+            ?.apply {
+                this.value = propValue
+            } ?: PropertyData.new {
+                this.character = character
+                this.name = propName
+                this.value = propValue
+            }
+    }
+
+    fun setCharacterProperty(characterId: UInt, propName: String, propValue: Int) = transaction {
+        setCharacterPropertyNoTransaction(
+            CharacterData.findById(characterId.toInt())
+                ?: return@transaction false,
+            propName, propValue)
+        true
+    }
+
+    fun updateCharacterProperties(characterId: UInt, newProperties: Map<String, Int>) = transaction {
+        CharacterData.findById(characterId.toInt())
+            ?.apply {
+                for ((propName, propValue) in newProperties) {
+                    setCharacterPropertyNoTransaction(this, propName, propValue)
+                }
+            }?.raw() ?: throw IllegalArgumentException("Character #$characterId does not exist")
     }
 
     // ================
@@ -448,21 +499,17 @@ object DBOperator {
     }
 
     fun deleteAllSessions() = transaction {
-        CharacterData.all()
-            .forEach { it.delete() }
         SessionData.all()
             .forEach { it.delete() }
     }
 
     // ВНИМАНИЕ: также этот пользователь выйдет из всех сессий
     fun deleteUserByID(id: UInt): Boolean = transaction {
-        CharacterData.find(CharacterTable.userID eq id.toInt())
-            .forEach { it.delete() }
         UserData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
-    
+
     fun deleteTextureByID(id: UInt): Boolean = transaction {
         TextureData.findById(id.toInt())
             ?.delete() ?: return@transaction false
@@ -478,19 +525,12 @@ object DBOperator {
     // ВНИМАНИЕ: также удалит все сессии на этой карте
     // Это делается для ненарушения ссылочной целостности
     fun deleteMapByID(id: UInt): Boolean = transaction {
-        SessionData.find(SessionTable.mapID eq id.toInt())
-            .forEach { sessionData ->
-                CharacterData.find(CharacterTable.sessionID eq sessionData.id).forEach { it.delete() }
-                sessionData.delete()
-            }
         MapData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
     }
-    
+
     fun deleteSessionByID(id: UInt): Boolean = transaction {
-        CharacterData.find(CharacterTable.sessionID eq id.toInt())
-            .forEach { it.delete() }
         SessionData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true

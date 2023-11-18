@@ -60,7 +60,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 sessionId,
                                 characterName,
                                 characterRow,
-                                characterCol)
+                                characterCol) // FIXME: поскольку я добавил поле Properties в CharacterInfo, нужно здесь что-то сделать
                             session.addCharacterToSession(character, conn)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)

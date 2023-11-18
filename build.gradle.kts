@@ -69,7 +69,6 @@ tasks.withType<Jar> {
 
 kotlin {
     jvmToolchain(17)
-
 }
 
 project.tasks.named("processResources", Copy::class.java) {
