@@ -239,6 +239,8 @@ class DBTests {
             DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
         }
 
+        // TODO: добавить тесты на свойства персонажей (properties)
+
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Mad Professor", 1, 2)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)

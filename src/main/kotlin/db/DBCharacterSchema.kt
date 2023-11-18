@@ -5,10 +5,13 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.ReferenceOption
 
 object CharacterTable: IntIdTable("character", "character_id") {
-    val sessionID = reference("session_id", SessionTable)
-    val userID = reference("user_id", UserTable)
+    val sessionID = reference("session_id", SessionTable,
+        onDelete = ReferenceOption.CASCADE) // теперь БД не будет падать при попытке удалить сессию,
+    val userID = reference("user_id", UserTable, // не удалив персонажей сначала
+        onDelete = ReferenceOption.CASCADE) // и это позволит избежать дублирования кода в DBOperator
     val name = varchar("name", identifierLength)
     val row = integer("x_pos")
     val col = integer("y_pos")

@@ -7,10 +7,12 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.javatime.timestamp
 
 object SessionTable: IntIdTable("session", "session_id") {
-    val mapID = reference("map_id", MapTable)
+    val mapID = reference("map_id", MapTable,
+        onDelete = ReferenceOption.CASCADE)
     val active = bool("active")
     val started = timestamp("started")
     val whoCanMove = integer("who_can_move")
