@@ -18,11 +18,13 @@ class MapData(id: EntityID<Int>): IntEntity(id) {
 
 @Serializable
 data class MapInfo(val id: UInt, val pathToJson: String) {
-    fun load(): Map = Map(pathToJson)
+    // fun load(): Map = Map(pathToJson)
 }
 
+/*
 class Map(pathToJson: String) {
     init {
-        TODO()
+        TODO: мне кажется, это нужно удалить
     }
 }
+*/

@@ -9,7 +9,7 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 object CharacterTable: IntIdTable("character", "character_id") {
     val sessionID = reference("session_id", SessionTable)
     val userID = reference("user_id", UserTable)
-    val name = varchar("name", indentifierLength)
+    val name = varchar("name", identifierLength)
     val row = integer("x_pos")
     val col = integer("y_pos")
 }
@@ -24,11 +24,14 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var row by CharacterTable.row
     var col by CharacterTable.col
 
+    val properties by PropertyData referrersOn PropertyTable.characterID
+
     fun raw() = CharacterInfo(
         id.value.toUInt(),
         user.id.value.toUInt(),
         session.id.value.toUInt(),
-        name, row, col)
+        name, row, col,
+        properties.associateBy({ it.name }) { it.value })
 }
 
 @Serializable
@@ -38,4 +41,5 @@ data class CharacterInfo(
     val sessionId: UInt,
     val name: String,
     val row: Int,
-    val col: Int)
+    val col: Int,
+    val properties: Map<String, Int>)

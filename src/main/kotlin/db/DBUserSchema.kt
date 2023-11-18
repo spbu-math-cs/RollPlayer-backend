@@ -4,12 +4,12 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
-const val indentifierLength = 255
+const val identifierLength = 255
 const val pathLength = 255
 
 object UserTable: IntIdTable("user", "user_id") {
-    val login = varchar("login", indentifierLength).uniqueIndex()
-    val email = varchar("email", indentifierLength).uniqueIndex()
+    val login = varchar("login", identifierLength).uniqueIndex()
+    val email = varchar("email", identifierLength).uniqueIndex()
     val passwordHash = integer("password_hash")
     val pswHashInitial = integer("psw_hash_initial")
     val pswHashFactor = integer("psw_hash_factor")
