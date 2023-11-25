@@ -1,30 +1,31 @@
 import db.*
 import io.ktor.http.*
-import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.ktor.server.websocket.*
-import io.ktor.websocket.*
 import io.mockk.*
-import junit.framework.TestCase.assertEquals
-import junit.framework.TestCase.assertTrue
+import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.junit.jupiter.api.*
 import server.ActiveSessionData
 import server.Connection
 import server.module
-import server.*
-import kotlin.test.assertFalse
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 
 class WebsocketsTests {
 
+    @MockK(relaxed = true)
+    lateinit var connection1: Connection
+
     @BeforeEach
     fun setup() {
+        MockKAnnotations.init(this)
         mockkObject(DBOperator)
         every { DBOperator.createDBForTests(any()) } just runs
     }
@@ -36,7 +37,7 @@ class WebsocketsTests {
 
 
     @Test
-    suspend fun `startConnection should add characters to connection`() = runBlocking {
+    fun `startConnection should add characters to connection`() = runBlocking {
         every { DBOperator.getCharacterByID(any()) } returns
                 CharacterInfo(1u, 1u, 1u, "123", 1, 1)
         every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns setOf(
@@ -63,7 +64,7 @@ class WebsocketsTests {
         every { DBOperator.deleteTextureByID(any()) } returns true
         val result = DBOperator.deleteTextureByID(textureId)
         verify { DBOperator.deleteTextureByID(textureId) }
-        assertTrue(result)
+        Assertions.assertTrue(result)
     }
 
     @Test
@@ -72,19 +73,32 @@ class WebsocketsTests {
         every { DBOperator.deleteUserByID(any()) } returns true
         val result = DBOperator.deleteUserByID(userId)
         verify { DBOperator.deleteUserByID(userId) }
-        assertTrue(result)
+        Assertions.assertTrue(result)
     }
 
 
-//    @Test
-//    suspend fun `finishConnection should remove characters from session`() {
-//        every { DBOperator.getUserByID(any()) } returns mockk {
-//            every { id } returns 1u
-//        }
-//
-//        ActiveSessionData.finishConnection(1u, connection, "TestAddress")
-//        coVerify { connection.connection.send(any()) }
-//    }
+    @Test
+    fun `finishConnection should remove characters from session`() = runBlocking{
+        every { DBOperator.getUserByID(any()) } returns mockk {
+            every { id } returns 1u
+        }
+        every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns
+                listOf(
+                    CharacterInfo(1u, 1u, 1u, "1234", 1, 1),
+                    CharacterInfo(2u, 1u, 1u, "12345", 2, 2)
+                )
+
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = 1u,
+            mapId = 1u,
+            started = Instant.DISTANT_PAST
+        )
+        activeSessionData.startConnection(1u, connection1, "TestAddress")
+        activeSessionData.finishConnection(1u, connection1, "TestAddress")
+
+        assertTrue(activeSessionData.connections.isEmpty())
+    }
 
 
     @Test
@@ -98,12 +112,12 @@ class WebsocketsTests {
             module()
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/textures")
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
 
 
-        @Test
+    @Test
     fun `GET request to api-textures-id returns expected response`() {
         withTestApplication({
             val mockDBOperator = mockk<DBOperator> {
@@ -112,7 +126,7 @@ class WebsocketsTests {
             module()
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/textures/1")
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
 
@@ -125,7 +139,7 @@ class WebsocketsTests {
             module()
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/tilesets")
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
 
         }
     }
@@ -139,7 +153,7 @@ class WebsocketsTests {
             module()
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/tilesets/1")
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
 
@@ -153,7 +167,7 @@ class WebsocketsTests {
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/maps")
 
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
 
@@ -166,9 +180,10 @@ class WebsocketsTests {
             module()
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/maps/1")
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
+
     @Test
     fun `POST request to api-register returns expected response`() {
         withTestApplication({
@@ -184,7 +199,7 @@ class WebsocketsTests {
                 setBody(requestBody)
             }
 
-            assertEquals(HttpStatusCode.Created, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.Created, response.response.status())
 
         }
     }
@@ -200,7 +215,7 @@ class WebsocketsTests {
         }) {
             val response = handleRequest(HttpMethod.Get, "/api/users")
 
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
 
         }
     }
@@ -220,7 +235,7 @@ class WebsocketsTests {
                 setBody(requestBody)
             }
 
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
 
         }
     }
@@ -237,7 +252,7 @@ class WebsocketsTests {
                 setBody(requestBody)
             }
 
-            assertEquals(HttpStatusCode.OK, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
 
@@ -256,7 +271,7 @@ class WebsocketsTests {
             val response = handleRequest(HttpMethod.Post, "/api/edit/1") {
                 setBody(requestBody)
             }
-            assertEquals(HttpStatusCode.Created, response.response.status())
+            Assertions.assertEquals(HttpStatusCode.Created, response.response.status())
         }
     }
 }
