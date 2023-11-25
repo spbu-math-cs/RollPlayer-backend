@@ -47,12 +47,34 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
  "height":2,
  "layers":[
     {
-     "data":[1, 2, 0
+     "data":[1, 2, 0,
              10, 5, 11],
      "height":2,
      "width":3,
-    }   
- ],
+      "properties": [
+        {
+          "name":"Obstacle",
+          "type":"bool",
+          "value":false
+        },
+        {
+          "name":"Pass cost",
+          "type":"int",
+          "value":2
+        }]
+    },
+    {
+      "data":[0, 0, 3,
+              0, 0, 0],
+      "height":2,
+      "width":3,
+      "properties": [
+        {
+          "name":"Obstacle",
+          "type":"bool",
+          "value":true
+       }]
+    }],
  "renderorder":"right-down",
  "orientation":"orthogonal",
  "tilesets":[

@@ -263,7 +263,7 @@ object DBOperator {
         name: String,
         row: Int = 0,
         col: Int = 0,
-        properties: Map<String, Int> = mapOf()
+        properties: kotlin.collections.Map<String, Int> = mapOf()
     ) = transaction {
         CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
@@ -480,7 +480,7 @@ object DBOperator {
         true
     }
 
-    fun updateCharacterProperties(characterId: UInt, newProperties: Map<String, Int>) = transaction {
+    fun updateCharacterProperties(characterId: UInt, newProperties: kotlin.collections.Map<String, Int>) = transaction {
         CharacterData.findById(characterId.toInt())
             ?.apply {
                 for ((propName, propValue) in newProperties) {

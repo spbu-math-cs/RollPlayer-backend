@@ -45,4 +45,4 @@ data class CharacterInfo(
     val name: String,
     val row: Int,
     val col: Int,
-    val properties: Map<String, Int>)
+    val properties: kotlin.collections.Map<String, Int>)
