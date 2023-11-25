@@ -1,5 +1,6 @@
 package db
 
+import kotlin.collections.Map
 import kotlinx.datetime.toJavaInstant
 import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
@@ -263,7 +264,7 @@ object DBOperator {
         name: String,
         row: Int = 0,
         col: Int = 0,
-        properties: kotlin.collections.Map<String, Int> = mapOf()
+        properties: Map<String, Int> = mapOf()
     ) = transaction {
         CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
@@ -480,7 +481,7 @@ object DBOperator {
         true
     }
 
-    fun updateCharacterProperties(characterId: UInt, newProperties: kotlin.collections.Map<String, Int>) = transaction {
+    fun updateCharacterProperties(characterId: UInt, newProperties: Map<String, Int>) = transaction {
         CharacterData.findById(characterId.toInt())
             ?.apply {
                 for ((propName, propValue) in newProperties) {

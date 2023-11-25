@@ -1,5 +1,6 @@
 package db
 
+import kotlin.collections.Map
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -45,4 +46,4 @@ data class CharacterInfo(
     val name: String,
     val row: Int,
     val col: Int,
-    val properties: kotlin.collections.Map<String, Int>)
+    val properties: Map<String, Int>)
