@@ -1,5 +1,6 @@
 package db
 
+import kotlin.collections.Map
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass

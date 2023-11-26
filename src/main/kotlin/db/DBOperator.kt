@@ -1,5 +1,6 @@
 package db
 
+import kotlin.collections.Map
 import kotlinx.datetime.toJavaInstant
 import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
