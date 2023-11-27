@@ -12,20 +12,18 @@ import server.handleWebsocketIncorrectMessage
 
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
-        val userIdPrev = call.parameters["userId"]?.toUIntOrNull()
-        val sessionIdPrev = call.parameters["sessionId"]?.toUIntOrNull()
-        if (userIdPrev == null || sessionIdPrev == null) {
+        val userId = call.parameters["userId"]?.toUIntOrNull()
+        val sessionId = call.parameters["sessionId"]?.toUIntOrNull()
+        if (userId == null || sessionId == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId or sessionId: must be UInt"))
             return@webSocket
         }
 
-        val userId = userIdPrev!!
         if (DBOperator.getUserByID(userId) == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId: user does not exist"))
             return@webSocket
         }
 
-        val sessionId = sessionIdPrev!!
         val sessionFromDB = DBOperator.getSessionByID(sessionId)
         if (sessionFromDB == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid sessionId: session does not exist"))
@@ -52,15 +50,23 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                     "character:new" -> {
                         try {
                             val characterName = message.optString("name", "Dovakin")
-                            val characterRow = message.optInt("row", 1)
-                            val characterCol = message.optInt("col", 1)
+                            val characterRow = message.optInt("row", 0)
+                            val characterCol = message.optInt("col", 0)
+                            val characterProps = message.optJSONArray("properties")
+                            val characterPropsMap = mutableMapOf<String, Int>()
+                            for (i in 0 until characterProps.length()) {
+                                val prop = characterProps.getJSONObject(i)
+                                characterPropsMap[prop.getString("name")] = prop.getInt("value")
+                            }
 
                             val character = DBOperator.addCharacter(
                                 userId,
                                 sessionId,
                                 characterName,
                                 characterRow,
-                                characterCol) // FIXME: поскольку я добавил поле Properties в CharacterInfo, нужно здесь что-то сделать
+                                characterCol,
+                                characterPropsMap
+                            )
                             session.addCharacterToSession(character, conn)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)

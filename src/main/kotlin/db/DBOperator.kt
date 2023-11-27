@@ -279,7 +279,7 @@ object DBOperator {
         properties: Map<String, Int> = mapOf()
     ) = transaction {
         var newCharacter: CharacterData? = null
-        val characterInfo = CharacterData.new {
+        CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
@@ -299,7 +299,8 @@ object DBOperator {
                 this.value = propValue
             }
         }
-        characterInfo
+
+        newCharacter!!.raw()
     }
 
     // =================
