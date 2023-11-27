@@ -88,7 +88,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val newRow = message.getInt("row")
                             val newCol = message.getInt("col")
 
-                            session.validateMoveAndUpdateMoveProperties(character.id)
+                            session.validateMoveAndUpdateMoveProperties(character.id, session.mapId, newRow, newCol)
 
                             val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
                             session.moveCharacter(newCharacter!!)

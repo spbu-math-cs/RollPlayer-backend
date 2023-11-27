@@ -59,9 +59,12 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveAndUpdateMoveProperties(characterId: UInt) {
+    fun validateMoveAndUpdateMoveProperties(characterId: UInt, mapId: UInt, row: Int, col: Int) {
+        val map = DBOperator.getMapByID(mapId)?.load()
+            ?: throw Exception("Map #$mapId does not exist")
+        if (map.isObstacleTile(row, col)) throw Exception("Tile is obstacle")
+
         val characterCanMoveId = getCurrentCharacterForMoveId()
-        println(characterCanMoveId)
         if (characterCanMoveId != characterId) throw Exception("Can not move now")
 
         moveProperties.prevCharacterMovedId = AtomicInteger(characterCanMoveId.toInt())
