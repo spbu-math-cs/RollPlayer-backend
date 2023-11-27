@@ -239,14 +239,15 @@ class DBTests {
             DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
         }
 
-        // TODO: добавить тесты на свойства персонажей (properties)
-
-        DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2)
+        DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Dragonosaur", 1, 2,
+            mapOf("hp" to 100, "speed" to 40, "damage" to 50))
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId1, "Mad Professor", 1, 2)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Terminator", 1, 3)
-        DBOperator.addCharacter(playerIds["Petya"]!!, sId1, "Sensei", 2, 3)
-        DBOperator.addCharacter(playerIds["Petya"]!!, sId3, "Kongzilla", 3, 4)
+        DBOperator.addCharacter(playerIds["Petya"]!!, sId1, "Sensei", 2, 3,
+            mapOf("damage" to 50))
+        DBOperator.addCharacter(playerIds["Petya"]!!, sId3, "Kongzilla", 3, 4,
+            mapOf("hp" to 200))
         DBOperator.addCharacter(playerIds["Petya"]!!, sId3, "Hippoceros", 3, 4)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId2, "Heffalump", 5, 3)
         DBOperator.addCharacter(playerIds["Vasia"]!!, sId3, "Terminator", 1, 3)
@@ -311,11 +312,29 @@ class DBTests {
                 .first { it.name == "Dragonosaur" }
                 .also { dragonosaurId = it.id }
                 .let { Pair(it.row, it.col) })
+
         DBOperator.moveCharacter(dragonosaurId, 3, 5)
         assertEquals(Pair(3, 5),
             DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
                 .first { it.name == "Dragonosaur" }
                 .let { Pair(it.row, it.col) })
+
+        assertEquals(100, DBOperator.getPropertyOfCharacter(dragonosaurId, "hp"))
+        assertEquals(40, DBOperator.getPropertyOfCharacter(dragonosaurId, "speed"))
+        assertNull(DBOperator.getPropertyOfCharacter(dragonosaurId, "power"))
+
+        DBOperator.setCharacterProperty(dragonosaurId, "hp", 60)
+        assertEquals(60, DBOperator.getPropertyOfCharacter(dragonosaurId, "hp"))
+
+        assertEquals(mapOf("hp" to 60, "speed" to 40, "damage" to 50),
+            DBOperator.getPropertiesOfCharacter(dragonosaurId))
+
+        DBOperator.setCharacterProperty(dragonosaurId, "power", 30000)
+        assertEquals(30000, DBOperator.getPropertyOfCharacter(dragonosaurId, "power"))
+
+        assertEquals(mapOf("hp" to 60, "speed" to 40, "damage" to 50, "power" to 30000),
+            DBOperator.getPropertiesOfCharacter(dragonosaurId))
+
         DBOperator.deleteCharacterById(dragonosaurId)
         assertEquals(listOf("Mad Professor"),
             DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
@@ -326,9 +345,10 @@ class DBTests {
             "Bandersnatch", 6, 7)
         DBOperator.addCharacter(playerIds["Dendy"]!!, sId3,
             "Kraken", 8)
-        DBOperator.addCharacter(playerIds["Dendy"]!!, sId2,
-            "Fantômas", -1, -3)
         DBOperator.deleteUserByID(playerIds["Petya"]!!) // all Petya characters removed from sessions
+
+        val fantomasId = DBOperator.addCharacter(playerIds["Dendy"]!!, sId2,
+                "Fantômas", -1, -3).id
 
         assertEquals(listOf("Bandersnatch", "Mad Professor"),
             DBOperator.getAllCharactersInSession(sId1)
@@ -345,6 +365,14 @@ class DBTests {
             DBOperator.getAllCharacters()
                 .first { it.name == "Kraken" }
                 .let { Pair(it.row, it.col) })
+
+        assertEquals(mapOf<String, Int>(), DBOperator.getPropertiesOfCharacter(fantomasId))
+        DBOperator.setCharacterProperty(fantomasId, "hp", 300)
+        DBOperator.setCharacterProperty(fantomasId, "wickedness", 600)
+        assertEquals(mapOf("hp" to 300, "wickedness" to 600), DBOperator.getPropertiesOfCharacter(fantomasId))
+        DBOperator.updateCharacterProperties(fantomasId, mapOf("hp" to 400, "range" to 500, "damage" to 3000000))
+        assertEquals(mapOf("hp" to 400, "wickedness" to 600, "range" to 500, "damage" to 3000000),
+            DBOperator.getPropertiesOfCharacter(fantomasId))
 
         DBOperator.deleteSessionByID(sId1)
         assertNull(DBOperator.getSessionByID(sId1))

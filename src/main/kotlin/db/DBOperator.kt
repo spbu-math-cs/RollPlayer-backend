@@ -192,6 +192,18 @@ object DBOperator {
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
 
+    fun getPropertyOfCharacter(characterId: UInt, propName: String) = transaction {
+        PropertyData.find(PropertyTable.characterID eq characterId.toInt() and
+                (PropertyTable.name eq propName))
+            .firstOrNull()
+            ?.value
+    }
+
+    fun getPropertiesOfCharacter(characterId: UInt) = transaction {
+        PropertyData.find(PropertyTable.characterID eq characterId.toInt())
+            .associateBy({ it.name }) { it.value }
+    }
+
     // ================
     // CREATE FUNCTIONS
     // ================
@@ -266,7 +278,8 @@ object DBOperator {
         col: Int = 0,
         properties: Map<String, Int> = mapOf()
     ) = transaction {
-        CharacterData.new {
+        var newCharacter: CharacterData? = null
+        val characterInfo = CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
@@ -275,15 +288,18 @@ object DBOperator {
             this.row = row
             this.col = col
 
-            val thisCharacter = this
-            for ((propName, propValue) in properties) {
-                PropertyData.new {
-                    this.character = thisCharacter
-                    this.name = propName
-                    this.value = propValue
-                }
-            }
+            newCharacter = this
         }.raw()
+
+        for ((propName, propValue) in properties) {
+            PropertyData.new {
+                this.character = newCharacter ?:
+                    throw IllegalStateException("Error creating character")
+                this.name = propName
+                this.value = propValue
+            }
+        }
+        characterInfo
     }
 
     // =================
