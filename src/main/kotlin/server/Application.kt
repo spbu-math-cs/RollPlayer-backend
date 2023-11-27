@@ -28,13 +28,13 @@ fun Application.module() {
 
     embeddedServer(Netty, port = port, host = host) {
         extracted()
-        install(io.ktor.server.plugins.cors.routing.CORS) {
-            anyHost()
-        }
     }.start(wait = true)
 }
 
 private fun Application.extracted() {
+    install(io.ktor.server.plugins.cors.routing.CORS) {
+        anyHost()
+    }
     install(ContentNegotiation) {
         json()
     }

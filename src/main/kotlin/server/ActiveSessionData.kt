@@ -34,9 +34,9 @@ class ActiveSessionData(
 
     fun toJson(): String {
         val json = JSONObject()
-        json.put("sessionId", sessionId)
-        json.put("mapId", mapId)
-        json.put("started", started)
+            .put("sessionId", sessionId)
+            .put("mapId", mapId)
+            .put("started", started)
         return json.toString()
     }
 
@@ -59,9 +59,12 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveAndUpdateMoveProperties(characterId: UInt) {
+    fun validateMoveAndUpdateMoveProperties(characterId: UInt, mapId: UInt, row: Int, col: Int) {
+        val map = DBOperator.getMapByID(mapId)?.load()
+            ?: throw Exception("Map #$mapId does not exist")
+        if (map.isObstacleTile(row, col)) throw Exception("Tile is obstacle")
+
         val characterCanMoveId = getCurrentCharacterForMoveId()
-        println(characterCanMoveId)
         if (characterCanMoveId != characterId) throw Exception("Can not move now")
 
         moveProperties.prevCharacterMovedId = AtomicInteger(characterCanMoveId.toInt())
@@ -71,9 +74,9 @@ class ActiveSessionData(
         if (id == null) return
 
         val messageStatus = JSONObject()
-        messageStatus.put("type", "character:status")
-        messageStatus.put("id", id)
-        messageStatus.put("can_move", canMove)
+            .put("type", "character:status")
+            .put("id", id)
+            .put("can_move", canMove)
         charactersToConnection.getValue(id).connection.send(messageStatus.toString())
     }
 
@@ -87,8 +90,8 @@ class ActiveSessionData(
 
     private suspend fun showCharacter(character: CharacterInfo, connection: Connection, own: Boolean) {
         val characterJson = JSONObject(Json.encodeToString(character))
-        characterJson.put("type", "character:new")
-        characterJson.put("own", own)
+            .put("type", "character:new")
+            .put("own", own)
         connection.connection.send(characterJson.toString())
     }
 
@@ -134,8 +137,8 @@ class ActiveSessionData(
         charactersToConnection[character.id] = connection
 
         val characterJson = JSONObject(Json.encodeToString(character))
-        characterJson.put("type", "character:new")
-        characterJson.put("own", true)
+            .put("type", "character:new")
+            .put("own", true)
         connection.connection.send(characterJson.toString())
         characterJson.put("own", false)
         connections.forEach {
@@ -157,8 +160,8 @@ class ActiveSessionData(
         charactersToConnection.remove(characterId)
 
         val message = JSONObject()
-        message.put("type", "character:leave")
-        message.put("id", characterId)
+            .put("type", "character:leave")
+            .put("id", characterId)
         connections.forEach {
             it.connection.send(message.toString())
         }
@@ -171,10 +174,10 @@ class ActiveSessionData(
 
     suspend fun moveCharacter(character: CharacterInfo) {
         val message = JSONObject()
-        message.put("type", "character:move")
-        message.put("id", character.id)
-        message.put("row", character.row)
-        message.put("col", character.col)
+            .put("type", "character:move")
+            .put("id", character.id)
+            .put("row", character.row)
+            .put("col", character.col)
 
         connections.forEach { it.connection.send(message.toString()) }
         logger.info("WebSocket: move character with ID ${character.id}")
