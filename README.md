@@ -1,28 +1,27 @@
 # RollPlayer-backend
-
 This is a Kotlin server for a multiplayer game, built using the Ktor framework. It handles communication between clients and manages game-related data. The server uses the H2 database for storing game data.
 
-# Getting Started
+## Getting Started
 Before running the server, make sure you have Kotlin and Gradle installed. To build and run the project, follow these steps:
 
-# Clone the repository:
+### Clone the repository:
 ```bash
 git clone <repository-url>
 cd server-project-directory
 ```
 
-# Build the project:
+### Build the project:
 ```bash
 gradle build
 ```
 
-# Run the server:
+### Run the server:
 ```bash
 gradle run
 ```
 The server will start running at http://localhost:9999 by default. You can change the port and other configurations in the application.conf file.
 
-# Configuration
+## Configuration
 Port Configuration
 You can configure the server port in the application.conf file located in the resources directory.
 
@@ -36,10 +35,10 @@ ktor {
 }
 ```
 
-# Logging Configuration
+## Logging Configuration
 Logging is configured in the server code. Logs are written to both the console and a log file named server.log.
 
-# Map format
+## Map format
 To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-map-format/) json map format. For each map we have a corresponding json (`.tmj`) file, it looks something like:
 
 ```json
@@ -47,34 +46,12 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
  "height":2,
  "layers":[
     {
-     "data":[1, 2, 0,
+     "data":[1, 2, 0
              10, 5, 11],
      "height":2,
      "width":3,
-      "properties": [
-        {
-          "name":"Obstacle",
-          "type":"bool",
-          "value":false
-        },
-        {
-          "name":"Pass cost",
-          "type":"int",
-          "value":2
-        }]
-    },
-    {
-      "data":[0, 0, 3,
-              0, 0, 0],
-      "height":2,
-      "width":3,
-      "properties": [
-        {
-          "name":"Obstacle",
-          "type":"bool",
-          "value":true
-       }]
-    }],
+    }   
+ ],
  "renderorder":"right-down",
  "orientation":"orthogonal",
  "tilesets":[
@@ -95,11 +72,11 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
 }
 ```
 
-The map itself is stored in `"data"` field. If the value is `0` then this tile is empty otherwise we must find the corresponding tileset. 
+The map itself is stored in `"data"` field. If the value is `0` then this tile is empty otherwise we must find the corresponding tileset.
 
 `"firstgid"` field shows the first id corresponding to this tileset, `"source"` field shows which file contains information about needed texture.
 
-`.tsj` file looks something like: 
+`.tsj` file looks something like:
 
 ```json
 {
