@@ -15,21 +15,39 @@ Example request:
 ```
 Status Codes:
 - 200 OK: Successful WebSocket connection initiation.
-- 400 Bad Request: Invalid userId or sessionId (must be UInt) or user/session does not exist.
+- 400 Bad Request: Invalid userId or sessionId (must be UInt) or user or session does not exist.
 
 ## Http
 
 ### POST /api/game/create
-Create a new game session.
+Create a new game session based on the provided mapId.
 
 Request Body:
-mapId – ID of the map for the session
+- mapId: ID of the map for the session.
+
 Example Request:
-
+```bash
 POST /api/game/create?mapId=123 HTTP/1.1
-Host: example.com
+```
+Status Codes:
+- 200 OK: Successful creation of a new game session.
+- 400 Bad Request: Validation checks failed (e.g., missing or invalid parameters).
 
-
+Example Response:
+```json
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    "type": "ok",
+    "message": "Session created",
+    "result": {
+        "mapID": 123u,
+        "active": false,
+        "started": 2023-11-28T12:34:56Z,
+        "whoCanMove": -1,
+    }
+}
+```
 
 ### GET /api/textures
 Get a list of all textures.
