@@ -67,6 +67,15 @@ class ActiveSessionData(
                     ?: throw Exception("Character with ID $it does not exist")
                 addCharacterToSession(character)
             }
+        } else {
+            activeUsers.getValue(userId).characters.forEach {
+                val character = DBOperator.getCharacterByID(it)
+                    ?: throw Exception("Character with ID $it does not exist")
+                val curCharacterForMoveId = getCurrentCharacterForMoveId()
+                if (character.id == curCharacterForMoveId) {
+                    sendCharacterStatusToConn(character.id, true, connection)
+                }
+            }
         }
         val userData = activeUsers.getValue(userId)
         userData.connections.add(connection)
@@ -217,5 +226,13 @@ class ActiveSessionData(
         activeUsers.getValue(character.userId).connections.forEach {
             it.connection.send(messageStatus.toString())
         }
+    }
+
+    private suspend fun sendCharacterStatusToConn(characterId: UInt, canMove: Boolean, connection: Connection) {
+        val messageStatus = JSONObject()
+            .put("type", "character:status")
+            .put("id", characterId)
+            .put("can_move", canMove)
+        connection.connection.send(messageStatus.toString())
     }
 }
