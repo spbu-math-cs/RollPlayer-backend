@@ -2,6 +2,9 @@ package db
 
 import kotlin.collections.Map
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.*
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -38,6 +41,19 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         properties.associateBy({ it.nameData.name }) { it.value })
 }
 
+object PropertiesJsonArraySerializer:
+    JsonTransformingSerializer<Map<String, Int>>(MapSerializer(String.serializer(), Int.serializer())) {
+    override fun transformSerialize(element: JsonElement): JsonElement {
+        if (element !is JsonObject) {
+            throw Exception("Incorrect element for PropertiesJsonArraySerializer")
+        }
+        return JsonArray(element.map { JsonObject(mapOf(
+            "name" to JsonPrimitive(it.key),
+            "value" to JsonPrimitive(it.value.toString().toInt())
+        )) })
+    }
+}
+
 @Serializable
 data class CharacterInfo(
     val id: UInt,
@@ -46,4 +62,5 @@ data class CharacterInfo(
     val name: String,
     val row: Int,
     val col: Int,
-    val properties: Map<String, Int>)
+    @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
+)
