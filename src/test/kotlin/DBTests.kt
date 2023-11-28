@@ -254,6 +254,15 @@ class DBTests {
         DBOperator.addCharacter(playerIds["Clara"]!!, sId2, "Dragonosaur",5)
         DBOperator.addCharacter(playerIds["Clara"]!!, sId3, "Jabberwock")
 
+        // returned characterInfo testing
+        val tigerrat = DBOperator.addCharacter(playerIds["Clara"]!!, sId2, "Tigerrat", 9000, 4,
+            mapOf("hp" to 1000000000, "coins" to 50, "damage" to 800))
+        assertEquals("Tigerrat", tigerrat.name)
+        assertEquals(Pair(9000, 4), Pair(tigerrat.row, tigerrat.col))
+        assertEquals(sId2, tigerrat.sessionId)
+        assertEquals(mapOf("hp" to 1000000000, "coins" to 50, "damage" to 800), tigerrat.properties)
+
+        // basic tests
         assert(DBOperator.getAllCharacters()
             .count { it.name == "Dragonosaur" } == 2)
         assert(DBOperator.getAllCharacters()
@@ -262,6 +271,7 @@ class DBTests {
             .filter { it.name == "Terminator" }
             .all { it.userId == playerIds["Vasia"]!! })
 
+        // characters of a concrete player
         val petyaCharacters = DBOperator.getAllCharactersOfUser(playerIds["Petya"]!!)
         assertEquals(3, petyaCharacters.count())
         assertEquals(listOf("Hippoceros", "Kongzilla", "Sensei"), petyaCharacters.map { it.name }.sorted())
@@ -281,6 +291,7 @@ class DBTests {
 
         assertEquals(0, DBOperator.getAllCharactersOfUser(playerIds["Dendy"]!!).count())
 
+        // characters of a concrete session
         val session3Characters = DBOperator.getAllCharactersInSession(sId3)
         assertEquals(4, session3Characters.count())
         assertEquals(2, session3Characters.filter { it.userId == playerIds["Petya"]!! }.count())
@@ -295,6 +306,7 @@ class DBTests {
                 .filter { it.userId == playerIds["Clara"]!! }
                 .map { it.name })
 
+        // get all characters of user in session
         assertEquals(listOf<CharacterInfo>(),
             DBOperator.getAllCharactersOfUserInSession(playerIds["Petya"]!!, sId2))
         assertEquals(listOf("Heffalump", "Terminator", "Terminator"),
@@ -306,6 +318,7 @@ class DBTests {
                 .map { it.name }
                 .sorted())
 
+        // trying to move a characters & change properties
         val dragonosaurId: UInt
         assertEquals(Pair(1, 2),
             DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
@@ -335,6 +348,7 @@ class DBTests {
         assertEquals(mapOf("hp" to 60, "speed" to 40, "damage" to 50, "power" to 30000),
             DBOperator.getPropertiesOfCharacter(dragonosaurId))
 
+        // trying to delete
         DBOperator.deleteCharacterById(dragonosaurId)
         assertEquals(listOf("Mad Professor"),
             DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId1)
@@ -345,10 +359,11 @@ class DBTests {
             "Bandersnatch", 6, 7)
         DBOperator.addCharacter(playerIds["Dendy"]!!, sId3,
             "Kraken", 8)
-        DBOperator.deleteUserByID(playerIds["Petya"]!!) // all Petya characters removed from sessions
-
         val fantomasId = DBOperator.addCharacter(playerIds["Dendy"]!!, sId2,
-                "Fantômas", -1, -3).id
+            "Fantômas", -1, -3).id
+
+        // trying to delete user
+        DBOperator.deleteUserByID(playerIds["Petya"]!!) // all Petya characters removed from sessions
 
         assertEquals(listOf("Bandersnatch", "Mad Professor"),
             DBOperator.getAllCharactersInSession(sId1)
@@ -366,6 +381,7 @@ class DBTests {
                 .first { it.name == "Kraken" }
                 .let { Pair(it.row, it.col) })
 
+        // some more properties tests
         assertEquals(mapOf<String, Int>(), DBOperator.getPropertiesOfCharacter(fantomasId))
         DBOperator.setCharacterProperty(fantomasId, "hp", 300)
         DBOperator.setCharacterProperty(fantomasId, "wickedness", 600)
@@ -374,6 +390,7 @@ class DBTests {
         assertEquals(mapOf("hp" to 400, "wickedness" to 600, "range" to 500, "damage" to 3000000),
             DBOperator.getPropertiesOfCharacter(fantomasId))
 
+        // trying to delete session
         DBOperator.deleteSessionByID(sId1)
         assertNull(DBOperator.getSessionByID(sId1))
         assertThrows<IllegalArgumentException> { DBOperator.getAllUsersInSession(sId1) }
@@ -393,6 +410,7 @@ class DBTests {
         assertEquals(1, DBOperator.getAllCharactersOfUser(playerIds["Vasia"]!!).count())
         assertEquals(0, DBOperator.getAllCharactersOfUserInSession(playerIds["Vasia"]!!, sId2).count())
 
+        // trying to delete all
         DBOperator.deleteAllSessions()
         assert(DBOperator.getAllSessionsWithUser(playerIds["Clara"]!!).isEmpty())
     }

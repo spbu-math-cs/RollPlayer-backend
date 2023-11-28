@@ -38,7 +38,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         user.id.value.toUInt(),
         session.id.value.toUInt(),
         name, row, col,
-        properties.associateBy({ it.name }) { it.value })
+        properties.associateBy({ it.nameData.name }) { it.value })
 }
 
 object PropertiesJsonArraySerializer:
