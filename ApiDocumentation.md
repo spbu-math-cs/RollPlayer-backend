@@ -1,33 +1,5 @@
 # API Documentation
 
-## GET /api/v0/teams
-
-Search for team names. Allows filtering based on a number of parameters.
-
-### Query Parameters:
-name – team name
-name__eq – team name (exact match)
-name__contains – team name contains parameter
-name__startswith – team name starts with parameter
-name__endswith – team name ends with parameter
-id – team ID
-id__eq – team ID (exact match)
-active – team active/deleted (1 and 0, respectively)
-
-### Example Request:
-
-GET /api/v0/teams?name__startswith=team- HTTP/1.1
-
-Example Response:
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-[
-    "team-foo",
-    "team-bar"
-]
-
 ### webSocket("/api/connect/{userId}/{sessionId}")
 Connect to WebSocket for real-time communication.
 
@@ -45,7 +17,7 @@ Example Request:
 
 POST /api/game/create?mapId=123 HTTP/1.1
 Host: example.com
-Textures API
+
 
 
 ### GET /api/textures
