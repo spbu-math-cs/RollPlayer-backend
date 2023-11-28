@@ -2,18 +2,18 @@
 
 ## WebSocket
 
-_### /api/connect/{userId}/{sessionId}
+### /api/connect/{userId}/{sessionId}
 Connect to WebSocket for real-time communication.
 
-Parameters:
+#### Parameters:
 - {userId}: User ID for identifying the user
 - {sessionId}: Session ID for identifying the session
 
-Example request:
+#### Example request:
 ```bash
 /ws/api/connect/1/2
 ```
-Status Codes:
+#### Status Codes:
 - 200 OK: Successful WebSocket connection initiation.
 - 400 Bad Request: Invalid userId or sessionId (must be UInt) or user or session does not exist.
 
@@ -22,18 +22,18 @@ Status Codes:
 ### POST /api/game/create
 Create a new game session based on the provided mapId.
 
-Request Body:
+#### Request Body:
 - mapId: ID of the map for the session.
 
-Example Request:
+#### Example Request:
 ```bash
 POST /api/game/create?mapId=123 HTTP/1.1
 ```
-Status Codes:
+#### Status Codes:
 - 200 OK: Successful creation of a new game session.
-- 400 Bad Request: Validation checks failed (e.g., missing or invalid parameters).
+- 400 Bad Request: Validation checks failed (e.g. missing or invalid parameters).
 
-Example Response:
+#### Example Response:
 ```json
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -52,7 +52,18 @@ Content-Type: application/json
 ### GET /api/textures
 Get a list of all textures.
 
-Example Response:
+#### Request Body:
+- ........
+
+#### Example Request:
+```bash
+GET ........
+```
+#### Status Codes:
+- ........
+
+#### Example Response:
+```json
 HTTP/1.1 200 OK
 Content-Type: application/json
 
@@ -63,12 +74,25 @@ Content-Type: application/json
         {"id": "2", "filepath": "/textures/texture2.png"}
     ]
 }
+```
 
 ### GET /api/textures/{id}
 Get a specific texture by ID.
 
-{id} – Texture ID
-Tilesets API
+#### Request Body:
+- {id}: Texture ID
+
+#### Example Request:
+```bash
+GET ........
+```
+#### Status Codes:
+- ........
+
+#### Example Response:
+```json
+........
+```
 
 ### GET /api/tilesets
 Get a list of all tilesets.
