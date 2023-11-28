@@ -105,6 +105,19 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             handleWebsocketIncorrectMessage(this, userId, "character:move", e)
                         }
                     }
+                    "character:attack" -> {
+                        try {
+                            val character = session.getValidCharacter(message, userId)
+                            val to = message.getInt("to")
+
+//                            session.validateMoveAndUpdateMoveProperties(character.id, session.mapId, newRow, newCol)
+//
+//                            val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
+//                            session.moveCharacter(newCharacter!!)
+                        } catch (e: Exception) {
+                            handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
