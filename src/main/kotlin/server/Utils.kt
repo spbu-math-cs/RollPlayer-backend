@@ -8,6 +8,15 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import org.json.JSONObject
 
+suspend fun sendSafety(
+    connection: WebSocketServerSession,
+    content: String
+) {
+    try {
+        connection.send(content)
+    } catch (_: Exception) {}
+}
+
 suspend fun handleHTTPRequestException(
     call: ApplicationCall,
     requestInfo: String,
@@ -30,5 +39,5 @@ suspend fun handleWebsocketIncorrectMessage(
     e: Exception
 ) {
     logger.info("Failed websocket message type $on from user with ID $userId (${connection.call.request.origin.remoteAddress})", e)
-    connection.send(JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
+    sendSafety(connection, JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
 }
