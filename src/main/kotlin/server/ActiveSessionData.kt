@@ -60,7 +60,7 @@ class ActiveSessionData(
     }
 
     suspend fun startConnection(userId: UInt, connection: Connection) {
-        connection.connection.send(toJson())
+        sendSafety(connection.connection, toJson())
 
         val isFirstConnectionForThisUser = !activeUsers.containsKey(userId)
         if (isFirstConnectionForThisUser) {
@@ -122,7 +122,7 @@ class ActiveSessionData(
         val characterJson = JSONObject(Json.encodeToString(character))
             .put("type", "character:new")
             .put("own", own)
-        connection.connection.send(characterJson.toString())
+        sendSafety(connection.connection, characterJson.toString())
     }
 
     fun getValidCharacter(message: JSONObject, userId: UInt): CharacterInfo {
@@ -140,19 +140,17 @@ class ActiveSessionData(
         val userData = activeUsers.getValue(character.userId)
         userData.characters.add(character.id)
 
-        val characterJson = JSONObject(Json.encodeToString(character))
+        val message = JSONObject(Json.encodeToString(character))
             .put("type", "character:new")
             .put("own", true)
         userData.connections.forEach {
-            it.connection.send(characterJson.toString())
+            sendSafety(it.connection, message.toString())
         }
 
-        characterJson.put("own", false)
+        message.put("own", false)
         activeUsers.forEach {
             if (it.key != character.userId) {
-                it.value.connections.forEach { conn ->
-                    conn.connection.send(characterJson.toString())
-                }
+                it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
             }
         }
         logger.info("WebSocket: add character with ID ${character.id}")
@@ -181,7 +179,7 @@ class ActiveSessionData(
             .put("type", "character:leave")
             .put("id", character.id)
         activeUsers.forEach {
-            it.value.connections.forEach { conn -> conn.connection.send(message.toString()) }
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
         logger.info("WebSocket: remove character with ID ${character.id}")
 
@@ -191,13 +189,12 @@ class ActiveSessionData(
     }
 
     suspend fun moveCharacter(character: CharacterInfo) {
-        val message = JSONObject()
+        val message = JSONObject(Json.encodeToString(character))
             .put("type", "character:move")
-            .put("id", character.id)
             .put("row", character.row)
             .put("col", character.col)
         activeUsers.forEach {
-            it.value.connections.forEach { conn -> conn.connection.send(message.toString()) }
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
         logger.info("WebSocket: move character with ID ${character.id}")
 
@@ -238,7 +235,7 @@ class ActiveSessionData(
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
         activeUsers.getValue(character.userId).connections.forEach {
-            it.connection.send(messageStatus.toString())
+            sendSafety(it.connection, messageStatus.toString())
         }
     }
 
@@ -247,6 +244,6 @@ class ActiveSessionData(
             .put("type", "character:status")
             .put("id", characterId)
             .put("can_move", canMove)
-        connection.connection.send(messageStatus.toString())
+        sendSafety(connection.connection, messageStatus.toString())
     }
 }
