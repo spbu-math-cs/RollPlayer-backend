@@ -25,9 +25,7 @@ class ActiveSessionData(
         val userId: UInt,
         val sessionId: UInt,
         val connections: MutableSet<Connection> = Collections.synchronizedSet(mutableSetOf()),
-        var characters: MutableSet<UInt> = Collections.synchronizedSet(
-            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).map { it.id }.toMutableSet()
-        )
+        var characters: MutableSet<UInt> = Collections.synchronizedSet(mutableSetOf())
     )
 
     data class MoveProperties(
@@ -71,34 +69,24 @@ class ActiveSessionData(
         userData.connections.add(connection)
 
         activeUsers.forEach {
-            if (it.key != userId) {
-                it.value.characters.forEach { characterId ->
-                    showCharacter(
-                        DBOperator.getCharacterByID(characterId)
-                            ?: throw Exception("Character with ID $characterId does not exist"),
-                        connection,
-                        false
-                    )
-                }
+            val own = (it.key == userId)
+            it.value.characters.forEach { characterId ->
+                val character = DBOperator.getCharacterByID(characterId)
+                    ?: throw Exception("Character with ID $characterId does not exist")
+                showCharacter(character, connection, own)
             }
         }
         logger.info("WebSocket: characters in session $sessionId to user $userId")
 
         if (isFirstConnectionForThisUser) {
-            userData.characters.forEach {
-                val character = DBOperator.getCharacterByID(it)
-                    ?: throw Exception("Character with ID $it does not exist")
-                addCharacterToSession(character)
+            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
+                addCharacterToSession(it)
             }
         } else {
             userData.characters.forEach {
-                val character = DBOperator.getCharacterByID(it)
-                    ?: throw Exception("Character with ID $it does not exist")
-                showCharacter(character, connection,true)
-
                 val curCharacterForMoveId = getCurrentCharacterForMoveId()
-                if (character.id == curCharacterForMoveId) {
-                    sendCharacterStatusToConn(character.id, true, connection)
+                if (it == curCharacterForMoveId) {
+                    sendCharacterStatusToConn(it, true, connection)
                 }
             }
         }
