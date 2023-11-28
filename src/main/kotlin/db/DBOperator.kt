@@ -192,16 +192,24 @@ object DBOperator {
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
 
+    private fun getPropertyNameDataNoTransaction(propName: String): PropertyNameData =
+        PropertyNameData
+            .find(PropertyNameTable.name eq propName).firstOrNull()
+            ?: PropertyNameData.new {
+                name = propName
+            }
+
     fun getPropertyOfCharacter(characterId: UInt, propName: String) = transaction {
+        val propNameId = getPropertyNameDataNoTransaction(propName).id.value
         PropertyData.find(PropertyTable.characterID eq characterId.toInt() and
-                (PropertyTable.name eq propName))
+                (PropertyTable.nameID eq propNameId))
             .firstOrNull()
             ?.value
     }
 
     fun getPropertiesOfCharacter(characterId: UInt) = transaction {
         PropertyData.find(PropertyTable.characterID eq characterId.toInt())
-            .associateBy({ it.name }) { it.value }
+            .associateBy({ it.nameData.name }) { it.value }
     }
 
     // ================
@@ -279,7 +287,7 @@ object DBOperator {
         properties: Map<String, Int> = mapOf()
     ) = transaction {
         var newCharacter: CharacterData? = null
-        val characterInfo = CharacterData.new {
+        CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
@@ -289,17 +297,18 @@ object DBOperator {
             this.col = col
 
             newCharacter = this
-        }.raw()
+        }
 
         for ((propName, propValue) in properties) {
             PropertyData.new {
                 this.character = newCharacter ?:
                     throw IllegalStateException("Error creating character")
-                this.name = propName
+                this.nameData = getPropertyNameDataNoTransaction(propName)
                 this.value = propValue
             }
         }
-        characterInfo
+
+        newCharacter?.raw() ?: throw IllegalStateException("Error creating character")
     }
 
     // =================
@@ -477,14 +486,15 @@ object DBOperator {
     }
 
     private fun setCharacterPropertyNoTransaction(character: CharacterData, propName: String, propValue: Int) {
+        val propNameDataString = getPropertyNameDataNoTransaction(propName)
         PropertyData.find(PropertyTable.characterID eq character.id.value and
-                (PropertyTable.name eq propName))
+                (PropertyTable.nameID eq propNameDataString.id.value))
             .firstOrNull()
             ?.apply {
                 this.value = propValue
             } ?: PropertyData.new {
                 this.character = character
-                this.name = propName
+                this.nameData = propNameDataString
                 this.value = propValue
             }
     }
