@@ -60,39 +60,48 @@ class ActiveSessionData(
     }
 
     suspend fun startConnection(userId: UInt, connection: Connection) {
-        if (!activeUsers.containsKey(userId)) {
+        connection.connection.send(toJson())
+
+        val isFirstConnectionForThisUser = !activeUsers.containsKey(userId)
+        if (isFirstConnectionForThisUser) {
             activeUsers[userId] = UserData(userId, sessionId)
-            activeUsers.getValue(userId).characters.forEach {
+        }
+
+        val userData = activeUsers.getValue(userId)
+        userData.connections.add(connection)
+
+        activeUsers.forEach {
+            if (it.key != userId) {
+                it.value.characters.forEach { characterId ->
+                    showCharacter(
+                        DBOperator.getCharacterByID(characterId)
+                            ?: throw Exception("Character with ID $characterId does not exist"),
+                        connection,
+                        false
+                    )
+                }
+            }
+        }
+        logger.info("WebSocket: characters in session $sessionId to user $userId")
+
+        if (isFirstConnectionForThisUser) {
+            userData.characters.forEach {
                 val character = DBOperator.getCharacterByID(it)
                     ?: throw Exception("Character with ID $it does not exist")
                 addCharacterToSession(character)
             }
         } else {
-            activeUsers.getValue(userId).characters.forEach {
+            userData.characters.forEach {
                 val character = DBOperator.getCharacterByID(it)
                     ?: throw Exception("Character with ID $it does not exist")
+                showCharacter(character, connection,true)
+
                 val curCharacterForMoveId = getCurrentCharacterForMoveId()
                 if (character.id == curCharacterForMoveId) {
                     sendCharacterStatusToConn(character.id, true, connection)
                 }
             }
         }
-        val userData = activeUsers.getValue(userId)
-        userData.connections.add(connection)
-
-        connection.connection.send(toJson())
-        activeUsers.forEach {
-            val own = (it.key == userId)
-            it.value.characters.forEach { characterId ->
-                showCharacter(
-                    DBOperator.getCharacterByID(characterId)
-                        ?: throw Exception("Character with ID $characterId does not exist"),
-                    connection,
-                    own
-                )
-            }
-        }
-        logger.info("WebSocket: characters in session $sessionId to user $userId")
     }
 
     suspend fun finishConnection(userId: UInt, connection: Connection) {
@@ -126,7 +135,7 @@ class ActiveSessionData(
     }
 
     suspend fun addCharacterToSession(character: CharacterInfo) {
-        val curCharacterForMoveId = getCurrentCharacterForMoveId()
+        val characterIdForMoveBeforeAdding = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
         userData.characters.add(character.id)
@@ -148,15 +157,22 @@ class ActiveSessionData(
         }
         logger.info("WebSocket: add character with ID ${character.id}")
 
-        val newCurCharacterForMoveId = getCurrentCharacterForMoveId()
-        if (curCharacterForMoveId != newCurCharacterForMoveId) {
-            sendCharacterStatus(curCharacterForMoveId, false)
-            sendCharacterStatus(newCurCharacterForMoveId, true)
+        processingMovePropertiesInAdding(characterIdForMoveBeforeAdding, character.id)
+    }
+
+    private suspend fun processingMovePropertiesInAdding(characterIdForMoveBeforeAdding: UInt?, characterId: UInt) {
+        val characterIdForMoveAfterAdding = getCurrentCharacterForMoveId()
+        if (characterIdForMoveBeforeAdding != characterIdForMoveAfterAdding) {
+            assert(characterIdForMoveAfterAdding == characterId)
+            sendCharacterStatus(characterIdForMoveBeforeAdding, false)
+            sendCharacterStatus(characterIdForMoveAfterAdding, true)
+        } else if (characterIdForMoveBeforeAdding == characterId) {
+            sendCharacterStatus(characterId, true)
         }
     }
 
     suspend fun removeCharacterFromSession(character: CharacterInfo) {
-        val curCharacterForMoveId = getCurrentCharacterForMoveId()
+        val characterIdForMoveBeforeRemoving = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
         userData.characters.remove(character.id)
@@ -169,7 +185,7 @@ class ActiveSessionData(
         }
         logger.info("WebSocket: remove character with ID ${character.id}")
 
-        if (character.id == curCharacterForMoveId) {
+        if (character.id == characterIdForMoveBeforeRemoving) {
             sendCharacterStatus(getCurrentCharacterForMoveId(), true)
         }
     }
@@ -185,10 +201,8 @@ class ActiveSessionData(
         }
         logger.info("WebSocket: move character with ID ${character.id}")
 
-        val prevId = moveProperties.prevCharacterMovedId.get().toUInt()
-        sendCharacterStatus(prevId, false)
-        val curId = getCurrentCharacterForMoveId()
-        sendCharacterStatus(curId, true)
+        sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
+        sendCharacterStatus(getCurrentCharacterForMoveId(), true)
     }
 
     private fun getCurrentCharacterForMoveId(): UInt? {
