@@ -11,6 +11,7 @@ import org.json.JSONObject
 import server.ActiveSessionData
 import server.Connection
 import server.handleWebsocketIncorrectMessage
+import server.logger
 
 fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
     val characterPropsMap = mutableMapOf<String, Int>()
@@ -48,11 +49,11 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         }
         val session = activeSessions.getValue(sessionId)
 
-        val conn = Connection(this)
+        val conn = Connection(this, userId)
 
         try {
-            conn.connection.send(session.toJson())
-            session.startConnection(userId, conn, call.request.origin.remoteAddress)
+            session.startConnection(userId, conn)
+            logger.info("WebSocket: start connection with ${call.request.origin.remoteAddress}")
 
             for (frame in incoming) {
                 frame as? Frame.Text ?: continue
@@ -75,7 +76,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 characterCol,
                                 characterProps
                             )
-                            session.addCharacterToSession(character, conn)
+                            session.addCharacterToSession(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                         }
@@ -85,7 +86,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val character = session.getValidCharacter(message, userId)
 
                             DBOperator.deleteCharacterById(character.id)
-                            session.removeCharacterFromSession(character.id)
+                            session.removeCharacterFromSession(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
                         }
@@ -109,9 +110,10 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         } catch (e: Exception) {
             handleWebsocketIncorrectMessage(this, userId, "", e)
         } finally {
-            session.finishConnection(userId, conn, call.request.origin.remoteAddress)
+            session.finishConnection(userId, conn)
+            logger.info("WebSocket: finish connection with ${call.request.origin.remoteAddress}")
 
-            if (session.connections.isEmpty()) {
+            if (session.activeUsers.isEmpty()) {
                 DBOperator.updateSession(session.toSessionInfo())
                 DBOperator.setSessionActive(sessionId, false)
                 activeSessions.remove(sessionId)
