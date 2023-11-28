@@ -1,14 +1,27 @@
 package server.routing
 
 import db.DBOperator
+
 import io.ktor.server.plugins.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import org.json.JSONArray
 import org.json.JSONObject
 import server.ActiveSessionData
 import server.Connection
 import server.handleWebsocketIncorrectMessage
+
+fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
+    val characterPropsMap = mutableMapOf<String, Int>()
+    if (characterProps != null) {
+        for (i in 0 until characterProps.length()) {
+            val prop = characterProps.getJSONObject(i)
+            characterPropsMap[prop.getString("name")] = prop.getInt("value")
+        }
+    }
+    return characterPropsMap
+}
 
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
@@ -52,12 +65,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val characterName = message.optString("name", "Dovakin")
                             val characterRow = message.optInt("row", 0)
                             val characterCol = message.optInt("col", 0)
-                            val characterProps = message.optJSONArray("properties")
-                            val characterPropsMap = mutableMapOf<String, Int>()
-                            for (i in 0 until characterProps.length()) {
-                                val prop = characterProps.getJSONObject(i)
-                                characterPropsMap[prop.getString("name")] = prop.getInt("value")
-                            }
+                            val characterProps = characterPropsToMap(message.optJSONArray("properties"))
 
                             val character = DBOperator.addCharacter(
                                 userId,
@@ -65,7 +73,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 characterName,
                                 characterRow,
                                 characterCol,
-                                characterPropsMap
+                                characterProps
                             )
                             session.addCharacterToSession(character, conn)
                         } catch (e: Exception) {
