@@ -92,6 +92,7 @@ class ActiveSessionData(
         }
     }
 
+    // should not throw exceptions
     suspend fun finishConnection(userId: UInt, connection: Connection) {
         val userData = activeUsers.getValue(userId)
         userData.connections.remove(connection)
@@ -99,8 +100,9 @@ class ActiveSessionData(
         if (userData.connections.isEmpty()) {
             userData.characters.forEach {
                 val character = DBOperator.getCharacterByID(it)
-                    ?: throw Exception("Character with ID $it does not exist")
-                removeCharacterFromSession(character)
+                if (character != null) {
+                    removeCharacterFromSession(character)
+                }
             }
             activeUsers.remove(userId)
         }
