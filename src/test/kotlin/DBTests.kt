@@ -251,8 +251,11 @@ class DBTests {
             DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
         }
 
+        // TODO: исправить тесты, чтобы они соответствовали новому механизму хранения свойств
+
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Dragonosaur",
             "$avatarsFolder/avatar01.png", 1, 2,
+            BasicProperties(1, 2, 3, 4, 5, 6),
             mapOf("hp" to 100, "speed" to 40, "damage" to 50))
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Mad Professor",
             null, 1, 2)
@@ -262,9 +265,11 @@ class DBTests {
             "$avatarsFolder/avatar02.png", 1, 3)
         DBOperator.addCharacter(userIds["Petya"]!!, sId1, "Sensei",
             null, 2, 3,
+            BasicProperties(),
             mapOf("damage" to 50))
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Kongzilla",
             null, 3, 4,
+            BasicProperties(),
             mapOf("hp" to 200))
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Hippoceros",
             null, 3, 4)
@@ -279,6 +284,7 @@ class DBTests {
         // returned characterInfo testing
         val tigerrat = DBOperator.addCharacter(userIds["Clara"]!!, sId2, "Tigerrat",
             "$avatarsFolder/avatar02.png", 9000, 4,
+            BasicProperties(),
             mapOf("hp" to 1000000000, "coins" to 50, "damage" to 800))
         assertEquals("Tigerrat", tigerrat.name)
         assertEquals(Pair(9000, 4), Pair(tigerrat.row, tigerrat.col))
@@ -300,11 +306,9 @@ class DBTests {
         assertEquals(3, petyaCharacters.count())
         assertEquals(listOf("Hippoceros", "Kongzilla", "Sensei"), petyaCharacters.map { it.name }.sorted())
         assertEquals(Pair(3, 4),
-            petyaCharacters.filter { it.name == "Kongzilla" }
-                .first()
+            petyaCharacters.first { it.name == "Kongzilla" }
                 .let { Pair(it.row, it.col) })
-        petyaCharacters.filter { it.name == "Hippoceros" }
-            .first()
+        petyaCharacters.first { it.name == "Hippoceros" }
             .let { hippo ->
                 DBOperator.getCharacterByID(hippo.id)
                 .let {
@@ -318,10 +322,8 @@ class DBTests {
         // characters of a concrete session
         val session3Characters = DBOperator.getAllCharactersInSession(sId3)
         assertEquals(4, session3Characters.count())
-        assertEquals(2, session3Characters.filter { it.userId == userIds["Petya"]!! }.count())
-        assertEquals(Pair(0, 0), session3Characters
-            .filter { it.name == "Jabberwock" }
-            .first()
+        assertEquals(2, session3Characters.count { it.userId == userIds["Petya"]!! })
+        assertEquals(Pair(0, 0), session3Characters.first { it.name == "Jabberwock" }
             .let { Pair(it.row, it.col) })
         assertEquals(listOf("Hippoceros", "Jabberwock", "Kongzilla", "Terminator"),
             session3Characters.map { it.name }.sorted())
