@@ -76,7 +76,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 characterCol,
                                 characterProps
                             )
-                            session.addCharacterToSession(character)
+                            session.addCharacter(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                         }
@@ -86,7 +86,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val character = session.getValidCharacter(message, userId)
 
                             DBOperator.deleteCharacterById(character.id)
-                            session.removeCharacterFromSession(character)
+                            session.removeCharacter(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
                         }
@@ -97,7 +97,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val newRow = message.getInt("row")
                             val newCol = message.getInt("col")
 
-                            session.validateMoveAndUpdateMoveProperties(character.id, session.mapId, newRow, newCol)
+                            session.validateMoveCharacter(session.mapId, newRow, newCol)
+                            session.validateMoveAndUpdateMoveProperties(character.id)
 
                             val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
                             session.moveCharacter(newCharacter!!)
@@ -107,16 +108,26 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                     }
                     "character:attack" -> {
                         try {
-                            val character = session.getValidCharacter(message, userId)
-                            val to = message.getInt("to")
+                            when (message.optString("type-attack", "simple")) {
+                                "simple" -> {
+                                    val character = session.getValidCharacter(message, userId)
+                                    val opponent = session.getValidOpponentCharacter(message)
 
-//                            session.validateMoveAndUpdateMoveProperties(character.id, session.mapId, newRow, newCol)
-//
-//                            val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
-//                            session.moveCharacter(newCharacter!!)
+                                    session.validateSimpleAttack(character, opponent)
+                                    session.validateMoveAndUpdateMoveProperties(character.id)
+
+                                    session.simpleAttack(character.id, opponent.id)
+                                }
+                                else -> {
+                                    throw Exception("Incorrect field \"type-attack\" in message")
+                                }
+                            }
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
                         }
+                    }
+                    else -> {
+                        throw Exception("Incorrect field \"type\" in message")
                     }
                 }
             }

@@ -4,13 +4,13 @@ import db.CharacterInfo
 import db.DBOperator
 import db.SessionInfo
 
-import io.ktor.websocket.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.abs
 
 const val initPrevCharacterMovedId: Int = -1
 
@@ -80,7 +80,7 @@ class ActiveSessionData(
 
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
-                addCharacterToSession(it)
+                addCharacter(it)
             }
         } else {
             userData.characters.forEach {
@@ -100,7 +100,7 @@ class ActiveSessionData(
             userData.characters.forEach {
                 val character = DBOperator.getCharacterByID(it)
                     ?: throw Exception("Character with ID $it does not exist")
-                removeCharacterFromSession(character)
+                removeCharacter(character)
             }
             activeUsers.remove(userId)
         }
@@ -117,12 +117,23 @@ class ActiveSessionData(
         val characterId = message.getInt("id").toUInt()
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
-        if (character.userId != userId || character.sessionId != sessionId)
+        if (character.userId != userId)
             throw Exception("Character with ID $characterId doesn't belong to you")
+        if (character.sessionId != sessionId)
+            throw Exception("Character with ID $characterId doesn't belong to this game session")
         return character
     }
 
-    suspend fun addCharacterToSession(character: CharacterInfo) {
+    fun getValidOpponentCharacter(message: JSONObject): CharacterInfo {
+        val characterId = message.getInt("opponentId").toUInt()
+        val character = DBOperator.getCharacterByID(characterId)
+            ?: throw Exception("Opponent character with ID $characterId does not exist")
+        if (character.sessionId != sessionId)
+            throw Exception("Opponent character with ID $characterId doesn't belong to this game session")
+        return character
+    }
+
+    suspend fun addCharacter(character: CharacterInfo) {
         val characterIdForMoveBeforeAdding = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
@@ -157,7 +168,7 @@ class ActiveSessionData(
         }
     }
 
-    suspend fun removeCharacterFromSession(character: CharacterInfo) {
+    suspend fun removeCharacter(character: CharacterInfo) {
         val characterIdForMoveBeforeRemoving = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
@@ -190,6 +201,32 @@ class ActiveSessionData(
         sendCharacterStatus(getCurrentCharacterForMoveId(), true)
     }
 
+    suspend fun simpleAttack(characterId: UInt, opponentId: UInt) {
+        processingSimpleAttack(characterId, opponentId)
+
+        val updatedCharacter = DBOperator.getCharacterByID(characterId)!!
+        val updatedOpponent = DBOperator.getCharacterByID(opponentId)!!
+        val message = JSONObject()
+            .put("type", "character:attack")
+            .put("character", JSONObject(Json.encodeToString(updatedCharacter)))
+            .put("opponent", JSONObject(Json.encodeToString(updatedOpponent)))
+
+        activeUsers.forEach {
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
+        }
+//        logger.info("WebSocket: move character with ID ${character.id}")
+
+        sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
+        sendCharacterStatus(getCurrentCharacterForMoveId(), true)
+    }
+
+    private fun processingSimpleAttack(characterId: UInt, opponentId: UInt) {
+        // TODO: fix properties in db, now don't work
+        val characterDamage = DBOperator.getPropertyOfCharacter(characterId, "damage")!!
+        val opponentHealth = DBOperator.getPropertyOfCharacter(opponentId, "health")!!
+        DBOperator.setCharacterProperty(opponentId, "health", opponentHealth - characterDamage)
+    }
+
     private fun getCurrentCharacterForMoveId(): UInt? {
         val charactersIdInOrderAdded = activeUsers
             .map { it.value.characters }
@@ -202,13 +239,20 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveAndUpdateMoveProperties(characterId: UInt, mapId: UInt, row: Int, col: Int) {
+    fun validateMoveCharacter(mapId: UInt, row: Int, col: Int) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
-        if (map.isObstacleTile(row, col)) throw Exception("Tile is obstacle")
+        if (map.isObstacleTile(row, col)) throw Exception("Can't move: target tile is obstacle")
+    }
 
+    fun validateSimpleAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        if (abs(character.row - opponent.row) > 1 || abs(character.col - opponent.col) > 1)
+            throw Exception("Can't move: too far to attack")
+    }
+
+    fun validateMoveAndUpdateMoveProperties(characterId: UInt) {
         val characterCanMoveId = getCurrentCharacterForMoveId()
-        if (characterCanMoveId != characterId) throw Exception("Can not move now")
+        if (characterCanMoveId != characterId) throw Exception("Can't move: not your move now")
 
         moveProperties.prevCharacterMovedId = AtomicInteger(characterCanMoveId.toInt())
     }
