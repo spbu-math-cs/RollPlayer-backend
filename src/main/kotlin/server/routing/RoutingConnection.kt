@@ -72,6 +72,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 userId,
                                 sessionId,
                                 characterName,
+                                null, // FIXME: здесь должна быть аватарка
                                 characterRow,
                                 characterCol,
                                 characterProps
