@@ -61,7 +61,7 @@ fun Route.requestsUser(){
                 DBOperator.getUserByLogin(data.getString("login"))
             } else if (data.has("email")) {
                 DBOperator.getUserByEmail(data.getString("email"))
-            } else throw Exception("Invalid request POST /api/login: missing login and email")
+            } else throw Exception("Missing login and email")
 
             if (user != null) {
                 if (DBOperator.checkUserPassword(user.id, password)) {
@@ -71,7 +71,7 @@ fun Route.requestsUser(){
                         .put("result", JSONObject(Json.encodeToString(user)))
                         .toString()
                     )
-                } else throw Exception("Invalid request POST /api/login: invalid login/email or password")
+                } else throw Exception("Invalid login/email or password")
             } else throw Exception("User with this login/email is not exist")
 
             logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
@@ -103,7 +103,7 @@ fun Route.requestsUser(){
     post("/api/edit/{userId}") {
         try {
             val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw Exception("Invalid request POST /api/edit/{userId}: invalid userId, must be UInt")
+                ?: throw IllegalArgumentException("Invalid userId, must be UInt")
 
             val data = JSONObject(call.receiveText())
             if (data.has("login")) {
@@ -138,7 +138,7 @@ fun Route.requestsUser(){
     get("/api/{userId}/sessions") {
         try {
             val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw Exception("Invalid request GET /api/edit/{userId}: invalid userId, must be UInt")
+                ?: throw IllegalArgumentException("Invalid userId, must be UInt")
 
             call.respond(HttpStatusCode.OK, JSONObject()
                 .put("type", "ok")
