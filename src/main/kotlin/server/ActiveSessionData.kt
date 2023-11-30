@@ -76,7 +76,7 @@ class ActiveSessionData(
                 showCharacter(character, connection, own)
             }
         }
-        logger.info("WebSocket: characters in session $sessionId to user $userId")
+        logger.info("Session #$sessionId for user #$userId: show all active characters")
 
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
@@ -152,7 +152,7 @@ class ActiveSessionData(
                 it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
             }
         }
-        logger.info("WebSocket: add character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: add active character #${character.id}")
 
         processingMovePropertiesInAdding(characterIdForMoveBeforeAdding, character.id)
     }
@@ -180,7 +180,7 @@ class ActiveSessionData(
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-        logger.info("WebSocket: remove character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: remove active character #${character.id}")
 
         if (character.id == characterIdForMoveBeforeRemoving) {
             sendCharacterStatus(getCurrentCharacterForMoveId(), true)
@@ -195,36 +195,38 @@ class ActiveSessionData(
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-        logger.info("WebSocket: move character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: " +
+                "move character #${character.id} to (${character.row}, ${character.col})")
 
         sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
         sendCharacterStatus(getCurrentCharacterForMoveId(), true)
     }
 
     suspend fun simpleAttack(characterId: UInt, opponentId: UInt) {
-        processingSimpleAttack(characterId, opponentId)
-
         val updatedCharacter = DBOperator.getCharacterByID(characterId)!!
         val updatedOpponent = DBOperator.getCharacterByID(opponentId)!!
         val message = JSONObject()
             .put("type", "character:attack")
+            .put("attackType", "simple")
             .put("character", JSONObject(Json.encodeToString(updatedCharacter)))
             .put("opponent", JSONObject(Json.encodeToString(updatedOpponent)))
 
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-//        logger.info("WebSocket: move character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " +
+                "attack from character #$characterId to character #$opponentId")
 
         sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
         sendCharacterStatus(getCurrentCharacterForMoveId(), true)
     }
 
-    private fun processingSimpleAttack(characterId: UInt, opponentId: UInt) {
+    fun processingSimpleAttack(characterId: UInt, opponentId: UInt) {
         // TODO: fix properties in db, now don't work
         val characterDamage = DBOperator.getPropertyOfCharacter(characterId, "damage")!!
         val opponentHealth = DBOperator.getPropertyOfCharacter(opponentId, "health")!!
         DBOperator.setCharacterProperty(opponentId, "health", opponentHealth - characterDamage)
+        logger.info("Session #$sessionId: change health of character #${opponentId} in db")
     }
 
     private fun getCurrentCharacterForMoveId(): UInt? {
@@ -260,6 +262,10 @@ class ActiveSessionData(
     private suspend fun sendCharacterStatus(characterId: UInt?, canMove: Boolean) {
         if (characterId == null) return
 
+        if (canMove) {
+            logger.info("Session #$sessionId: now can move character #$characterId")
+        }
+
         val messageStatus = JSONObject()
             .put("type", "character:status")
             .put("id", characterId)
@@ -272,6 +278,10 @@ class ActiveSessionData(
     }
 
     private suspend fun sendCharacterStatusToConn(characterId: UInt, canMove: Boolean, connection: Connection) {
+        if (canMove) {
+            logger.info("Session #$sessionId: now can move character #$characterId")
+        }
+
         val messageStatus = JSONObject()
             .put("type", "character:status")
             .put("id", characterId)
