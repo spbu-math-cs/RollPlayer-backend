@@ -20,6 +20,13 @@ object CharacterTable: IntIdTable("character", "character_id") {
     val avatarID = reference("avatar_id", AvatarTable).nullable()
     val row = integer("x_pos")
     val col = integer("y_pos")
+
+    val strength = integer("strength")
+    val dexterity = integer("dexterity")
+    val constitution = integer("constitution")
+    val intelligence = integer("intelligence")
+    val wisdom = integer("wisdom")
+    val charisma = integer("charisma")
 }
 
 class CharacterData(id: EntityID<Int>): IntEntity(id) {
@@ -35,6 +42,15 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var avatar by AvatarData optionalReferencedOn CharacterTable.avatarID
     val properties by PropertyData referrersOn PropertyTable.characterID
 
+    var strength by CharacterTable.strength
+    var dexterity by CharacterTable.dexterity
+    var constitution by CharacterTable.constitution
+    var intelligence by CharacterTable.intelligence
+    var wisdom by CharacterTable.wisdom
+    var charisma by CharacterTable.charisma
+
+    val basicProperties = BasicProperties(strength, dexterity, constitution, intelligence, wisdom, charisma)
+
     fun raw() = CharacterInfo(
         id.value.toUInt(),
         user.id.value.toUInt(),
@@ -42,6 +58,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         name,
         avatar?.pathToFile,
         row, col,
+        basicProperties,
         properties.associateBy({ it.nameData.name }) { it.value })
 }
 
@@ -59,6 +76,16 @@ object PropertiesJsonArraySerializer:
 }
 
 @Serializable
+data class BasicProperties(
+    val strength: Int = 0, // FIXME: значение по умолчанию 0 или нет??
+    val dexterity: Int = 0,
+    val constitution: Int = 0,
+    val intelligence: Int = 0,
+    val wisdom: Int = 0,
+    val charisma: Int = 0
+)
+
+@Serializable
 data class CharacterInfo(
     val id: UInt,
     val userId: UInt,
@@ -67,5 +94,6 @@ data class CharacterInfo(
     val avatarPath: String?,
     val row: Int,
     val col: Int,
+    val basicProperties: BasicProperties,
     @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
 )

@@ -208,12 +208,18 @@ object DBOperator {
                 name = propName
             }
 
+    // TODO: Рефакторинг механизма хранения свойств
+
     fun getPropertyOfCharacter(characterId: UInt, propName: String) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction null
         val propNameId = getPropertyNameDataNoTransaction(propName).id.value
         PropertyData.find(PropertyTable.characterID eq characterId.toInt() and
                 (PropertyTable.nameID eq propNameId))
             .firstOrNull()
-            ?.value
+            ?.value ?: resetCharacterPropertyNoTransaction(
+                CharacterData.findById(characterId.toInt()) ?: return@transaction null,
+                propName)
     }
 
     fun getPropertiesOfCharacter(characterId: UInt) = transaction {
@@ -225,6 +231,7 @@ object DBOperator {
     // CREATE FUNCTIONS
     // ================
 
+    // Мне кажется, эту функцию можно вообще убрать
     fun createNewMap(fileName: String, mapName: String) = transaction {
         val mapPath = "$mapsFolder/${extractFileName(fileName)}.json"
         val mapFile = File(mapPath)
@@ -304,6 +311,7 @@ object DBOperator {
         avatarPath: String? = null,
         row: Int = 0,
         col: Int = 0,
+        basicProperties: BasicProperties = BasicProperties(),
         properties: Map<String, Int> = mapOf()
     ) = transaction {
         var newCharacter: CharacterData? = null
@@ -317,19 +325,27 @@ object DBOperator {
             this.row = row
             this.col = col
 
+            this.strength = basicProperties.strength
+            this.dexterity = basicProperties.dexterity
+            this.constitution = basicProperties.constitution
+            this.intelligence = basicProperties.intelligence
+            this.wisdom = basicProperties.wisdom
+            this.charisma = basicProperties.charisma
+
             newCharacter = this
         }
 
-        for ((propName, propValue) in properties) {
+        for ((propName, propFunc) in characterPropertiesList) {
             PropertyData.new {
-                this.character = newCharacter ?:
-                    throw IllegalStateException("Error creating character")
+                this.character = newCharacter!!
                 this.nameData = getPropertyNameDataNoTransaction(propName)
-                this.value = propValue
+                if (properties.containsKey(propName))
+                    this.value = properties[propName]!!
+                else this.value = propFunc(basicProperties)
             }
         }
 
-        newCharacter?.raw() ?: throw IllegalStateException("Error creating character")
+        newCharacter!!.raw()
     }
 
     // =================
@@ -521,7 +537,17 @@ object DBOperator {
             }
     }
 
+    private fun resetCharacterPropertyNoTransaction(character: CharacterData, propName: String): Int? {
+        if (!characterPropertiesList.containsKey(propName))
+            return null
+        val default = characterPropertiesList[propName]!!(character.basicProperties)
+        setCharacterPropertyNoTransaction(character, propName, default)
+        return default
+    }
+
     fun setCharacterProperty(characterId: UInt, propName: String, propValue: Int) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction false
         setCharacterPropertyNoTransaction(
             CharacterData.findById(characterId.toInt())
                 ?: return@transaction false,
@@ -529,10 +555,19 @@ object DBOperator {
         true
     }
 
-    fun updateCharacterProperties(characterId: UInt, newProperties: Map<String, Int>) = transaction {
+    fun resetCharacterPropertyToDefault(characterId: UInt, propName: String) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction false
+        val character = CharacterData.findById(characterId.toInt())
+            ?: return@transaction false
+        setCharacterPropertyNoTransaction(character, propName, characterPropertiesList[propName]!!(character.basicProperties))
+        true
+    }
+
+    fun updateCharacterProperties(characterId: UInt, propertiesToUpdate: Map<String, Int>) = transaction {
         CharacterData.findById(characterId.toInt())
             ?.apply {
-                for ((propName, propValue) in newProperties) {
+                for ((propName, propValue) in propertiesToUpdate.filter { characterPropertiesList.containsKey(it.key) }) {
                     setCharacterPropertyNoTransaction(this, propName, propValue)
                 }
             }?.raw() ?: throw IllegalArgumentException("Character #$characterId does not exist")
