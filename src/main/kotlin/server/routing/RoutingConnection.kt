@@ -44,7 +44,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
             return@webSocket
         }
         if (!activeSessions.contains(sessionId)) {
-            activeSessions[sessionId] = ActiveSessionData(sessionFromDB!!)
+            activeSessions[sessionId] = ActiveSessionData(sessionFromDB)
             DBOperator.setSessionActive(sessionId, true)
         }
         val session = activeSessions.getValue(sessionId)
@@ -56,90 +56,94 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
             session.startConnection(userId, conn)
 
             for (frame in incoming) {
-                frame as? Frame.Text ?: continue
-                val frameText = frame.readText()
-                val message = JSONObject(frameText)
-                if (!message.has("type")) throw Exception("Invalid websocket message: missing field \"type\"")
-                when (message.getString("type")) {
-                    "character:new" -> {
-                        try {
-                            val characterName = message.optString("name", "Dovakin")
-                            val characterRow = message.optInt("row", 0)
-                            val characterCol = message.optInt("col", 0)
-                            val characterProps = characterPropsToMap(message.optJSONArray("properties"))
+                try {
+                    frame as? Frame.Text ?: continue
+                    val frameText = frame.readText()
+                    val message = JSONObject(frameText)
+                    if (!message.has("type")) throw Exception("Invalid websocket message: missing field \"type\"")
+                    when (message.getString("type")) {
+                        "character:new" -> {
+                            try {
+                                val characterName = message.optString("name", "Dovakin")
+                                val characterRow = message.optInt("row", 0)
+                                val characterCol = message.optInt("col", 0)
+                                val characterProps = characterPropsToMap(message.optJSONArray("properties"))
 
-                            val character = DBOperator.addCharacter(
-                                userId,
-                                sessionId,
-                                characterName,
-                                characterRow,
-                                characterCol,
-                                characterProps
-                            )
-                            logger.info("Session #$sessionId for user #$userId: add new character #${character.id} in db")
+                                val character = DBOperator.addCharacter(
+                                    userId,
+                                    sessionId,
+                                    characterName,
+                                    characterRow,
+                                    characterCol,
+                                    characterProps
+                                )
+                                logger.info("Session #$sessionId for user #$userId: add new character #${character.id} in db")
 
-                            session.addCharacter(character)
-                        } catch (e: Exception) {
-                            handleWebsocketIncorrectMessage(this, userId, "character:new", e)
-                        }
-                    }
-                    "character:remove" -> {
-                        try {
-                            val character = session.getValidCharacter(message, userId)
-
-                            DBOperator.deleteCharacterById(character.id)
-                            logger.info("Session #$sessionId for user #$userId: delete character #${character.id} from db")
-
-                            session.removeCharacter(character)
-                        } catch (e: Exception) {
-                            handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
-                        }
-                    }
-                    "character:move" -> {
-                        try {
-                            val character = session.getValidCharacter(message, userId)
-                            val newRow = message.getInt("row")
-                            val newCol = message.getInt("col")
-
-                            session.validateMoveCharacter(session.mapId, newRow, newCol)
-                            session.validateMoveAndUpdateMoveProperties(character.id)
-
-                            val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
-                            logger.info("Session #$sessionId for user #$userId: change coords of character #${character.id} in db")
-
-                            session.moveCharacter(newCharacter!!)
-                        } catch (e: Exception) {
-                            handleWebsocketIncorrectMessage(this, userId, "character:move", e)
-                        }
-                    }
-                    "character:attack" -> {
-                        try {
-                            when (message.optString("attackType", "simple")) {
-                                "simple" -> {
-                                    val character = session.getValidCharacter(message, userId)
-                                    val opponent = session.getValidOpponentCharacter(message)
-
-                                    session.validateSimpleAttack(character, opponent)
-                                    session.validateMoveAndUpdateMoveProperties(character.id)
-
-                                    session.processingSimpleAttack(character.id, opponent.id)
-                                    session.simpleAttack(character.id, opponent.id)
-                                }
-                                else -> {
-                                    throw Exception("Incorrect field \"attackType\" in message")
-                                }
+                                session.addCharacter(character)
+                            } catch (e: Exception) {
+                                handleWebsocketIncorrectMessage(this, userId, "character:new", e)
                             }
-                        } catch (e: Exception) {
-                            handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
+                        }
+                        "character:remove" -> {
+                            try {
+                                val character = session.getValidCharacter(message, userId)
+
+                                DBOperator.deleteCharacterById(character.id)
+                                logger.info("Session #$sessionId for user #$userId: delete character #${character.id} from db")
+
+                                session.removeCharacter(character)
+                            } catch (e: Exception) {
+                                handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
+                            }
+                        }
+                        "character:move" -> {
+                            try {
+                                val character = session.getValidCharacter(message, userId)
+                                val newRow = message.getInt("row")
+                                val newCol = message.getInt("col")
+
+                                session.validateMoveCharacter(session.mapId, newRow, newCol)
+                                session.validateMoveAndUpdateMoveProperties(character.id)
+
+                                val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
+                                logger.info("Session #$sessionId for user #$userId: change coords of character #${character.id} in db")
+
+                                session.moveCharacter(newCharacter!!)
+                            } catch (e: Exception) {
+                                handleWebsocketIncorrectMessage(this, userId, "character:move", e)
+                            }
+                        }
+                        "character:attack" -> {
+                            try {
+                                when (message.optString("attackType", "simple")) {
+                                    "simple" -> {
+                                        val character = session.getValidCharacter(message, userId)
+                                        val opponent = session.getValidOpponentCharacter(message)
+
+                                        session.validateSimpleAttack(character, opponent)
+                                        session.validateMoveAndUpdateMoveProperties(character.id)
+
+                                        session.processingSimpleAttack(character.id, opponent.id)
+                                        session.simpleAttack(character.id, opponent.id)
+                                    }
+                                    else -> {
+                                        throw Exception("Incorrect field \"attackType\" in message")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
+                            }
+                        }
+                        else -> {
+                            throw Exception("Incorrect field \"type\" in message")
                         }
                     }
-                    else -> {
-                        throw Exception("Incorrect field \"type\" in message")
-                    }
+                } catch (e: Exception) {
+                    handleWebsocketIncorrectMessage(this, userId, "message parsing", e)
                 }
             }
         } catch (e: Exception) {
-            handleWebsocketIncorrectMessage(this, userId, "", e)
+            handleWebsocketIncorrectMessage(this, userId, "startConnection", e)
         } finally {
             session.finishConnection(userId, conn)
 
