@@ -52,8 +52,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         val conn = Connection(this, userId)
 
         try {
+            logger.info("Session #$sessionId for user #$userId: start connection")
             session.startConnection(userId, conn)
-            logger.info("WebSocket: start connection with ${call.request.origin.remoteAddress}")
 
             for (frame in incoming) {
                 frame as? Frame.Text ?: continue
@@ -76,6 +76,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 characterCol,
                                 characterProps
                             )
+                            logger.info("Session #$sessionId for user #$userId: add new character #${character.id} in db")
+
                             session.addCharacterToSession(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:new", e)
@@ -86,6 +88,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             val character = session.getValidCharacter(message, userId)
 
                             DBOperator.deleteCharacterById(character.id)
+                            logger.info("Session #$sessionId for user #$userId: delete character #${character.id} from db")
+
                             session.removeCharacterFromSession(character)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
@@ -100,6 +104,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             session.validateMoveAndUpdateMoveProperties(character.id, session.mapId, newRow, newCol)
 
                             val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
+                            logger.info("Session #$sessionId for user #$userId: change characterInfo #${character.id} in db")
+
                             session.moveCharacter(newCharacter!!)
                         } catch (e: Exception) {
                             handleWebsocketIncorrectMessage(this, userId, "character:move", e)
@@ -111,13 +117,13 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
             handleWebsocketIncorrectMessage(this, userId, "", e)
         } finally {
             session.finishConnection(userId, conn)
-            logger.info("WebSocket: finish connection with ${call.request.origin.remoteAddress}")
 
             if (session.activeUsers.isEmpty()) {
                 DBOperator.updateSession(session.toSessionInfo())
                 DBOperator.setSessionActive(sessionId, false)
                 activeSessions.remove(sessionId)
             }
+            logger.info("Session #$sessionId for user #$userId: finish connection")
         }
     }
 }
