@@ -22,11 +22,12 @@ fun Route.requestsUser(){
             val email = data.getString("email")
             val password = data.getString("password")
 
-            val userId = DBOperator.addUser(login, email, password)
+            // примечание: теперь addUser возвращает userInfo
+            val userInfo = DBOperator.addUser(login, email, password)
             call.respond(HttpStatusCode.Created, JSONObject()
                 .put("type", "ok")
-                .put("message", "User $userId registered successfully")
-                .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                .put("message", "User ${userInfo.id} registered successfully")
+                .put("result", JSONObject(Json.encodeToString(userInfo)))
                 .toString()
             )
 
