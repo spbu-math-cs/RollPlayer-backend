@@ -231,28 +231,6 @@ object DBOperator {
     // CREATE FUNCTIONS
     // ================
 
-    // Мне кажется, эту функцию можно вообще убрать
-    fun createNewMap(fileName: String, mapName: String) = transaction {
-        val mapPath = "$mapsFolder/${extractFileName(fileName)}.json"
-        val mapFile = File(mapPath)
-        if (!mapFile.createNewFile())
-            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already exists")
-        if (!MapData.find(MapTable.pathToJson eq mapPath).empty())
-            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already recorded in the database")
-
-        @Language("JSON") val emptyMap = """
-            {
-                "name": "$mapName"
-            }
-        """.trimIndent()
-
-        mapFile.writeText(emptyMap)
-
-        return@transaction MapData.new {
-            pathToJson = mapPath
-        }.raw()
-    }
-
     fun addTexture(pathToFile: String) = transaction {
         TextureData.find(TextureTable.pathToFile eq pathToFile)
             .firstOrNull()

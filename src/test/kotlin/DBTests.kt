@@ -167,16 +167,7 @@ class DBTests {
         val anotherFileName = UUID.randomUUID().toString()
         val anotherFilePath = "$mapsFolder/$TEST_FOLDER/$anotherFileName.json"
 
-        DBOperator.createNewMap(fileName, "TestMap")
-        assertEquals(
-            """
-                    {
-                        "name": "TestMap"
-                    }
-                """.trimIndent(), File(filePath)
-                .readText()
-        )
-
+        DBOperator.addMap(filePath)
         DBOperator.addMap(anotherFilePath)
 
         val maps = DBOperator.getAllMaps()
@@ -229,7 +220,7 @@ class DBTests {
             .getAllUsers()
             .associateBy({ it.login }) { it.id }
 
-        DBOperator.createNewMap(mapFileName, "TestMap")
+        DBOperator.addMap(mapFileName)
         DBOperator.addMap("$mapsFolder/${UUID.randomUUID()}.json")
         val (mapId1, mapId2) = DBOperator.getAllMaps().map { it.id }
 
