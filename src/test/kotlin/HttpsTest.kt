@@ -131,6 +131,20 @@ class HttpsTest {
     }
 
     @Test
+    fun `GET request to non-existing api-textures-id returns 404 error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getTextureByID(any()) } returns null
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/textures/999")
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
+
+    @Test
     fun `GET request to api-tilesets returns expected response`() {
         withTestApplication({
             val mockDBOperator = mockk<DBOperator> {
@@ -156,6 +170,20 @@ class HttpsTest {
             Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
+
+    @Test
+    fun `GET request to non-existing api-tilesets returns 404 error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getAllTilesets() } returns emptyList()
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/tilesets")
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
 
     @Test
     fun `GET request to api-maps returns expected response`() {
@@ -269,6 +297,20 @@ class HttpsTest {
     }
 
     @Test
+    fun `GET request to non-existing api-users returns 404 error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getAllUsers() } returns emptyList()
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/users")
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
+
+    @Test
     fun `POST request to api-login returns expected response`() {
         withTestApplication({
             val mockDBOperator = mockk<DBOperator> {
@@ -287,6 +329,24 @@ class HttpsTest {
 
         }
     }
+
+    @Test
+    fun `POST request to non-existing api-login returns 404 error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getUserByLogin(any()) } returns null
+            }
+            module()
+        }) {
+            val requestBody = """{"login": "nonExistingLogin", "password": "testPassword"}"""
+            val response = handleRequest(HttpMethod.Post, "/api/login") {
+                setBody(requestBody)
+            }
+
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
 
     @Test
     fun `POST request to api-logout returns expected response`() {
