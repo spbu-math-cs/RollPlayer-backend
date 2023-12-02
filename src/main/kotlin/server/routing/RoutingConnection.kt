@@ -1,5 +1,6 @@
 package server.routing
 
+import db.BasicProperties
 import db.DBOperator
 
 import io.ktor.server.plugins.*
@@ -73,8 +74,10 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                     userId,
                                     sessionId,
                                     characterName,
+                                    null, // FIXME: здесь должна быть аватарка
                                     characterRow,
                                     characterCol,
+                                    BasicProperties(), // FIXME: здесь должны быть 6 базовых характеристик
                                     characterProps
                                 )
                                 logger.info("Session #$sessionId for user #$userId: add new character #${character.id} in db")
