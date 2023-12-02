@@ -18,14 +18,23 @@ private fun fromIntelligence(mul: Int, add: Int) = { bProps: BasicProperties -> 
 private fun fromWisdom(mul: Int, add: Int)       = { bProps: BasicProperties -> bProps.wisdom * mul + add }
 private fun fromCharisma(mul: Int, add: Int)     = { bProps: BasicProperties -> bProps.charisma * mul + add }
 
+// FIXME: подобрать адекватные коэффициенты и значения
 val characterPropertiesList: Map<String, (BasicProperties) -> Int> = mapOf(
-    "melee_at" to fromStrength(6, 30), // FIXME: подобрать адекватные коэффициенты
-    "dist_at" to fromDexterity(3, 20), // примечание: я не играл в D&D
-    "max_hp" to fromConstitution(10, 100),
-    "mag_at" to fromIntelligence(15, 120),
-    "max_mp" to fromWisdom(20, 150),
-    "initiative" to fromCharisma(3, 16),
-    "speed" to constant(5),
-    "mana_cost" to constant(25),
-    "dist" to constant(16)
+    "Max health" to fromConstitution(10, 100),
+    "Max mana" to fromWisdom(20, 150),
+
+    // при создании на максимум
+    "Current health" to fromConstitution(10, 100),
+    "Current mana" to fromWisdom(20, 150),
+
+    "Melee attack damage" to fromStrength(6, 30),
+    "Ranged attack damage" to fromDexterity(3, 20),
+
+    "Magic attack damage" to fromIntelligence(15, 120),
+    "Magic attack cost" to constant(25),
+
+    "Ranged and magic attack distance" to constant(16),
+
+    "Initiative" to fromCharisma(3, 16),
+    "Speed" to constant(5)
 )
