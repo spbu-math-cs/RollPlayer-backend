@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 
-class WebsocketsTests {
+class HttpsTest {
 
     @MockK(relaxed = true)
     lateinit var connection1: Connection
@@ -172,6 +172,39 @@ class WebsocketsTests {
     }
 
     @Test
+    fun `GET request to api-textures return error response`() {
+        val exception = java.lang.RuntimeException("Can't connect to database");
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getAllTextures() } throws exception
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/textures")
+            assertEquals(HttpStatusCode.BadRequest, response.response.status())
+            assertEquals(response.response.content, createErrorResponseMessage(exception.message))
+        }
+    }
+
+    private fun createErrorResponseMessage(msg: String?) = mapOf(
+        "type" to "error",
+        "message" to msg
+    ).toString()
+
+    @Test
+    fun `GET request to api-maps returns expected response returns error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getMapByID(any()) } returns null
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/maps/2")
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
+    @Test
     fun `GET request to api-maps-id returns expected response`() {
         withTestApplication({
             val mockDBOperator = mockk<DBOperator> {
@@ -183,6 +216,21 @@ class WebsocketsTests {
             Assertions.assertEquals(HttpStatusCode.OK, response.response.status())
         }
     }
+
+
+    @Test
+    fun `GET request to non-existing file path returns error`() {
+        withTestApplication({
+            val mockDBOperator = mockk<DBOperator> {
+                every { getMapByID(any()) } returns null
+            }
+            module()
+        }) {
+            val response = handleRequest(HttpMethod.Get, "/api/maps/2")
+            Assertions.assertEquals(HttpStatusCode.NotFound, response.response.status())
+        }
+    }
+
 
     @Test
     fun `POST request to api-register returns expected response`() {
