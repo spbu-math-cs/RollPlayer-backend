@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import server.utils.handleHTTPRequestException
 
 fun Route.requestsUser(){
     post("/api/register") {
@@ -22,7 +23,6 @@ fun Route.requestsUser(){
             val email = data.getString("email")
             val password = data.getString("password")
 
-            // примечание: теперь addUser возвращает userInfo
             val userInfo = DBOperator.addUser(login, email, password)
             call.respond(HttpStatusCode.Created, JSONObject()
                 .put("type", "ok")

@@ -3,16 +3,16 @@ package server.routing
 import db.BasicProperties
 import db.DBOperator
 
-import io.ktor.server.plugins.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
-import server.ActiveSessionData
-import server.Connection
-import server.handleWebsocketIncorrectMessage
-import server.logger
+import server.*
+import server.utils.AttackException
+import server.utils.handleWebsocketIncorrectMessage
+import server.utils.sendAttackExceptionReason
 
 fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
     val characterPropsMap = mutableMapOf<String, Int>()
@@ -66,21 +66,24 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                         "character:new" -> {
                             try {
                                 val characterName = message.optString("name", "Dovakin")
+                                // TODO: сделать нормальную загрузку аватарок
+                                val characterAvatarPath = message.optString("avatarPath").ifEmpty { null }
                                 val characterRow = message.optInt("row", 0)
                                 val characterCol = message.optInt("col", 0)
-                                val characterProps = characterPropsToMap(message.optJSONArray("properties"))
+                                val characterBasicProps = Json.decodeFromString<BasicProperties>(
+                                    message.optString("basicProperties", "{}"))
 
                                 val character = DBOperator.addCharacter(
                                     userId,
                                     sessionId,
                                     characterName,
-                                    null, // FIXME: здесь должна быть аватарка
+                                    characterAvatarPath,
                                     characterRow,
                                     characterCol,
-                                    BasicProperties(), // FIXME: здесь должны быть 6 базовых характеристик
-                                    characterProps
+                                    characterBasicProps
                                 )
-                                logger.info("Session #$sessionId for user #$userId: add new character #${character.id} in db")
+                                logger.info("Session #$sessionId for user #$userId: " +
+                                        "add new character #${character.id} in db")
 
                                 session.addCharacter(character)
                             } catch (e: Exception) {
@@ -92,7 +95,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val character = session.getValidCharacter(message, userId)
 
                                 DBOperator.deleteCharacterById(character.id)
-                                logger.info("Session #$sessionId for user #$userId: delete character #${character.id} from db")
+                                logger.info("Session #$sessionId for user #$userId: " +
+                                        "delete character #${character.id} from db")
 
                                 session.removeCharacter(character)
                             } catch (e: Exception) {
@@ -109,7 +113,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 session.validateMoveAndUpdateMoveProperties(character.id)
 
                                 val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
-                                logger.info("Session #$sessionId for user #$userId: change coords of character #${character.id} in db")
+                                logger.info("Session #$sessionId for user #$userId: " +
+                                        "change coords of character #${character.id} in db")
 
                                 session.moveCharacter(newCharacter!!)
                             } catch (e: Exception) {
@@ -118,21 +123,31 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                         }
                         "character:attack" -> {
                             try {
-                                when (message.optString("attackType", "simple")) {
-                                    "simple" -> {
-                                        val character = session.getValidCharacter(message, userId)
-                                        val opponent = session.getValidOpponentCharacter(message)
+                                val character = session.getValidCharacter(message, userId)
+                                val opponent = session.getValidOpponentCharacter(message)
 
-                                        session.validateSimpleAttack(character, opponent)
-                                        session.validateMoveAndUpdateMoveProperties(character.id)
-
-                                        session.processingSimpleAttack(character.id, opponent.id)
-                                        session.simpleAttack(character.id, opponent.id)
+                                val attackType = message.optString("attackType", "melee")
+                                when (attackType) {
+                                    "melee" -> {
+                                        session.validateMeleeAttack(character, opponent)
+                                        session.processingMeleeAttack(character.id, opponent.id)
+                                    }
+                                    "ranged" -> {
+                                        session.validateRangedAttack(character, opponent)
+                                        session.processingRangedAttack(character.id, opponent.id)
+                                    }
+                                    "magic" -> {
+                                        session.validateMagicAttack(character, opponent)
+                                        session.processingMagicAttack(character.id, opponent.id)
                                     }
                                     else -> {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
+                                session.validateMoveAndUpdateMoveProperties(character.id)
+                                session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
+                            } catch (e: AttackException) {
+                                sendAttackExceptionReason(this, userId, e)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
                             }

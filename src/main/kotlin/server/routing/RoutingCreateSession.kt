@@ -11,7 +11,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
-import java.io.File
+import server.utils.handleHTTPRequestException
 
 fun Route.createSession() {
     post("/api/game/create") {
