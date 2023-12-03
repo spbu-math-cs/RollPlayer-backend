@@ -292,8 +292,7 @@ object DBOperator {
         basicProperties: BasicProperties = BasicProperties(),
         properties: Map<String, Int> = mapOf()
     ) = transaction {
-        var newCharacter: CharacterData? = null
-        CharacterData.new {
+        val newCharacter = CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
@@ -309,13 +308,11 @@ object DBOperator {
             this.intelligence = basicProperties.intelligence
             this.wisdom = basicProperties.wisdom
             this.charisma = basicProperties.charisma
-
-            newCharacter = this
         }
 
         for ((propName, propFunc) in characterPropertiesList) {
             PropertyData.new {
-                this.character = newCharacter!!
+                this.character = newCharacter
                 this.nameData = getPropertyNameDataNoTransaction(propName)
                 if (properties.containsKey(propName))
                     this.value = properties[propName]!!
@@ -323,7 +320,7 @@ object DBOperator {
             }
         }
 
-        newCharacter!!.raw()
+        newCharacter.raw()
     }
 
     // =================
@@ -518,7 +515,7 @@ object DBOperator {
     private fun resetCharacterPropertyNoTransaction(character: CharacterData, propName: String): Int? {
         if (!characterPropertiesList.containsKey(propName))
             return null
-        val default = characterPropertiesList[propName]!!(character.basicProperties)
+        val default = characterPropertiesList[propName]!!(character.getBasicProperties())
         setCharacterPropertyNoTransaction(character, propName, default)
         return default
     }
@@ -538,7 +535,7 @@ object DBOperator {
             return@transaction false
         val character = CharacterData.findById(characterId.toInt())
             ?: return@transaction false
-        setCharacterPropertyNoTransaction(character, propName, characterPropertiesList[propName]!!(character.basicProperties))
+        setCharacterPropertyNoTransaction(character, propName, characterPropertiesList[propName]!!(character.getBasicProperties()))
         true
     }
 
