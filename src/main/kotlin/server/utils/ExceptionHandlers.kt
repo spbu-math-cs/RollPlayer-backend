@@ -47,6 +47,7 @@ suspend fun sendAttackExceptionReason(
         "type" to "error",
         "on" to "character:attack",
         "attackType" to e.attackType,
+        "reason" to e.reason.str,
         "message" to e.message.orEmpty()
     )).toString())
 }

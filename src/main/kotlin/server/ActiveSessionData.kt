@@ -9,6 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import server.utils.AttackException
+import server.utils.AttackFailReason
 import server.utils.sendSafety
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -274,24 +275,24 @@ class ActiveSessionData(
 
     fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
         if (abs(character.row - opponent.row) > 1 || abs(character.col - opponent.col) > 1)
-            throw AttackException("big_dist", "Can't move: too far for melee attack")
+            throw AttackException("melee", AttackFailReason.BigDist, "Can't move: too far for melee attack")
     }
 
     fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
         // TODO: Artyom must write an algorithm to measure distance
         if (false)
-            throw AttackException("big_dist", "Can't move: too far for ranged attack")
+            throw AttackException("ranged", AttackFailReason.BigDist, "Can't move: too far for ranged attack")
     }
 
     fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
         // TODO: Artyom must write an algorithm to measure distance
         if (false)
-            throw AttackException("big_dist", "Can't move: too far for magic attack")
+            throw AttackException("magic", AttackFailReason.BigDist, "Can't move: too far for magic attack")
 
         val characterCurrentMana = DBOperator.getPropertyOfCharacter(character.id, "Current mana")!!
         val characterMagicAttackCost = DBOperator.getPropertyOfCharacter(character.id, "Magic attack cost")!!
         if (characterCurrentMana < characterMagicAttackCost) {
-            throw AttackException("little_mana", "Can't move: too little mana for magic attack")
+            throw AttackException("magic", AttackFailReason.LowMana, "Can't move: too low mana for magic attack")
         }
     }
 
