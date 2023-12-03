@@ -4,13 +4,15 @@ import db.CharacterInfo
 import db.DBOperator
 import db.SessionInfo
 
-import io.ktor.websocket.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
+import server.utils.AttackException
+import server.utils.sendSafety
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.abs
 
 const val initPrevCharacterMovedId: Int = -1
 
@@ -80,7 +82,7 @@ class ActiveSessionData(
 
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
-                addCharacterToSession(it)
+                addCharacter(it)
             }
         } else {
             userData.characters.forEach {
@@ -101,7 +103,7 @@ class ActiveSessionData(
             userData.characters.forEach {
                 val character = DBOperator.getCharacterByID(it)
                 if (character != null) {
-                    removeCharacterFromSession(character)
+                    removeCharacter(character)
                 }
             }
             activeUsers.remove(userId)
@@ -119,12 +121,23 @@ class ActiveSessionData(
         val characterId = message.getInt("id").toUInt()
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
-        if (character.userId != userId || character.sessionId != sessionId)
+        if (character.userId != userId)
             throw Exception("Character with ID $characterId doesn't belong to you")
+        if (character.sessionId != sessionId)
+            throw Exception("Character with ID $characterId doesn't belong to this game session")
         return character
     }
 
-    suspend fun addCharacterToSession(character: CharacterInfo) {
+    fun getValidOpponentCharacter(message: JSONObject): CharacterInfo {
+        val characterId = message.getInt("opponentId").toUInt()
+        val character = DBOperator.getCharacterByID(characterId)
+            ?: throw Exception("Opponent character with ID $characterId does not exist")
+        if (character.sessionId != sessionId)
+            throw Exception("Opponent character with ID $characterId doesn't belong to this game session")
+        return character
+    }
+
+    suspend fun addCharacter(character: CharacterInfo) {
         val characterIdForMoveBeforeAdding = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
@@ -159,7 +172,7 @@ class ActiveSessionData(
         }
     }
 
-    suspend fun removeCharacterFromSession(character: CharacterInfo) {
+    suspend fun removeCharacter(character: CharacterInfo) {
         val characterIdForMoveBeforeRemoving = getCurrentCharacterForMoveId()
 
         val userData = activeUsers.getValue(character.userId)
@@ -186,11 +199,59 @@ class ActiveSessionData(
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-        logger.info("Session #$sessionId for user #${character.userId}: move character #${character.id} " +
-                "to (${character.row}, ${character.col})")
+        logger.info("Session #$sessionId for user #${character.userId}: " +
+                "move character #${character.id} to (${character.row}, ${character.col})")
 
         sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
         sendCharacterStatus(getCurrentCharacterForMoveId(), true)
+    }
+
+    suspend fun attackOneWithoutCounterAttack(characterId: UInt, opponentId: UInt, type: String) {
+        val updatedCharacter = DBOperator.getCharacterByID(characterId)!!
+        val updatedOpponent = DBOperator.getCharacterByID(opponentId)!!
+        val message = JSONObject()
+            .put("type", "character:attack")
+            .put("attackType", type)
+            .put("character", JSONObject(Json.encodeToString(updatedCharacter)))
+            .put("opponent", JSONObject(Json.encodeToString(updatedOpponent)))
+
+        activeUsers.forEach {
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
+        }
+        logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " + type +
+            " attack from character #$characterId to character #$opponentId")
+
+        sendCharacterStatus(moveProperties.prevCharacterMovedId.get().toUInt(), false)
+        sendCharacterStatus(getCurrentCharacterForMoveId(), true)
+    }
+
+    fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getPropertyOfCharacter(characterId, "Melee attack damage")!!
+        val oppHealth = DBOperator.getPropertyOfCharacter(opponentId, "Current health")!!
+
+        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+    }
+
+    fun processingRangedAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getPropertyOfCharacter(characterId, "Ranged attack damage")!!
+        val oppHealth = DBOperator.getPropertyOfCharacter(opponentId, "Current health")!!
+
+        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+    }
+
+    fun processingMagicAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getPropertyOfCharacter(characterId, "Magic attack damage")!!
+        val oppHealth = DBOperator.getPropertyOfCharacter(opponentId, "Current health")!!
+        val currentMana = DBOperator.getPropertyOfCharacter(characterId, "Current mana")!!
+        val magicAttackCost = DBOperator.getPropertyOfCharacter(characterId, "Magic attack cost")!!
+
+        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+
+        DBOperator.setCharacterProperty(characterId, "Current mana", currentMana - magicAttackCost)
+        logger.info("Session #$sessionId: change \"Current mana\" of character #${characterId} in db")
     }
 
     private fun getCurrentCharacterForMoveId(): UInt? {
@@ -205,13 +266,38 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveAndUpdateMoveProperties(characterId: UInt, mapId: UInt, row: Int, col: Int) {
+    fun validateMoveCharacter(mapId: UInt, row: Int, col: Int) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
-        if (map.isObstacleTile(row, col)) throw Exception("Tile is obstacle")
+        if (map.isObstacleTile(row, col)) throw Exception("Can't move: target tile is obstacle")
+    }
 
+    fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        if (abs(character.row - opponent.row) > 1 || abs(character.col - opponent.col) > 1)
+            throw AttackException("big_dist", "Can't move: too far for melee attack")
+    }
+
+    fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        // TODO: Artyom must write an algorithm to measure distance
+        if (false)
+            throw AttackException("big_dist", "Can't move: too far for ranged attack")
+    }
+
+    fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        // TODO: Artyom must write an algorithm to measure distance
+        if (false)
+            throw AttackException("big_dist", "Can't move: too far for magic attack")
+
+        val characterCurrentMana = DBOperator.getPropertyOfCharacter(character.id, "Current mana")!!
+        val characterMagicAttackCost = DBOperator.getPropertyOfCharacter(character.id, "Magic attack cost")!!
+        if (characterCurrentMana < characterMagicAttackCost) {
+            throw AttackException("little_mana", "Can't move: too little mana for magic attack")
+        }
+    }
+
+    fun validateMoveAndUpdateMoveProperties(characterId: UInt) {
         val characterCanMoveId = getCurrentCharacterForMoveId()
-        if (characterCanMoveId != characterId) throw Exception("Can not move now")
+        if (characterCanMoveId != characterId) throw Exception("Can't move: not your move now")
 
         moveProperties.prevCharacterMovedId = AtomicInteger(characterCanMoveId.toInt())
     }

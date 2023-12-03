@@ -1,21 +1,12 @@
-package server
+package server.utils
 
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import io.ktor.server.websocket.*
-import io.ktor.websocket.*
 import org.json.JSONObject
-
-suspend fun sendSafety(
-    connection: WebSocketServerSession,
-    content: String
-) {
-    try {
-        connection.send(content)
-    } catch (_: Exception) {}
-}
+import server.logger
 
 suspend fun handleHTTPRequestException(
     call: ApplicationCall,
@@ -38,6 +29,25 @@ suspend fun handleWebsocketIncorrectMessage(
     on: String,
     e: Exception
 ) {
-    logger.info("Failed websocket message type $on from user with ID $userId (${connection.call.request.origin.remoteAddress})", e)
-    sendSafety(connection, JSONObject(mapOf("type" to "error", "on" to on, "message" to e.message.orEmpty())).toString())
+    logger.info("Failed websocket message type $on from user with ID $userId", e)
+    sendSafety(connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to on,
+        "message" to e.message.orEmpty()
+    )).toString())
 }
+
+suspend fun sendAttackExceptionReason(
+    connection: WebSocketServerSession,
+    userId: UInt,
+    e: AttackException
+) {
+    logger.info("Failed websocket message type character:attack from user with ID $userId", e)
+    sendSafety(connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to "character:attack",
+        "attackType" to e.attackType,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
+

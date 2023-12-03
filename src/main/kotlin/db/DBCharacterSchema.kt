@@ -1,5 +1,7 @@
 package db
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlin.collections.Map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
@@ -13,13 +15,13 @@ import org.jetbrains.exposed.sql.ReferenceOption
 
 object CharacterTable: IntIdTable("character", "character_id") {
     val sessionID = reference("session_id", SessionTable,
-        onDelete = ReferenceOption.CASCADE) // теперь БД не будет падать при попытке удалить сессию,
-    val userID = reference("user_id", UserTable, // не удалив персонажей сначала
-        onDelete = ReferenceOption.CASCADE) // и это позволит избежать дублирования кода в DBOperator
+        onDelete = ReferenceOption.CASCADE)
+    val userID = reference("user_id", UserTable,
+        onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", identifierLength)
     val avatarID = reference("avatar_id", AvatarTable).nullable()
-    val row = integer("x_pos")
-    val col = integer("y_pos")
+    val row = integer("row")
+    val col = integer("col")
 
     val strength = integer("strength")
     val dexterity = integer("dexterity")
@@ -49,7 +51,9 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var wisdom by CharacterTable.wisdom
     var charisma by CharacterTable.charisma
 
-    val basicProperties = BasicProperties(strength, dexterity, constitution, intelligence, wisdom, charisma)
+    fun getBasicProperties(): BasicProperties {
+        return BasicProperties(strength, dexterity, constitution, intelligence, wisdom, charisma)
+    }
 
     fun raw() = CharacterInfo(
         id.value.toUInt(),
@@ -58,7 +62,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         name,
         avatar?.pathToFile,
         row, col,
-        basicProperties,
+        getBasicProperties(),
         properties.associateBy({ it.nameData.name }) { it.value })
 }
 
@@ -76,13 +80,13 @@ object PropertiesJsonArraySerializer:
 }
 
 @Serializable
-data class BasicProperties(
-    val strength: Int = 0, // FIXME: значение по умолчанию 0 или нет??
-    val dexterity: Int = 0,
-    val constitution: Int = 0,
-    val intelligence: Int = 0,
-    val wisdom: Int = 0,
-    val charisma: Int = 0
+data class BasicProperties @OptIn(ExperimentalSerializationApi::class) constructor(
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val strength: Int = 0, // FIXME: значение по умолчанию 0 или нет??
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val dexterity: Int = 0,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val constitution: Int = 0,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val intelligence: Int = 0,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val wisdom: Int = 0,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val charisma: Int = 0
 )
 
 @Serializable
