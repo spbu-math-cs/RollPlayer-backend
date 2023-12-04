@@ -11,9 +11,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 import server.*
-import server.utils.AttackException
-import server.utils.handleWebsocketIncorrectMessage
-import server.utils.sendAttackExceptionReason
+import server.utils.*
 
 fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
     val characterPropsMap = mutableMapOf<String, Int>()
@@ -51,7 +49,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
         }
         val session = activeSessions.getValue(sessionId)
 
-        val conn = Connection(this, userId)
+        val conn = Connection(this, userId, sessionId)
 
         try {
             logger.info("Session #$sessionId for user #$userId: start connection")
@@ -88,7 +86,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
 
                                 session.addCharacter(character)
                             } catch (e: Exception) {
-                                handleWebsocketIncorrectMessage(this, userId, "character:new", e)
+                                handleWebsocketIncorrectMessage(conn, "character:new", e)
                             }
                         }
                         "character:remove" -> {
@@ -101,7 +99,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
 
                                 session.removeCharacter(character)
                             } catch (e: Exception) {
-                                handleWebsocketIncorrectMessage(this, userId, "character:remove", e)
+                                handleWebsocketIncorrectMessage(conn, "character:remove", e)
                             }
                         }
                         "character:move" -> {
@@ -118,8 +116,10 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                         "change coords of character #${character.id} in db")
 
                                 session.moveCharacter(newCharacter!!)
+                            } catch (e: MoveException) {
+                                sendMoveExceptionReason(conn, e)
                             } catch (e: Exception) {
-                                handleWebsocketIncorrectMessage(this, userId, "character:move", e)
+                                handleWebsocketIncorrectMessage(conn, "character:move", e)
                             }
                         }
                         "character:attack" -> {
@@ -148,9 +148,9 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 session.validateMoveAndUpdateMoveProperties(character.id)
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
                             } catch (e: AttackException) {
-                                sendAttackExceptionReason(this, userId, e)
+                                sendAttackExceptionReason(conn, e)
                             } catch (e: Exception) {
-                                handleWebsocketIncorrectMessage(this, userId, "character:attack", e)
+                                handleWebsocketIncorrectMessage(conn, "character:attack", e)
                             }
                         }
                         else -> {
@@ -158,11 +158,11 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                         }
                     }
                 } catch (e: Exception) {
-                    handleWebsocketIncorrectMessage(this, userId, "message parsing", e)
+                    handleWebsocketIncorrectMessage(conn, "message parsing", e)
                 }
             }
         } catch (e: Exception) {
-            handleWebsocketIncorrectMessage(this, userId, "startConnection", e)
+            handleWebsocketIncorrectMessage(conn, "startConnection", e)
         } finally {
             session.finishConnection(userId, conn)
 

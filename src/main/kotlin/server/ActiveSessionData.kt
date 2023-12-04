@@ -9,9 +9,7 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
-import server.utils.AttackException
-import server.utils.AttackFailReason
-import server.utils.sendSafety
+import server.utils.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
@@ -161,6 +159,7 @@ class ActiveSessionData(
 
     private suspend fun processingMovePropertiesInAdding(characterIdForMoveBeforeAdding: UInt?, characterId: UInt) {
         val characterIdForMoveAfterAdding = getCurrentCharacterForMoveId()
+        println("$characterIdForMoveBeforeAdding, $characterIdForMoveAfterAdding, $characterId")
         if (characterIdForMoveBeforeAdding != characterIdForMoveAfterAdding) {
             assert(characterIdForMoveAfterAdding == characterId)
             sendCharacterStatus(characterIdForMoveBeforeAdding, false)
@@ -267,10 +266,12 @@ class ActiveSessionData(
     fun validateMoveCharacter(character: CharacterInfo, mapId: UInt, pos: Position) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
-        if (map.isObstacleTile(pos)) throw Exception("Can't move: target tile is obstacle")
+        if (map.isObstacleTile(pos))
+            throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
+
         val distance = DBOperator.getPropertyOfCharacter(character.id, "Speed")!!
         if (!map.checkDistance(Position(character.row, character.col), pos, distance))
-            throw Exception("Can't move: target tile is too far")
+            throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
 
     private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
