@@ -105,7 +105,8 @@ class Map(pathToJson: String) {
     fun checkDistance(start: Position, finish: Position, distance: Int): Boolean {
         val dist = Array(height) { IntArray(width) { Int.MAX_VALUE } }
         dist[start.row][start.col] = 0
-        val queue: PriorityQueue<Pair<Int, Position>> = PriorityQueue<Pair<Int, Position>>()
+        val compareByDistance: Comparator<Pair<Int, Position>> = compareBy { it.first }
+        val queue: PriorityQueue<Pair<Int, Position>> = PriorityQueue<Pair<Int, Position>>(compareByDistance)
         queue.add(Pair(0, start))
         while (!queue.isEmpty()) {
             val pos: Position = queue.remove().second
