@@ -15,7 +15,7 @@ object SessionTable: IntIdTable("session", "session_id") {
         onDelete = ReferenceOption.CASCADE)
     val active = bool("active")
     val started = timestamp("started")
-    val whoCanMove = integer("who_can_move")
+    val prevCharacterId = integer("prev_character_with_action")
 }
 
 class SessionData(id: EntityID<Int>): IntEntity(id) {
@@ -24,7 +24,7 @@ class SessionData(id: EntityID<Int>): IntEntity(id) {
     var map by MapData referencedOn SessionTable.mapID
     var active by SessionTable.active
     var started by SessionTable.started
-    var whoCanMove by SessionTable.whoCanMove
+    var prevCharacterId by SessionTable.prevCharacterId
 
     val characters by CharacterData referrersOn CharacterTable.sessionID
     var users by UserData via CharacterTable
@@ -34,7 +34,7 @@ class SessionData(id: EntityID<Int>): IntEntity(id) {
         map.id.value.toUInt(),
         active,
         started.toKotlinInstant(),
-        whoCanMove
+        prevCharacterId
     )
 }
 
@@ -44,5 +44,5 @@ data class SessionInfo(
     val mapID: UInt,
     val active: Boolean,
     val started: Instant,
-    val whoCanMove: Int
+    val prevCharacterId: Int
 )
