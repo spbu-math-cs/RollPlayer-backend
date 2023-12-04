@@ -278,15 +278,19 @@ class ActiveSessionData(
             throw AttackException("melee", AttackFailReason.BigDist, "Can't move: too far for melee attack")
     }
 
+    private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
+        return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
+    }
+
     fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        // TODO: Artyom must write an algorithm to measure distance
-        if (false)
+        val attackDistance = DBOperator.getPropertyOfCharacter(character.id, "Ranged attack distance")!!
+        if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("ranged", AttackFailReason.BigDist, "Can't move: too far for ranged attack")
     }
 
     fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        // TODO: Artyom must write an algorithm to measure distance
-        if (false)
+        val attackDistance = DBOperator.getPropertyOfCharacter(character.id, "Magic attack distance")!!
+        if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("magic", AttackFailReason.BigDist, "Can't move: too far for magic attack")
 
         val characterCurrentMana = DBOperator.getPropertyOfCharacter(character.id, "Current mana")!!
