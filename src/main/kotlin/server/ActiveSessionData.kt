@@ -176,7 +176,7 @@ class ActiveSessionData(
 
         val message = JSONObject()
             .put("type", "character:leave")
-            .put("id", character.id)
+            .put("id", character.id.toLong())
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
@@ -317,7 +317,7 @@ class ActiveSessionData(
 
         val messageStatus = JSONObject()
             .put("type", "character:status")
-            .put("id", characterId)
+            .put("id", characterId.toLong())
             .put("can_do_action", canDoAction)
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
@@ -333,7 +333,7 @@ class ActiveSessionData(
 
         val messageStatus = JSONObject()
             .put("type", "character:status")
-            .put("id", characterId)
+            .put("id", characterId.toLong())
             .put("can_do_action", canDoAction)
         sendSafety(connection.connection, messageStatus.toString())
     }
