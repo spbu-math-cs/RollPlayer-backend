@@ -100,13 +100,9 @@ class ActiveSessionData(
     suspend fun finishConnection(userId: UInt, connection: Connection) {
         val userData = activeUsers.getValue(userId)
         userData.connections.remove(connection)
-
         if (userData.connections.isEmpty()) {
-            userData.characters.forEach {
-                val character = DBOperator.getCharacterByID(it)
-                if (character != null) {
-                    removeCharacter(character)
-                }
+            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
+                removeCharacter(it)
             }
             activeUsers.remove(userId)
         }
