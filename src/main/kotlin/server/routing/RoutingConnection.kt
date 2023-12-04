@@ -2,6 +2,7 @@ package server.routing
 
 import db.BasicProperties
 import db.DBOperator
+import db.Map.Companion.Position
 
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -109,7 +110,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val newRow = message.getInt("row")
                                 val newCol = message.getInt("col")
 
-                                session.validateMoveCharacter(session.mapId, newRow, newCol)
+                                session.validateMoveCharacter(character, session.mapId, Position(newRow, newCol))
                                 session.validateMoveAndUpdateMoveProperties(character.id)
 
                                 val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)

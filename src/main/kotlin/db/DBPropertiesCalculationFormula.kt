@@ -33,7 +33,8 @@ val characterPropertiesList: Map<String, (BasicProperties) -> Int> = mapOf(
     "Magic attack damage" to fromIntelligence(15, 120),
     "Magic attack cost" to constant(25),
 
-    "Ranged and magic attack distance" to constant(16),
+    "Ranged attack distance" to constant(16),
+    "Magic attack distance" to constant(16),
 
     "Initiative" to fromCharisma(3, 16),
     "Speed" to constant(5)

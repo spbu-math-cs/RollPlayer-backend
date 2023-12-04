@@ -2,6 +2,7 @@ package server
 
 import db.CharacterInfo
 import db.DBOperator
+import db.Map.Companion.Position
 import db.SessionInfo
 
 import kotlinx.datetime.Instant
@@ -267,26 +268,33 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveCharacter(mapId: UInt, row: Int, col: Int) {
+    fun validateMoveCharacter(character: CharacterInfo, mapId: UInt, pos: Position) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
-        if (map.isObstacleTile(row, col)) throw Exception("Can't move: target tile is obstacle")
+        if (map.isObstacleTile(pos)) throw Exception("Can't move: target tile is obstacle")
+        val distance = DBOperator.getPropertyOfCharacter(character.id, "Speed")!!
+        if (!map.checkDistance(Position(character.row, character.col), pos, distance))
+            throw Exception("Can't move: target tile is too far")
+    }
+
+    private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
+        return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
     }
 
     fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        if (abs(character.row - opponent.row) > 1 || abs(character.col - opponent.col) > 1)
+        if (!inAttackRange(character, opponent, 1))
             throw AttackException("melee", AttackFailReason.BigDist, "Can't move: too far for melee attack")
     }
 
     fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        // TODO: Artyom must write an algorithm to measure distance
-        if (false)
+        val attackDistance = DBOperator.getPropertyOfCharacter(character.id, "Ranged attack distance")!!
+        if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("ranged", AttackFailReason.BigDist, "Can't move: too far for ranged attack")
     }
 
     fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        // TODO: Artyom must write an algorithm to measure distance
-        if (false)
+        val attackDistance = DBOperator.getPropertyOfCharacter(character.id, "Magic attack distance")!!
+        if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("magic", AttackFailReason.BigDist, "Can't move: too far for magic attack")
 
         val characterCurrentMana = DBOperator.getPropertyOfCharacter(character.id, "Current mana")!!
