@@ -37,6 +37,21 @@ suspend fun handleWebsocketIncorrectMessage(
     )).toString())
 }
 
+suspend fun sendActionExceptionReason(
+    connection: Connection,
+    on: String,
+    e: ActionException
+) {
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed $on because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to on,
+        "reason" to e.reason.str,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
+
 suspend fun sendMoveExceptionReason(
     connection: Connection,
     e: MoveException

@@ -109,13 +109,15 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val newCol = message.getInt("col")
 
                                 session.validateMoveCharacter(character, session.mapId, Position(newRow, newCol))
-                                session.validateMoveAndUpdateMoveProperties(character.id)
+                                session.validateActionAndUpdateActionProperties(character.id)
 
                                 val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
                                 logger.info("Session #$sessionId for user #$userId: " +
                                         "change coords of character #${character.id} in db")
 
                                 session.moveCharacter(newCharacter!!)
+                            } catch (e: ActionException) {
+                                sendActionExceptionReason(conn, "character:move", e)
                             } catch (e: MoveException) {
                                 sendMoveExceptionReason(conn, e)
                             } catch (e: Exception) {
@@ -145,8 +147,10 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
-                                session.validateMoveAndUpdateMoveProperties(character.id)
+                                session.validateActionAndUpdateActionProperties(character.id)
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
+                            } catch (e: ActionException) {
+                                sendActionExceptionReason(conn, "character:attack", e)
                             } catch (e: AttackException) {
                                 sendAttackExceptionReason(conn, e)
                             } catch (e: Exception) {

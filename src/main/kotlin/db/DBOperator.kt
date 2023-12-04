@@ -277,7 +277,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${mapID} does not exist")
                 this.active = active
                 this.started = started
-                this.whoCanMove = whoCanMove
+                this.prevCharacterId = whoCanMove
             }.raw()
         }
 
@@ -480,7 +480,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${sessionInfo.mapID} does not exist")
                 started = sessionInfo.started.toJavaInstant()
                 active = sessionInfo.active
-                whoCanMove = sessionInfo.whoCanMove
+                prevCharacterId = sessionInfo.prevCharacterId
             }.raw()
     }
 

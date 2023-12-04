@@ -1,5 +1,13 @@
 package server.utils
 
+enum class ActionFailReason(val str: String) {
+    NotYourTurn("not_your_turn"),
+}
+
+class ActionException(reason: ActionFailReason, message:String): Exception(message) {
+    val reason by lazy { reason }
+}
+
 enum class MoveFailReason(val str: String) {
     BigDist("big_dist"),
     TileObstacle("tile_obstacle")
