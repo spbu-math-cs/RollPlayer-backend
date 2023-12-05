@@ -14,7 +14,7 @@ const val dbTestPath = "./data/test_db"
 const val texturesFolder = "./resources/textures"
 const val tilesetsFolder = "./resources/tilesets"
 const val mapsFolder = "./resources/maps"
-const val avatarsFolder = "./resources/avatars"
+const val picturesFolder = "./resources/pictures"
 
 object DBOperator {
     // =================
@@ -47,7 +47,7 @@ object DBOperator {
     }
 
     private fun initAvatars(avatarDir: File) {
-        avatarDir.listFiles()?.forEach { getOrCreateAvatar(it.path) }
+        avatarDir.listFiles()?.forEach { addPicture(it.path) }
     }
 
     private fun createDatabase(filePath: String, initTables: Boolean = false) {
@@ -62,7 +62,7 @@ object DBOperator {
                 SchemaUtils.create(TextureTable)
                 SchemaUtils.create(TilesetTable)
                 SchemaUtils.create(MapTable)
-                SchemaUtils.create(AvatarTable)
+                SchemaUtils.create(PictureTable)
                 SchemaUtils.create(SessionTable)
                 SchemaUtils.create(CharacterTable)
                 SchemaUtils.create(PropertyTable)
@@ -73,17 +73,17 @@ object DBOperator {
         val textureDir = File(texturesFolder)
         val tilesetDir = File(tilesetsFolder)
         val mapDir = File(mapsFolder)
-        val avatarDir = File(avatarsFolder)
+        val pictureDir = File(picturesFolder)
         textureDir.mkdirs()
         tilesetDir.mkdirs()
         mapDir.mkdirs()
-        avatarDir.mkdirs()
+        pictureDir.mkdirs()
 
         if (initTables) {
             initTextures(textureDir)
             initTilesets(tilesetDir)
             initMaps(mapDir)
-            initAvatars(avatarDir)
+            initAvatars(pictureDir)
         }
     }
 
@@ -112,31 +112,13 @@ object DBOperator {
     // GET FUNCTIONS
     // =============
 
-    fun getAllTextures() = transaction {
-        TextureData.all()
-            .map { it.raw() }
-    }
+    fun getAllTextures() = transaction { TextureData.all().map { it.raw() } }
+    fun getAllTilesets() = transaction { TilesetData.all().map { it.raw() } }
+    fun getAllMaps() = transaction { MapData.all().map { it.raw() } }
+    fun getAllPictures() = transaction { PictureData.all().map { it.raw() } }
+    fun getAllUsers() = transaction { UserData.all().map { it.raw() } }
 
-    fun getAllTilesets() = transaction {
-        TilesetData.all()
-            .map { it.raw() }
-    }
-
-    fun getAllMaps() = transaction {
-        MapData.all()
-            .map { it.raw() }
-    }
-
-    fun getAllUsers() = transaction {
-        UserData.all()
-            .map { it.raw() }
-    }
-
-    fun getAllSessions() = transaction {
-        SessionData.all()
-            .map { it.raw() }
-    }
-
+    fun getAllSessions() = transaction { SessionData.all().map { it.raw() } }
     fun getActiveSessions() = transaction {
         SessionData.find(SessionTable.active eq true)
             .map { it.raw() }
@@ -152,6 +134,7 @@ object DBOperator {
     fun getTextureByID(id: UInt) = transaction { TextureData.findById(id.toInt())?.raw() }
     fun getTilesetByID(id: UInt) = transaction { TilesetData.findById(id.toInt())?.raw() }
     fun getMapByID(id: UInt) = transaction { MapData.findById(id.toInt())?.raw() }
+    fun getPictureByID(id: UInt) = transaction { PictureData.findById(id.toInt())?.raw() }
     fun getSessionByID(id: UInt) = transaction { SessionData.findById(id.toInt())?.raw() }
     fun getCharacterByID(id: UInt) = transaction { CharacterData.findById(id.toInt())?.raw() }
 
@@ -260,14 +243,14 @@ object DBOperator {
         }.raw()
     }
 
-    private fun getOrCreateAvatar(pathToFile: String): AvatarData = transaction {
-        AvatarData.find(AvatarTable.pathToFile eq pathToFile)
+    fun addPicture(pathToFile: String) = transaction {
+        PictureData.find(PictureTable.pathToFile eq pathToFile)
             .firstOrNull()
-            .let { if (it != null) return@transaction it }
+            .let { if (it != null) return@transaction it.raw() }
 
-        AvatarData.new {
+        PictureData.new {
             this.pathToFile = pathToFile
-        }
+        }.raw()
     }
 
     fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now(), whoCanMove: Int = -1) =
@@ -285,7 +268,7 @@ object DBOperator {
         userId: UInt,
         sessionId: UInt,
         name: String,
-        avatarPath: String? = null,
+        avatarId: UInt? = null,
         row: Int = 0,
         col: Int = 0,
         basicProperties: BasicProperties = BasicProperties(),
@@ -297,7 +280,10 @@ object DBOperator {
             user = UserData.findById(userId.toInt())
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
-            this.avatar = if (avatarPath != null) getOrCreateAvatar(avatarPath) else null
+
+            // примечание: если картинка не найдена в базе, устанавливает её в null
+            this.avatar = if (avatarId != null) PictureData.findById(avatarId.toInt()) else null
+
             this.row = row
             this.col = col
 
@@ -408,7 +394,7 @@ object DBOperator {
         return hash.toInt()
     }
 
-    fun addUser(login: String, email: String, password: String, avatarPath: String? = null) = transaction {
+    fun addUser(login: String, email: String, password: String, avatarId: UInt? = null) = transaction {
         failOnInvalidLogin(login)
         failOnInvalidEmail(email)
         failOnInvalidPassword(password)
@@ -423,7 +409,7 @@ object DBOperator {
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
-            this.avatar = if (avatarPath != null) getOrCreateAvatar(avatarPath) else null
+            this.avatar = if (avatarId != null) PictureData.findById(avatarId.toInt()) else null
         }.raw()
     }
 
@@ -601,7 +587,7 @@ object DBOperator {
     }
 
     fun deleteAllUnusedAvatars() = transaction {
-        AvatarData.all()
+        PictureData.all()
             .forEach {
                 if (CharacterData.find(CharacterTable.avatarID eq it.id).empty() &&
                     UserData.find(CharacterTable.avatarID eq it.id).empty())
@@ -610,7 +596,7 @@ object DBOperator {
     }
 
     fun deleteAvatarByPath(avatarPath: String) = transaction {
-        AvatarData.find(AvatarTable.pathToFile eq avatarPath)
+        PictureData.find(PictureTable.pathToFile eq avatarPath)
             .firstOrNull()
             .let {
                 if (it == null)

@@ -19,7 +19,7 @@ object CharacterTable: IntIdTable("character", "character_id") {
     val userID = reference("user_id", UserTable,
         onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", identifierLength)
-    val avatarID = reference("avatar_id", AvatarTable).nullable()
+    val avatarID = reference("avatar_id", PictureTable).nullable()
     val row = integer("row")
     val col = integer("col")
 
@@ -41,7 +41,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var row by CharacterTable.row
     var col by CharacterTable.col
 
-    var avatar by AvatarData optionalReferencedOn CharacterTable.avatarID
+    var avatar by PictureData optionalReferencedOn CharacterTable.avatarID
     val properties by PropertyData referrersOn PropertyTable.characterID
 
     var strength by CharacterTable.strength
