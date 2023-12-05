@@ -3,7 +3,10 @@ import db.DBOperator
 import db.SessionInfo
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import org.json.JSONObject
 import org.junit.jupiter.api.AfterEach
@@ -14,6 +17,7 @@ import server.Connection
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.test.assertTrue
 import java.time.Instant as JavaInstant
 
 class ActiveSessionDataTest {
@@ -35,6 +39,27 @@ class ActiveSessionDataTest {
     @AfterEach
     fun tearDown() {
         unmockkAll()
+    }
+
+    @Test
+    fun `startConnection should add characters to connection`() = runBlocking {
+        every { DBOperator.getCharacterByID(any()) } returns
+                CharacterInfo(1u, 1u, 1u, "123", 1, 1)
+        every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns setOf(
+            CharacterInfo(1u, 1u, 1u, "1234", 1, 1),
+            CharacterInfo(2u, 1u, 1u, "12345", 2, 2)
+        ).toList()
+
+        val sessionId = 1u
+        val mapId = 1u
+        val session = ActiveSessionData(sessionId, mapId, Clock.System.now())
+        val connection = mockk<Connection>()
+
+        launch {
+            //ActiveSessionData().startConnection(1u, connection, "TestAddress")
+        }
+        delay(100)
+        coVerify(exactly = 2) { connection.connection.send(any()) }
     }
 
 
@@ -227,4 +252,29 @@ class ActiveSessionDataTest {
 
         activeSessionData.startConnection(1u, connection1, "127.0.0.1")
     }
+
+    @Test
+    fun `finishConnection should remove characters from session`() = runBlocking{
+        every { DBOperator.getUserByID(any()) } returns mockk {
+            every { id } returns 1u
+        }
+        every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns
+                listOf(
+                    CharacterInfo(1u, 1u, 1u, "1234", 1, 1),
+                    CharacterInfo(2u, 1u, 1u, "12345", 2, 2)
+                )
+
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = 1u,
+            mapId = 1u,
+            started = Instant.DISTANT_PAST
+        )
+
+        activeSessionData.startConnection(1u, connection1, "TestAddress")
+        activeSessionData.finishConnection(1u, connection1, "TestAddress")
+
+        assertTrue(activeSessionData.connections.isEmpty())
+    }
+
 }

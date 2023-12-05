@@ -15,91 +15,13 @@ import server.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+private fun createErrorResponseMessage(msg: String?) = mapOf(
+    "type" to "error",
+    "message" to msg
+).toString()
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-
 class HttpsTest {
-
-    @MockK(relaxed = true)
-    lateinit var connection1: Connection
-
-    @BeforeEach
-    fun setup() {
-        MockKAnnotations.init(this)
-        mockkObject(DBOperator)
-        every { DBOperator.createDBForTests(any()) } just runs
-    }
-
-    @AfterAll
-    fun cleanup() {
-        unmockkAll()
-    }
-
-
-    @Test
-    fun `startConnection should add characters to connection`() = runBlocking {
-        every { DBOperator.getCharacterByID(any()) } returns
-                CharacterInfo(1u, 1u, 1u, "123", 1, 1)
-        every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns setOf(
-            CharacterInfo(1u, 1u, 1u, "1234", 1, 1),
-            CharacterInfo(2u, 1u, 1u, "12345", 2, 2)
-        ).toList()
-
-        val sessionId = 1u
-        val mapId = 1u
-        val session = ActiveSessionData(sessionId, mapId, Clock.System.now())
-        val connection = mockk<Connection>()
-
-        launch {
-            //ActiveSessionData().startConnection(1u, connection, "TestAddress")
-        }
-        delay(100)
-        coVerify(exactly = 2) { connection.connection.send(any()) }
-    }
-
-
-    @Test
-    fun `test deleteTextureByID`() {
-        val textureId = 1u
-        every { DBOperator.deleteTextureByID(any()) } returns true
-        val result = DBOperator.deleteTextureByID(textureId)
-        verify { DBOperator.deleteTextureByID(textureId) }
-        Assertions.assertTrue(result)
-    }
-
-    @Test
-    fun `test deleteUserByID 1`() {
-        val userId = 1u
-        every { DBOperator.deleteUserByID(any()) } returns true
-        val result = DBOperator.deleteUserByID(userId)
-        verify { DBOperator.deleteUserByID(userId) }
-        Assertions.assertTrue(result)
-    }
-
-
-    @Test
-    fun `finishConnection should remove characters from session`() = runBlocking{
-        every { DBOperator.getUserByID(any()) } returns mockk {
-            every { id } returns 1u
-        }
-        every { DBOperator.getAllCharactersOfUserInSession(any(), any()) } returns
-                listOf(
-                    CharacterInfo(1u, 1u, 1u, "1234", 1, 1),
-                    CharacterInfo(2u, 1u, 1u, "12345", 2, 2)
-                )
-
-
-        val activeSessionData = ActiveSessionData(
-            sessionId = 1u,
-            mapId = 1u,
-            started = Instant.DISTANT_PAST
-        )
-        activeSessionData.startConnection(1u, connection1, "TestAddress")
-        activeSessionData.finishConnection(1u, connection1, "TestAddress")
-
-        assertTrue(activeSessionData.connections.isEmpty())
-    }
-
 
     @Test
     fun `GET request to api-textures returns expected response`() {
@@ -116,11 +38,10 @@ class HttpsTest {
         }
     }
 
-
     @Test
     fun `GET request to api-textures-id returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getTextureByID(any()) } returns TextureInfo(1u, "/path/to/file1")
             }
             module()
@@ -133,7 +54,7 @@ class HttpsTest {
     @Test
     fun `GET request to non-existing api-textures-id returns 404 error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getTextureByID(any()) } returns null
             }
             module()
@@ -147,7 +68,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-tilesets returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllTilesets() } returns listOf(TilesetInfo(1u, "/path/to/tileset1.json"))
             }
             module()
@@ -161,7 +82,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-tilesets-id returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getTilesetByID(any()) } returns TilesetInfo(1u, "/path/to/tileset1.json")
             }
             module()
@@ -174,7 +95,7 @@ class HttpsTest {
     @Test
     fun `GET request to non-existing api-tilesets returns 404 error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllTilesets() } returns emptyList()
             }
             module()
@@ -188,7 +109,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-maps returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllMaps() } returns listOf(MapInfo(1u, "/path/to/map1.json"))
             }
             module()
@@ -203,7 +124,7 @@ class HttpsTest {
     fun `GET request to api-textures return error response`() {
         val exception = java.lang.RuntimeException("Can't connect to database");
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllTextures() } throws exception
             }
             module()
@@ -214,15 +135,10 @@ class HttpsTest {
         }
     }
 
-    private fun createErrorResponseMessage(msg: String?) = mapOf(
-        "type" to "error",
-        "message" to msg
-    ).toString()
-
     @Test
     fun `GET request to api-maps returns expected response returns error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getMapByID(any()) } returns null
             }
             module()
@@ -235,7 +151,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-maps-id returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getMapByID(any()) } returns MapInfo(1u, "/path/to/map1.json")
             }
             module()
@@ -249,7 +165,7 @@ class HttpsTest {
     @Test
     fun `GET request to non-existing file path returns error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getMapByID(any()) } returns null
             }
             module()
@@ -263,7 +179,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-register returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { addUser(any(), any(), any()) } returns 1u
                 every { getUserByID(1u) } returns UserInfo(1u, "testLogin", "testEmail", 1234567890)
             }
@@ -283,7 +199,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-users returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllUsers() } returns listOf(UserInfo(1u, "testLogin", "testEmail", 1234567890))
             }
 
@@ -299,7 +215,7 @@ class HttpsTest {
     @Test
     fun `GET request to non-existing api-users returns 404 error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getAllUsers() } returns emptyList()
             }
             module()
@@ -313,7 +229,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-login returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getUserByLogin(any()) } returns UserInfo(1u, "testLogin", "testEmail", 1234567890)
                 every { checkUserPassword(userId = 1u, any()) } returns true
             }
@@ -333,7 +249,7 @@ class HttpsTest {
     @Test
     fun `POST request to non-existing api-login returns 404 error`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { getUserByLogin(any()) } returns null
             }
             module()
@@ -351,7 +267,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-logout returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {}
+            mockk<DBOperator> {}
 
             module()
         }) {
@@ -367,7 +283,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-edit-userId returns expected response`() {
         withTestApplication({
-            val mockDBOperator = mockk<DBOperator> {
+            mockk<DBOperator> {
                 every { updateUserLogin(any(), any()) } returns Unit
                 every { updateUserEmail(any(), any()) } returns Unit
                 every { updateUserPassword(any(), any()) } returns Unit
