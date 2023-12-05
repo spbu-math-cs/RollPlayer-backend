@@ -15,12 +15,4 @@ class TilesetData(id: EntityID<Int>): IntEntity(id) {
     fun raw(): TilesetInfo = TilesetInfo(id.value.toUInt(), pathToJson)
 }
 
-data class TilesetInfo(val id: UInt, val pathToJson: String) {
-    fun load(): Tileset = Tileset(pathToJson)
-}
-
-class Tileset(pathToJson: String) {
-    init {
-        TODO()
-    }
-}
+data class TilesetInfo(val id: UInt, val pathToJson: String)

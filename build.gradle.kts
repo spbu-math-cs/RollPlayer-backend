@@ -1,7 +1,7 @@
 plugins {
     application
-    kotlin("jvm") version "1.8.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
+    kotlin("jvm") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.20"
 }
 
 application {
@@ -40,6 +40,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-cors:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
@@ -49,13 +50,13 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     implementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
+
     // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.214")
     implementation("io.mockk:mockk:1.12.0")
     testImplementation ("io.ktor:ktor-server-test-host:$ktorVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
-
-
     implementation("org.json:json:20230618")
     implementation ("io.github.microutils:kotlin-logging-jvm:2.0.11")
 }
@@ -72,7 +73,6 @@ tasks.withType<Jar> {
 
 kotlin {
     jvmToolchain(17)
-
 }
 
 project.tasks.named("processResources", Copy::class.java) {
