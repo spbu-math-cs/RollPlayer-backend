@@ -60,10 +60,10 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         user.id.value.toUInt(),
         session.id.value.toUInt(),
         name,
-        avatar?.pathToFile,
+        avatar?.id?.value?.toUInt(),
         row, col,
-        getBasicProperties(),
-        properties.associateBy({ it.nameData.name }) { it.value })
+        getBasicProperties())
+        // properties.associateBy({ it.nameData.name }) { it.value })
 }
 
 object PropertiesJsonArraySerializer:
@@ -95,9 +95,9 @@ data class CharacterInfo(
     val userId: UInt,
     val sessionId: UInt,
     val name: String,
-    val avatarPath: String?,
+    val avatarId: UInt?,
     val row: Int,
     val col: Int,
-    val basicProperties: BasicProperties,
-    @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
+    val basicProperties: BasicProperties
+    // @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
 )

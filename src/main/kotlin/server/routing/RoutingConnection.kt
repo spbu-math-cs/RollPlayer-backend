@@ -76,7 +76,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                     userId,
                                     sessionId,
                                     characterName,
-                                    characterAvatarPath,
+                                    characterAvatarPath?.let { DBOperator.addPicture(it) }?.id, // FIXME: сделайте как правильно
                                     characterRow,
                                     characterCol,
                                     characterBasicProps

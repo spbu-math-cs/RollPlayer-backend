@@ -17,28 +17,29 @@ private val sampleMapFiles = listOf(
 class DBTests {
     @Test
     fun sampleUserTest() {
+        DBOperator.addPicture("$picturesFolder/avatar01.png")
+        DBOperator.addPicture("$picturesFolder/avatar02.png")
+        DBOperator.addPicture("$picturesFolder/avatar03.png")
+        val avatarIds = DBOperator.getAllPictures().map { it.id }
+
         assertEquals("Vasia",
-            DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345", "$picturesFolder/avatar01.png")
+            DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345", avatarIds[0])
                 .login)
         assertEquals("petya@yandex.ru",
-            DBOperator.addUser("Petya", "petya@yandex.ru","petya09876", "$picturesFolder/avatar02.png")
+            DBOperator.addUser("Petya", "petya@yandex.ru","petya09876", avatarIds[1])
                 .email)
-        assertEquals("$picturesFolder/avatar03.png",
-            DBOperator.addUser("Clara", "clara@gmail.com","zmxncbva", "$picturesFolder/avatar03.png")
-                .avatarPath)
+        assertEquals(avatarIds[1],
+            DBOperator.addUser("Clara", "clara@gmail.com","zmxncbva", avatarIds[1])
+                .avatarID)
         DBOperator.addUser("Dendy", "dendy100100_0101@404.com","zmxncbva")
 
         assertThrows<IllegalArgumentException> { DBOperator.addUser("12345", "12345@mail.ru","abc") }
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "clara2@gmail.com","loginalreadyexists", "$picturesFolder/avatar02.png") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Clara", "clara2@gmail.com","loginalreadyexists", avatarIds[2]) }
         assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "kim@mail.ru","비밀번호에잘못된문자가있습니다") }
 
         assertThrows<IllegalArgumentException> { DBOperator.addUser("12346", "petya@yandex.ru","emailalreadyexists") }
-        assertThrows<IllegalArgumentException> { DBOperator.addUser("Wendy", "h@ck3r@O_o.|&|","emailincorrect", "$picturesFolder/avatar03.png") }
+        assertThrows<IllegalArgumentException> { DBOperator.addUser("Wendy", "h@ck3r@O_o.|&|","emailincorrect", avatarIds[1]) }
         assertThrows<IllegalArgumentException> { DBOperator.addUser("Kim", "kimmail.ru","emailincorrect") }
-
-        assertDoesNotThrow {
-            DBOperator.addUser("Arben", "arben@postashqiptare.al","qwertyzx", "$picturesFolder/avatar03.png")
-        }
 
         val users = DBOperator.getAllUsers()
         assert(users.any { it.login == "Vasia" })
@@ -49,12 +50,12 @@ class DBTests {
         assertNotNull(userVasia)
         assertEquals("Vasia", userVasia!!.login)
         assertEquals("vasia@mail.ru", userVasia.email)
-        assertEquals("$picturesFolder/avatar01.png", userVasia.avatarPath)
+        assertEquals(avatarIds[0], userVasia.avatarID)
         assertEquals("Vasia", DBOperator.getUserByID(userVasia.id)?.login)
         assertEquals("Vasia", DBOperator.getUserByEmail(userVasia.email)?.login)
         assertNull(DBOperator.getUserByID(DBOperator.getAllUsers().maxOf { it.id } + 1u))
 
-        assertNull(DBOperator.getUserByLogin("Dendy")!!.avatarPath)
+        assertNull(DBOperator.getUserByLogin("Dendy")!!.avatarID)
 
         DBOperator.deleteUserByID(userVasia.id)
         assertNull(DBOperator.getUserByID(userVasia.id))
@@ -208,12 +209,58 @@ class DBTests {
     }
 
     @Test
+    fun sampleAvatarTest() {
+        DBOperator.addPicture("$picturesFolder/avatar01.png")
+        DBOperator.addPicture("$picturesFolder/avatar02.png")
+        DBOperator.addPicture("$picturesFolder/avatar03.png")
+        DBOperator.addPicture("$picturesFolder/avatar04.png") // примечание: avatar04, 05 и 06 и 07 на самом деле нет
+        DBOperator.addPicture("$picturesFolder/avatar05.png")
+        DBOperator.addPicture("$picturesFolder/avatar06.png")
+        DBOperator.addPicture("$picturesFolder/avatar07.png")
+
+        val pictureIds = DBOperator.getAllPictures().map { it.id }
+
+        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345", pictureIds[0])
+        DBOperator.addUser("Petya", "petya@gmail.com","petya09876", pictureIds[1])
+        DBOperator.addUser("Clara", "clara@yandex.ru","zmxncbva", pictureIds[2])
+
+        assertEquals(pictureIds[3], DBOperator.addUser("Dendy", "dendy@yahoo.com","zmxncbva", pictureIds[3]).avatarID)
+
+        assertEquals(pictureIds[0], DBOperator.getUserByLogin("Vasia")?.avatarID)
+        assertEquals(pictureIds[2], DBOperator.getUserByEmail("clara@yandex.ru")?.avatarID)
+
+        var unusedPic = pictureIds.first {
+            DBOperator.getPictureByID(it)?.pathToFile == "$picturesFolder/avatar05.png"
+        }
+        assertEquals(unusedPic, DBOperator.getPictureByPath("$picturesFolder/avatar05.png")?.id)
+
+        // картинка используется, поэтому её нельзя удалить
+        assertFalse(DBOperator.deletePictureById(DBOperator.getPictureByPath("$picturesFolder/avatar02.png")!!.id))
+        assertTrue(DBOperator.deletePictureById(unusedPic))
+        assertNull(DBOperator.getPictureByID(unusedPic))
+        assertNull(DBOperator.getPictureByPath("$picturesFolder/avatar05.png"))
+
+        DBOperator.deleteAllUnusedAvatars()
+        assertNull(DBOperator.getPictureByPath("$picturesFolder/avatar06.png"))
+        assertNull(DBOperator.getPictureByPath("$picturesFolder/avatar07.png"))
+        assertNotNull(DBOperator.getPictureByPath("$picturesFolder/avatar03.png"))
+
+        DBOperator.deleteUserByID(DBOperator.getUserByLogin("Clara")!!.id)
+        DBOperator.deleteAllUnusedAvatars()
+        assertNull(DBOperator.getPictureByPath("$picturesFolder/avatar03.png"))
+    }
+
+    @Test
     fun sampleSessionTest() {
         val mapFileName = sampleMapFiles[1]
+        DBOperator.addPicture("$picturesFolder/avatar01.png")
+        DBOperator.addPicture("$picturesFolder/avatar02.png")
+        DBOperator.addPicture("$picturesFolder/avatar03.png")
+        val avatarIds = DBOperator.getAllPictures().map { it.id }
 
-        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345", "$picturesFolder/avatar01.png")
-        DBOperator.addUser("Petya", "petya@gmail.com","petya09876", "$picturesFolder/avatar02.png")
-        DBOperator.addUser("Clara", "clara@yandex.ru","zmxncbva", "$picturesFolder/avatar03.png")
+        DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345", avatarIds[0])
+        DBOperator.addUser("Petya", "petya@gmail.com","petya09876", avatarIds[1])
+        DBOperator.addUser("Clara", "clara@yandex.ru","zmxncbva", avatarIds[2])
         DBOperator.addUser("Dendy", "dendy@yahoo.com","zmxncbva")
 
         val userIds = DBOperator
@@ -245,43 +292,39 @@ class DBTests {
         // TODO: исправить тесты, чтобы они соответствовали новому механизму хранения свойств
 
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Dragonosaur",
-            "$picturesFolder/avatar01.png", 1, 2,
-            BasicProperties(1, 2, 3, 4, 5, 6),
-            mapOf("hp" to 100, "speed" to 40, "damage" to 50))
+            avatarIds[0], 1, 2,
+            BasicProperties(1, 2, 3, 4, 5, 6))
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Mad Professor",
             null, 1, 2)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId2, "Terminator",
             null, 1, 3)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId2, "Terminator",
-            "$picturesFolder/avatar02.png", 1, 3)
+            avatarIds[1], 1, 3)
         DBOperator.addCharacter(userIds["Petya"]!!, sId1, "Sensei",
             null, 2, 3,
-            BasicProperties(),
-            mapOf("damage" to 50))
+            BasicProperties())
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Kongzilla",
             null, 3, 4,
-            BasicProperties(),
-            mapOf("hp" to 200))
+            BasicProperties(-1, 1, -1, 1, -1, 1))
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Hippoceros",
             null, 3, 4)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId2, "Heffalump",
-            "$picturesFolder/avatar01.png", 5, 3)
+            avatarIds[2], 5, 3)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId3, "Terminator",
             null, 1, 3)
         DBOperator.addCharacter(userIds["Clara"]!!, sId2, "Dragonosaur",
-            "$picturesFolder/avatar03.png", 5)
+            avatarIds[1], 5)
         DBOperator.addCharacter(userIds["Clara"]!!, sId3, "Jabberwock")
 
         // returned characterInfo testing
         val tigerrat = DBOperator.addCharacter(userIds["Clara"]!!, sId2, "Tigerrat",
-            "$picturesFolder/avatar02.png", 9000, 4,
-            BasicProperties(),
-            mapOf("hp" to 1000000000, "coins" to 50, "damage" to 800))
+            avatarIds[2], 9000, 4,
+            BasicProperties(1, -2, 3, -4, 5, -6))
         assertEquals("Tigerrat", tigerrat.name)
         assertEquals(Pair(9000, 4), Pair(tigerrat.row, tigerrat.col))
         assertEquals(sId2, tigerrat.sessionId)
-        assertEquals("$picturesFolder/avatar02.png", tigerrat.avatarPath)
-        assertEquals(mapOf("hp" to 1000000000, "coins" to 50, "damage" to 800), tigerrat.properties)
+        assertEquals(avatarIds[2], tigerrat.avatarId)
+        assertEquals(BasicProperties(1, -2, 3, -4, 5, -6), tigerrat.basicProperties)
 
         // basic tests
         assert(DBOperator.getAllCharacters()
@@ -349,24 +392,19 @@ class DBTests {
                 .first { it.name == "Dragonosaur" }
                 .let { Pair(it.row, it.col) })
 
-        assertEquals(100, DBOperator.getPropertyOfCharacter(dragonosaurId, "hp"))
-        assertEquals(40, DBOperator.getPropertyOfCharacter(dragonosaurId, "speed"))
-        assertNull(DBOperator.getPropertyOfCharacter(dragonosaurId, "power"))
+        val propNames = characterPropertiesList.keys.toList()
+        assertEquals(characterPropertiesList[propNames[0]]!!.invoke(DBOperator.getCharacterByID(dragonosaurId)!!.basicProperties),
+            DBOperator.getCharacterProperty(dragonosaurId, propNames[0]))
+        DBOperator.setCharacterProperty(dragonosaurId, propNames[0], 1000)
+        assertEquals(1000, DBOperator.getCharacterProperty(dragonosaurId, propNames[0]))
+        DBOperator.setCharacterProperty(dragonosaurId, propNames[0], -500)
+        assertEquals(-500, DBOperator.getCharacterProperty(dragonosaurId, propNames[0]))
+        DBOperator.resetCharacterPropertyToDefault(dragonosaurId, propNames[0])
+        assertEquals(characterPropertiesList[propNames[0]]!!.invoke(DBOperator.getCharacterByID(dragonosaurId)!!.basicProperties),
+            DBOperator.getCharacterProperty(dragonosaurId, propNames[0]))
 
-        DBOperator.setCharacterProperty(dragonosaurId, "hp", 60)
-        assertEquals(60, DBOperator.getPropertyOfCharacter(dragonosaurId, "hp"))
-
-        assertEquals(mapOf("hp" to 60, "speed" to 40, "damage" to 50),
-            DBOperator.getPropertiesOfCharacter(dragonosaurId))
-
-        DBOperator.setCharacterProperty(dragonosaurId, "power", 30000)
-        assertEquals(30000, DBOperator.getPropertyOfCharacter(dragonosaurId, "power"))
-
-        assertEquals(mapOf("hp" to 60, "speed" to 40, "damage" to 50, "power" to 30000),
-            DBOperator.getPropertiesOfCharacter(dragonosaurId))
-
-        assertEquals("$picturesFolder/avatar01.png", DBOperator.getCharacterByID(dragonosaurId)?.avatarPath)
-        assertNull(DBOperator.getAllCharactersOfUser(userIds["Petya"]!!).first().avatarPath)
+        assertEquals(avatarIds[0], DBOperator.getCharacterByID(dragonosaurId)?.avatarId)
+        assertNull(DBOperator.getAllCharactersOfUser(userIds["Petya"]!!).first().avatarId)
 
         // trying to delete
         DBOperator.deleteCharacterById(dragonosaurId)
@@ -378,7 +416,7 @@ class DBTests {
         DBOperator.addCharacter(userIds["Dendy"]!!, sId1,
             "Bandersnatch", null, 6, 7)
         DBOperator.addCharacter(userIds["Dendy"]!!, sId3,
-            "Kraken", "$picturesFolder/avatar02.png", 8)
+            "Kraken", avatarIds[1], 8)
         val fantomasId = DBOperator.addCharacter(userIds["Dendy"]!!, sId2,
             "Fantômas", null, -1, -3).id
 
@@ -402,13 +440,19 @@ class DBTests {
                 .let { Pair(it.row, it.col) })
 
         // some more properties tests
-        assertEquals(mapOf<String, Int>(), DBOperator.getPropertiesOfCharacter(fantomasId))
-        DBOperator.setCharacterProperty(fantomasId, "hp", 300)
-        DBOperator.setCharacterProperty(fantomasId, "wickedness", 600)
-        assertEquals(mapOf("hp" to 300, "wickedness" to 600), DBOperator.getPropertiesOfCharacter(fantomasId))
-        DBOperator.updateCharacterProperties(fantomasId, mapOf("hp" to 400, "range" to 500, "damage" to 3000000))
-        assertEquals(mapOf("hp" to 400, "wickedness" to 600, "range" to 500, "damage" to 3000000),
-            DBOperator.getPropertiesOfCharacter(fantomasId))
+        assertEquals(characterPropertiesList[propNames[1]]!!.invoke(DBOperator.getCharacterByID(fantomasId)!!.basicProperties),
+            DBOperator.getCharacterProperty(fantomasId, propNames[1]))
+        DBOperator.setCharacterProperty(fantomasId, propNames[1], 3)
+        assertEquals(3, DBOperator.getCharacterProperty(fantomasId, propNames[1]))
+        assertEquals(characterPropertiesList[propNames[2]]!!.invoke(DBOperator.getCharacterByID(fantomasId)!!.basicProperties),
+            DBOperator.getCharacterProperty(fantomasId, propNames[2]))
+        DBOperator.setCharacterProperty(fantomasId, propNames[2], -4)
+        assertEquals(-4, DBOperator.getCharacterProperty(fantomasId, propNames[2]))
+        assertEquals(3, DBOperator.getCharacterProperty(fantomasId, propNames[1]))
+        DBOperator.resetCharacterPropertyToDefault(fantomasId, propNames[1])
+        assertEquals(-4, DBOperator.getCharacterProperty(fantomasId, propNames[2]))
+        assertEquals(characterPropertiesList[propNames[1]]!!.invoke(DBOperator.getCharacterByID(fantomasId)!!.basicProperties),
+            DBOperator.getCharacterProperty(fantomasId, propNames[1]))
 
         // trying to delete session
         DBOperator.deleteSessionByID(sId1)
