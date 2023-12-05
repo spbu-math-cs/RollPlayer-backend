@@ -217,8 +217,17 @@ object DBOperator {
     }
 
     fun getAllPropertiesOfCharacter(characterId: UInt) = transaction {
-        PropertyData.find(PropertyTable.characterID eq characterId.toInt())
-            .associateBy({ it.nameData.name }) { it.value }
+        val characterData = CharacterData.findById(characterId.toInt())
+            ?: throw IllegalArgumentException("Character #$characterId does not exist")
+        characterPropertiesList.keys
+            .associateWith { propName ->
+                val propNameData = getPropertyNameDataNoTransaction(propName)
+                PropertyData.find(PropertyTable.nameID eq propNameData.id and
+                        (PropertyTable.characterID eq characterId.toInt()))
+                    .firstOrNull()
+                    ?.value
+                    ?: resetCharacterPropertyNoTransaction(characterData, propName)
+            }
     }
 
     // ================
@@ -504,9 +513,12 @@ object DBOperator {
     }
 
     private fun resetCharacterPropertyNoTransaction(character: CharacterData, propName: String) =
-        setCharacterPropertyNoTransaction(character, propName,
-            characterPropertiesList[propName]?.invoke(character.getBasicProperties())
-                ?: throw IllegalArgumentException("Property named `$propName` does not exist"))
+        characterPropertiesList[propName]?.invoke(character.getBasicProperties())
+            ?.let { defaultValue ->
+                setCharacterPropertyNoTransaction(character, propName, defaultValue)
+                defaultValue
+            } ?: throw IllegalArgumentException("Property named `$propName` does not exist")
+
 
     fun moveCharacter(characterId: UInt, newRow: Int, newCol: Int) = transaction {
         CharacterData

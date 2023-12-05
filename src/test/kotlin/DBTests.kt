@@ -289,8 +289,6 @@ class DBTests {
             DBOperator.setSessionActive(maxOf(sId1, sId2, sId3) + 1u, true)
         }
 
-        // TODO: исправить тесты, чтобы они соответствовали новому механизму хранения свойств
-
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Dragonosaur",
             avatarIds[0], 1, 2,
             BasicProperties(1, 2, 3, 4, 5, 6))
@@ -393,6 +391,14 @@ class DBTests {
                 .let { Pair(it.row, it.col) })
 
         val propNames = characterPropertiesList.keys.toList()
+
+        DBOperator.getAllCharacters().forEach { character ->
+            val allProps = DBOperator.getAllPropertiesOfCharacter(character.id)
+            characterPropertiesList.forEach { propName, propFunc ->
+                assertEquals(propFunc(character.basicProperties), allProps[propName])
+            }
+        }
+
         assertEquals(characterPropertiesList[propNames[0]]!!.invoke(DBOperator.getCharacterByID(dragonosaurId)!!.basicProperties),
             DBOperator.getCharacterProperty(dragonosaurId, propNames[0]))
         DBOperator.setCharacterProperty(dragonosaurId, propNames[0], 1000)
