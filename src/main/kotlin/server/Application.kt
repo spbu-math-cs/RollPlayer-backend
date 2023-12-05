@@ -32,6 +32,9 @@ fun Application.module() {
 }
 
 private fun Application.extracted() {
+    install(io.ktor.server.plugins.cors.routing.CORS) {
+        anyHost()
+    }
     install(ContentNegotiation) {
         json()
     }

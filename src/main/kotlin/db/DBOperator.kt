@@ -1,7 +1,7 @@
 package db
 
+import kotlin.collections.Map
 import kotlinx.datetime.toJavaInstant
-import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -11,9 +11,10 @@ import java.util.Random
 
 const val dbPath = "./data/roll_player"
 const val dbTestPath = "./data/test_db"
-const val texturesFolder = "./textures"
-const val tilesetsFolder = "./tilesets"
-const val mapsFolder = "./maps"
+const val texturesFolder = "./resources/textures"
+const val tilesetsFolder = "./resources/tilesets"
+const val mapsFolder = "./resources/maps"
+const val avatarsFolder = "./resources/avatars"
 
 object DBOperator {
     // =================
@@ -45,6 +46,10 @@ object DBOperator {
         mapDir.listFiles()?.forEach { addMap(it.path) }
     }
 
+    private fun initAvatars(avatarDir: File) {
+        avatarDir.listFiles()?.forEach { getOrCreateAvatar(it.path) }
+    }
+
     private fun createDatabase(filePath: String, initTables: Boolean = false) {
         val exists = File("$filePath.mv.db").isFile
 
@@ -57,6 +62,7 @@ object DBOperator {
                 SchemaUtils.create(TextureTable)
                 SchemaUtils.create(TilesetTable)
                 SchemaUtils.create(MapTable)
+                SchemaUtils.create(AvatarTable)
                 SchemaUtils.create(SessionTable)
                 SchemaUtils.create(CharacterTable)
                 SchemaUtils.create(PropertyTable)
@@ -67,14 +73,17 @@ object DBOperator {
         val textureDir = File(texturesFolder)
         val tilesetDir = File(tilesetsFolder)
         val mapDir = File(mapsFolder)
+        val avatarDir = File(avatarsFolder)
         textureDir.mkdirs()
         tilesetDir.mkdirs()
         mapDir.mkdirs()
+        avatarDir.mkdirs()
 
         if (initTables) {
             initTextures(textureDir)
             initTilesets(tilesetDir)
             initMaps(mapDir)
+            initAvatars(avatarDir)
         }
     }
 
@@ -187,63 +196,78 @@ object DBOperator {
     }
 
     fun getAllSessionsWithUser(userId: UInt) = transaction {
-        UserData.findById(userId.toInt())?.sessions?.map { it.raw() }
+        UserData.findById(userId.toInt())?.sessions?.distinct()?.map { it.raw() }
             ?: throw IllegalArgumentException("User #$userId does not exist")
+    }
+
+    private fun getPropertyNameDataNoTransaction(propName: String): PropertyNameData =
+        PropertyNameData
+            .find(PropertyNameTable.name eq propName).firstOrNull()
+            ?: PropertyNameData.new {
+                name = propName
+            }
+
+    // TODO: Рефакторинг механизма хранения свойств
+
+    fun getPropertyOfCharacter(characterId: UInt, propName: String) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction null
+        val propNameId = getPropertyNameDataNoTransaction(propName).id.value
+        PropertyData.find(PropertyTable.characterID eq characterId.toInt() and
+                (PropertyTable.nameID eq propNameId))
+            .firstOrNull()
+            ?.value ?: resetCharacterPropertyNoTransaction(
+                CharacterData.findById(characterId.toInt()) ?: return@transaction null,
+                propName)
+    }
+
+    fun getPropertiesOfCharacter(characterId: UInt) = transaction {
+        PropertyData.find(PropertyTable.characterID eq characterId.toInt())
+            .associateBy({ it.nameData.name }) { it.value }
     }
 
     // ================
     // CREATE FUNCTIONS
     // ================
 
-    fun createNewMap(fileName: String, mapName: String) = transaction {
-        val mapPath = "$mapsFolder/${extractFileName(fileName)}.json"
-        val mapFile = File(mapPath)
-        if (!mapFile.createNewFile())
-            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already exists")
-        if (!MapData.find(MapTable.pathToJson eq mapPath).empty())
-            throw FileAlreadyExistsException(mapFile, reason = "Map $fileName already recorded in the database")
-
-        @Language("JSON") val emptyMap = """
-            {
-                "name": "$mapName"
-            }
-        """.trimIndent()
-
-        mapFile.writeText(emptyMap)
-
-        return@transaction MapData.new {
-            pathToJson = mapPath
-        }.raw()
-    }
-
-    fun addTexture(pathToFile: String): Boolean = transaction {
-        if (!TextureData.find(TextureTable.pathToFile eq pathToFile).empty())
-            return@transaction false
+    fun addTexture(pathToFile: String) = transaction {
+        TextureData.find(TextureTable.pathToFile eq pathToFile)
+            .firstOrNull()
+            .let { if (it != null) return@transaction it.raw() }
 
         TextureData.new {
             this.pathToFile = pathToFile
         }.raw()
-        return@transaction true
     }
 
-    fun addTileset(pathToJson: String): Boolean = transaction {
-        if (!TilesetData.find(TilesetTable.pathToJson eq pathToJson).empty())
-            return@transaction false
+    fun addTileset(pathToJson: String) = transaction {
+        TilesetData.find(TilesetTable.pathToJson eq pathToJson)
+            .firstOrNull()
+            .let { if (it != null) return@transaction it.raw() }
 
         TilesetData.new {
             this.pathToJson = pathToJson
         }.raw()
-        return@transaction true
     }
 
-    fun addMap(pathToJson: String): Boolean = transaction {
-        if (!MapData.find(MapTable.pathToJson eq pathToJson).empty())
-            return@transaction false
+    fun addMap(pathToJson: String) = transaction {
+        MapData.find(MapTable.pathToJson eq pathToJson)
+            .firstOrNull()
+            .let { if (it != null) return@transaction it.raw() }
 
         MapData.new {
             this.pathToJson = pathToJson
         }.raw()
-        return@transaction true
+    }
+
+    private fun getOrCreateAvatar(pathToFile: String): AvatarData = transaction {
+        AvatarData.find(AvatarTable.pathToFile eq pathToFile)
+            .firstOrNull()
+            .let { if (it != null) return@transaction it }
+
+        AvatarData.new {
+            this.pathToFile = pathToFile
+        }
     }
 
     fun addSession(mapID: UInt = 1u, active: Boolean = false, started: Instant = Instant.now(), whoCanMove: Int = -1) =
@@ -253,7 +277,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${mapID} does not exist")
                 this.active = active
                 this.started = started
-                this.whoCanMove = whoCanMove
+                this.prevCharacterId = whoCanMove
             }.raw()
         }
 
@@ -261,28 +285,41 @@ object DBOperator {
         userId: UInt,
         sessionId: UInt,
         name: String,
+        avatarPath: String? = null,
         row: Int = 0,
         col: Int = 0,
+        basicProperties: BasicProperties = BasicProperties(),
         properties: Map<String, Int> = mapOf()
     ) = transaction {
-        CharacterData.new {
+        val newCharacter = CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
                 ?: throw IllegalArgumentException("Session #$sessionId does not exist")
             user = UserData.findById(userId.toInt())
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
+            this.avatar = if (avatarPath != null) getOrCreateAvatar(avatarPath) else null
             this.row = row
             this.col = col
 
-            val thisCharacter = this
-            for ((propName, propValue) in properties) {
-                PropertyData.new {
-                    this.character = thisCharacter
-                    this.name = propName
-                    this.value = propValue
-                }
+            this.strength = basicProperties.strength
+            this.dexterity = basicProperties.dexterity
+            this.constitution = basicProperties.constitution
+            this.intelligence = basicProperties.intelligence
+            this.wisdom = basicProperties.wisdom
+            this.charisma = basicProperties.charisma
+        }
+
+        for ((propName, propFunc) in characterPropertiesList) {
+            PropertyData.new {
+                this.character = newCharacter
+                this.nameData = getPropertyNameDataNoTransaction(propName)
+                if (properties.containsKey(propName))
+                    this.value = properties[propName]!!
+                else this.value = propFunc(basicProperties)
             }
-        }.raw()
+        }
+
+        newCharacter.raw()
     }
 
     // =================
@@ -371,7 +408,7 @@ object DBOperator {
         return hash.toInt()
     }
 
-    fun addUser(login: String, email: String, password: String) = transaction {
+    fun addUser(login: String, email: String, password: String, avatarPath: String? = null) = transaction {
         failOnInvalidLogin(login)
         failOnInvalidEmail(email)
         failOnInvalidPassword(password)
@@ -386,7 +423,8 @@ object DBOperator {
             this.passwordHash = hashPassword(password, pswInit, pswFactor)
             this.pswHashInitial = pswInit
             this.pswHashFactor = pswFactor
-        }.id.value.toUInt()
+            this.avatar = if (avatarPath != null) getOrCreateAvatar(avatarPath) else null
+        }.raw()
     }
 
     fun checkUserPassword(userId: UInt, password: String) = transaction {
@@ -442,7 +480,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${sessionInfo.mapID} does not exist")
                 started = sessionInfo.started.toJavaInstant()
                 active = sessionInfo.active
-                whoCanMove = sessionInfo.whoCanMove
+                prevCharacterId = sessionInfo.prevCharacterId
             }.raw()
     }
 
@@ -460,19 +498,30 @@ object DBOperator {
     }
 
     private fun setCharacterPropertyNoTransaction(character: CharacterData, propName: String, propValue: Int) {
+        val propNameDataString = getPropertyNameDataNoTransaction(propName)
         PropertyData.find(PropertyTable.characterID eq character.id.value and
-                (PropertyTable.name eq propName))
+                (PropertyTable.nameID eq propNameDataString.id.value))
             .firstOrNull()
             ?.apply {
                 this.value = propValue
             } ?: PropertyData.new {
                 this.character = character
-                this.name = propName
+                this.nameData = propNameDataString
                 this.value = propValue
             }
     }
 
+    private fun resetCharacterPropertyNoTransaction(character: CharacterData, propName: String): Int? {
+        if (!characterPropertiesList.containsKey(propName))
+            return null
+        val default = characterPropertiesList[propName]!!(character.getBasicProperties())
+        setCharacterPropertyNoTransaction(character, propName, default)
+        return default
+    }
+
     fun setCharacterProperty(characterId: UInt, propName: String, propValue: Int) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction false
         setCharacterPropertyNoTransaction(
             CharacterData.findById(characterId.toInt())
                 ?: return@transaction false,
@@ -480,10 +529,19 @@ object DBOperator {
         true
     }
 
-    fun updateCharacterProperties(characterId: UInt, newProperties: Map<String, Int>) = transaction {
+    fun resetCharacterPropertyToDefault(characterId: UInt, propName: String) = transaction {
+        if (!characterPropertiesList.containsKey(propName))
+            return@transaction false
+        val character = CharacterData.findById(characterId.toInt())
+            ?: return@transaction false
+        setCharacterPropertyNoTransaction(character, propName, characterPropertiesList[propName]!!(character.getBasicProperties()))
+        true
+    }
+
+    fun updateCharacterProperties(characterId: UInt, propertiesToUpdate: Map<String, Int>) = transaction {
         CharacterData.findById(characterId.toInt())
             ?.apply {
-                for ((propName, propValue) in newProperties) {
+                for ((propName, propValue) in propertiesToUpdate.filter { characterPropertiesList.containsKey(it.key) }) {
                     setCharacterPropertyNoTransaction(this, propName, propValue)
                 }
             }?.raw() ?: throw IllegalArgumentException("Character #$characterId does not exist")
@@ -540,6 +598,31 @@ object DBOperator {
         CharacterData.findById(id.toInt())
             ?.delete() ?: return@transaction false
         true
+    }
+
+    fun deleteAllUnusedAvatars() = transaction {
+        AvatarData.all()
+            .forEach {
+                if (CharacterData.find(CharacterTable.avatarID eq it.id).empty() &&
+                    UserData.find(CharacterTable.avatarID eq it.id).empty())
+                    it.delete()
+            }
+    }
+
+    fun deleteAvatarByPath(avatarPath: String) = transaction {
+        AvatarData.find(AvatarTable.pathToFile eq avatarPath)
+            .firstOrNull()
+            .let {
+                if (it == null)
+                    return@transaction false
+
+                if (!CharacterData.find(CharacterTable.avatarID eq it.id).empty() ||
+                    !UserData.find(CharacterTable.avatarID eq it.id).empty())
+                    throw IllegalAccessException("Cannot remove avatar file $avatarPath from the DB, because someone's using it")
+
+                it.delete()
+                return@transaction true
+            }
     }
 
     fun deleteAllCharactersOfUserFromSession(uId: UInt, sId: UInt) = transaction {
