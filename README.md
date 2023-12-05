@@ -22,8 +22,8 @@ gradle run
 The server will start running at http://localhost:9999 by default. You can change the port and other configurations in the application.conf file.
 
 ## Configuration
-Port Configuration
-You can configure the server port in the application.conf file located in the resources directory.
+
+You can configure the server port in the application.conf file located in the resources' directory.
 
 ```properties
 ktor {
