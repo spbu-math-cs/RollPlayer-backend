@@ -1,12 +1,13 @@
 package server.utils
 
 import io.ktor.http.*
+import io.ktor.network.sockets.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
-import io.ktor.server.websocket.*
 import org.json.JSONObject
 import server.logger
+import server.Connection
 
 suspend fun handleHTTPRequestException(
     call: ApplicationCall,
@@ -24,26 +25,54 @@ suspend fun handleHTTPRequestException(
 }
 
 suspend fun handleWebsocketIncorrectMessage(
-    connection: WebSocketServerSession,
-    userId: UInt,
+    connection: Connection,
     on: String,
     e: Exception
 ) {
-    logger.info("Failed websocket message type $on from user with ID $userId", e)
-    sendSafety(connection, JSONObject(mapOf(
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: failed $on", e)
+    sendSafety(connection.connection, JSONObject(mapOf(
         "type" to "error",
         "on" to on,
         "message" to e.message.orEmpty()
     )).toString())
 }
 
+suspend fun sendActionExceptionReason(
+    connection: Connection,
+    on: String,
+    e: ActionException
+) {
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed $on because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to on,
+        "reason" to e.reason.str,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
+
+suspend fun sendMoveExceptionReason(
+    connection: Connection,
+    e: MoveException
+) {
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed character:move because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to "character:move",
+        "reason" to e.reason.str,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
+
 suspend fun sendAttackExceptionReason(
-    connection: WebSocketServerSession,
-    userId: UInt,
+    connection: Connection,
     e: AttackException
 ) {
-    logger.info("Failed websocket message type character:attack from user with ID $userId", e)
-    sendSafety(connection, JSONObject(mapOf(
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed character:attack because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
         "type" to "error",
         "on" to "character:attack",
         "attackType" to e.attackType,
@@ -51,4 +80,3 @@ suspend fun sendAttackExceptionReason(
         "message" to e.message.orEmpty()
     )).toString())
 }
-

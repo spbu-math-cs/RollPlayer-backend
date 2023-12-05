@@ -2,7 +2,6 @@ package db
 
 import kotlin.collections.Map
 import kotlinx.datetime.toJavaInstant
-import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -197,7 +196,7 @@ object DBOperator {
     }
 
     fun getAllSessionsWithUser(userId: UInt) = transaction {
-        UserData.findById(userId.toInt())?.sessions?.map { it.raw() }
+        UserData.findById(userId.toInt())?.sessions?.distinct()?.map { it.raw() }
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
 
@@ -278,7 +277,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${mapID} does not exist")
                 this.active = active
                 this.started = started
-                this.whoCanMove = whoCanMove
+                this.prevCharacterId = whoCanMove
             }.raw()
         }
 
@@ -481,7 +480,7 @@ object DBOperator {
                     ?: throw IllegalArgumentException("Map #${sessionInfo.mapID} does not exist")
                 started = sessionInfo.started.toJavaInstant()
                 active = sessionInfo.active
-                whoCanMove = sessionInfo.whoCanMove
+                prevCharacterId = sessionInfo.prevCharacterId
             }.raw()
     }
 
