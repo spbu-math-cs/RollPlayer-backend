@@ -5,7 +5,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 import kotlin.collections.Map
 
-val propertyDisplayedNameMap = mapOf<String, String>(
+val propertyDisplayedNameMap = mapOf(
     "MAX_HP" to "Max health",
     "MAX_MP" to "Max mana",
     "CURR_HP" to "Current health",
@@ -27,7 +27,7 @@ object PropertiesJsonArraySerializer:
             throw Exception("Incorrect element for PropertiesJsonArraySerializer")
         }
         return JsonArray(element.map { JsonObject(mapOf(
-            "name" to JsonPrimitive(it.key),
+            "name" to JsonPrimitive(propertyDisplayedNameMap[it.key] ?: it.key),
             "value" to JsonPrimitive(it.value.toString().toInt())
         )) })
     }
