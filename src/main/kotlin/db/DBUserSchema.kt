@@ -10,7 +10,7 @@ const val pathLength = 255
 object UserTable: IntIdTable("user", "user_id") {
     val login = varchar("login", identifierLength).uniqueIndex()
     val email = varchar("email", identifierLength).uniqueIndex()
-    val avatarID = reference("avatar_id", AvatarTable).nullable()
+    val avatarID = reference("avatar_id", PictureTable).nullable()
     val passwordHash = integer("password_hash")
     val pswHashInitial = integer("psw_hash_initial")
     val pswHashFactor = integer("psw_hash_factor")
@@ -27,14 +27,14 @@ class UserData(id: EntityID<Int>): IntEntity(id) {
 
     val characters by CharacterData referrersOn CharacterTable.userID
     var sessions by SessionData via CharacterTable
-    var avatar by AvatarData optionalReferencedOn UserTable.avatarID
+    var avatar by PictureData optionalReferencedOn UserTable.avatarID
 
     fun raw(): UserInfo = UserInfo(
         id.value.toUInt(),
         login,
         email,
         passwordHash,
-        avatar?.pathToFile
+        avatar?.id?.value?.toUInt()
     )
 }
 
@@ -44,5 +44,5 @@ data class UserInfo(
     val login: String,
     val email: String,
     val passwordHash: Int,
-    val avatarPath: String? = null
+    val avatarID: UInt? = null
 )

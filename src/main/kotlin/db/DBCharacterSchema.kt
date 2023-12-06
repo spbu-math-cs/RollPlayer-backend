@@ -19,7 +19,7 @@ object CharacterTable: IntIdTable("character", "character_id") {
     val userID = reference("user_id", UserTable,
         onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", identifierLength)
-    val avatarID = reference("avatar_id", AvatarTable).nullable()
+    val avatarID = reference("avatar_id", PictureTable).nullable()
     val row = integer("row")
     val col = integer("col")
 
@@ -41,7 +41,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var row by CharacterTable.row
     var col by CharacterTable.col
 
-    var avatar by AvatarData optionalReferencedOn CharacterTable.avatarID
+    var avatar by PictureData optionalReferencedOn CharacterTable.avatarID
     val properties by PropertyData referrersOn PropertyTable.characterID
 
     var strength by CharacterTable.strength
@@ -60,23 +60,10 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         user.id.value.toUInt(),
         session.id.value.toUInt(),
         name,
-        avatar?.pathToFile,
+        avatar?.id?.value?.toUInt(),
         row, col,
         getBasicProperties(),
         properties.associateBy({ it.nameData.name }) { it.value })
-}
-
-object PropertiesJsonArraySerializer:
-    JsonTransformingSerializer<Map<String, Int>>(MapSerializer(String.serializer(), Int.serializer())) {
-    override fun transformSerialize(element: JsonElement): JsonElement {
-        if (element !is JsonObject) {
-            throw Exception("Incorrect element for PropertiesJsonArraySerializer")
-        }
-        return JsonArray(element.map { JsonObject(mapOf(
-            "name" to JsonPrimitive(it.key),
-            "value" to JsonPrimitive(it.value.toString().toInt())
-        )) })
-    }
 }
 
 @Serializable
@@ -95,7 +82,7 @@ data class CharacterInfo(
     val userId: UInt,
     val sessionId: UInt,
     val name: String,
-    val avatarPath: String?,
+    val avatarId: UInt?,
     val row: Int,
     val col: Int,
     val basicProperties: BasicProperties,
