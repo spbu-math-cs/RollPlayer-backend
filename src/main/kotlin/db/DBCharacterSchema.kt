@@ -62,21 +62,8 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         name,
         avatar?.id?.value?.toUInt(),
         row, col,
-        getBasicProperties())
-        // properties.associateBy({ it.nameData.name }) { it.value })
-}
-
-object PropertiesJsonArraySerializer:
-    JsonTransformingSerializer<Map<String, Int>>(MapSerializer(String.serializer(), Int.serializer())) {
-    override fun transformSerialize(element: JsonElement): JsonElement {
-        if (element !is JsonObject) {
-            throw Exception("Incorrect element for PropertiesJsonArraySerializer")
-        }
-        return JsonArray(element.map { JsonObject(mapOf(
-            "name" to JsonPrimitive(it.key),
-            "value" to JsonPrimitive(it.value.toString().toInt())
-        )) })
-    }
+        getBasicProperties(),
+        properties.associateBy({ it.nameData.name }) { it.value })
 }
 
 @Serializable
@@ -98,6 +85,6 @@ data class CharacterInfo(
     val avatarId: UInt?,
     val row: Int,
     val col: Int,
-    val basicProperties: BasicProperties
-    // @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
+    val basicProperties: BasicProperties,
+    @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
 )
