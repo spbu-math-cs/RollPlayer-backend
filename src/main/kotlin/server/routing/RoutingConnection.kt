@@ -8,21 +8,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 import org.json.JSONObject
 import server.*
 import server.utils.*
-
-fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
-    val characterPropsMap = mutableMapOf<String, Int>()
-    if (characterProps != null) {
-        for (i in 0 until characterProps.length()) {
-            val prop = characterProps.getJSONObject(i)
-            characterPropsMap[prop.getString("name")] = prop.getInt("value")
-        }
-    }
-    return characterPropsMap
-}
 
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
@@ -65,18 +53,21 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                         "character:new" -> {
                             try {
                                 val characterName = message.optString("name", "Dovakin")
-                                // TODO: сделать нормальную загрузку аватарок
-                                val characterAvatarPath = message.optString("avatarPath").ifEmpty { null }
                                 val characterRow = message.optInt("row", 0)
                                 val characterCol = message.optInt("col", 0)
                                 val characterBasicProps = Json.decodeFromString<BasicProperties>(
                                     message.optString("basicProperties", "{}"))
+                                val characterAvatarId = if (message.has("avatarId")) {
+                                    message.getInt("avatarId").toUInt()
+                                } else {
+                                    null
+                                }
 
                                 val character = DBOperator.addCharacter(
                                     userId,
                                     sessionId,
                                     characterName,
-                                    characterAvatarPath?.let { DBOperator.addPicture(it) }?.id, // FIXME: сделайте как правильно
+                                    characterAvatarId,
                                     characterRow,
                                     characterCol,
                                     characterBasicProps

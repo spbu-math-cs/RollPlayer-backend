@@ -22,8 +22,13 @@ fun Route.requestsUser(){
             val login = data.getString("login")
             val email = data.getString("email")
             val password = data.getString("password")
+            val avatarId = if (data.has("avatarId")) {
+                data.getInt("avatarId").toUInt()
+            } else {
+                null
+            }
 
-            val userInfo = DBOperator.addUser(login, email, password)
+            val userInfo = DBOperator.addUser(login, email, password, avatarId)
             call.respond(HttpStatusCode.Created, JSONObject()
                 .put("type", "ok")
                 .put("message", "User ${userInfo.id} registered successfully")
@@ -119,6 +124,11 @@ fun Route.requestsUser(){
                 val newPassword = data.getString("password")
                 DBOperator.updateUserPassword(userId, newPassword)
                 logger.info("Password for User $userId edit successfully")
+            }
+            if (data.has("avatarId")) {
+                val newAvatarId = data.getInt("avatarId").toUInt()
+                DBOperator.updateUserAvatar(userId, newAvatarId)
+                logger.info("Avatar for User $userId edit successfully")
             }
 
             call.respond(HttpStatusCode.OK, JSONObject()

@@ -470,6 +470,18 @@ object DBOperator {
         user.passwordHash = hashPassword(newPassword, user.pswHashInitial, user.pswHashFactor)
     }
 
+    fun updateUserAvatar(userId: UInt, newAvatarId: UInt) = transaction {
+        val user = UserData.findById(userId.toInt())
+            ?: throw IllegalArgumentException("User #$userId does not exist")
+
+        val pictureData = PictureData.findById(newAvatarId.toInt())
+        if (pictureData != null) {
+            user.avatar = pictureData
+            return@transaction true
+        }
+        false
+    }
+
     // ====================
     // SESSION MANIPULATION
     // ====================
@@ -553,6 +565,18 @@ object DBOperator {
                     setCharacterPropertyNoTransaction(this, propName, propValue)
                 }
             }?.raw() ?: throw IllegalArgumentException("Character #$characterId does not exist")
+    }
+
+    fun updateCharacterAvatar(characterId: UInt, newAvatarId: UInt) = transaction {
+        val character = CharacterData.findById(characterId.toInt())
+            ?: throw IllegalArgumentException("Character #$characterId does not exist")
+
+        val pictureData = PictureData.findById(newAvatarId.toInt())
+        if (pictureData != null) {
+            character.avatar = pictureData
+            return@transaction true
+        }
+        false
     }
 
     // ================
