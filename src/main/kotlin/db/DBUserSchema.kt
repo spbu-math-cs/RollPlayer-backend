@@ -44,5 +44,5 @@ data class UserInfo(
     val login: String,
     val email: String,
     val passwordHash: Int,
-    val avatarID: UInt? = null
+    val avatarID: UInt?
 )

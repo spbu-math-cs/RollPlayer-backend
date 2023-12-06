@@ -3,8 +3,8 @@ package db
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
-object PictureTable: IntIdTable("avatar", "avatar_id") {
-    val pathToFile = varchar("path_to_json", pathLength).uniqueIndex()
+object PictureTable: IntIdTable("picture", "picture_id") {
+    val pathToFile = varchar("path_to_file", pathLength).uniqueIndex()
 }
 
 class PictureData(id: EntityID<Int>): IntEntity(id) {

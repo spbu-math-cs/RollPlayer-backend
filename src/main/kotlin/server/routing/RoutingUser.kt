@@ -22,8 +22,13 @@ fun Route.requestsUser(){
             val login = data.getString("login")
             val email = data.getString("email")
             val password = data.getString("password")
+            val avatarId = if (data.has("avatarId")) {
+                data.getInt("avatarId").toUInt()
+            } else {
+                null
+            }
 
-            val userInfo = DBOperator.addUser(login, email, password)
+            val userInfo = DBOperator.addUser(login, email, password, avatarId)
             call.respond(HttpStatusCode.Created, JSONObject()
                 .put("type", "ok")
                 .put("message", "User ${userInfo.id} registered successfully")
@@ -102,10 +107,8 @@ fun Route.requestsUser(){
     }
 
     post("/api/edit/{userId}") {
+        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
         try {
-            val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw IllegalArgumentException("Invalid userId, must be UInt")
-
             val data = JSONObject(call.receiveText())
             if (data.has("login")) {
                 val newLogin = data.getString("login")
@@ -122,6 +125,11 @@ fun Route.requestsUser(){
                 DBOperator.updateUserPassword(userId, newPassword)
                 logger.info("Password for User $userId edit successfully")
             }
+            if (data.has("avatarId")) {
+                val newAvatarId = data.getInt("avatarId").toUInt()
+                DBOperator.updateUserAvatar(userId, newAvatarId)
+                logger.info("Avatar for User $userId edit successfully")
+            }
 
             call.respond(HttpStatusCode.OK, JSONObject()
                 .put("type", "ok")
@@ -130,25 +138,23 @@ fun Route.requestsUser(){
                 .toString()
             )
 
-            logger.info("Successful POST /api/edit/${userId} request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful POST /api/edit/$userId request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/edit/{userId}", e)
+            handleHTTPRequestException(call, "POST /api/edit/$userId", e)
         }
     }
 
     get("/api/{userId}/sessions") {
+        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
         try {
-            val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw IllegalArgumentException("Invalid userId, must be UInt")
-
             call.respond(HttpStatusCode.OK, JSONObject()
                 .put("type", "ok")
                 .put("result", JSONArray(DBOperator.getAllSessionsWithUser(userId).map { JSONObject(Json.encodeToString(it)) }))
                 .toString()
             )
-            logger.info("Successful GET /api/${userId}/sessions request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful GET /api/$userId/sessions request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/{userId}/sessions", e)
+            handleHTTPRequestException(call, "GET /api/$userId/sessions", e)
         }
     }
 }
