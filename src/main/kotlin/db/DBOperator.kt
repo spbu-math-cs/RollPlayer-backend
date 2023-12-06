@@ -205,15 +205,24 @@ object DBOperator {
             ?: throw IllegalArgumentException("User #$userId does not exist")
     }
 
+    private fun getPropertyNameDataNoTransaction(propName: String): PropertyNameData =
+        PropertyNameData
+            .find(PropertyNameTable.name eq propName)
+            .firstOrNull() ?: throw IllegalArgumentException("Property named `$propName` does not exist")
+
+    private fun getCharacterPropertyNoTransaction(characterId: Int, propName: String): Int? {
+        val propNameData = getPropertyNameDataNoTransaction(propName)
+        return PropertyData.find(
+            PropertyTable.characterID eq characterId and
+                (PropertyTable.nameID eq propNameData.id))
+            .firstOrNull()
+            ?.value
+    }
+
     fun getCharacterProperty(characterId: UInt, propName: String) = transaction {
         if (!characterPropertiesList.containsKey(propName))
             return@transaction null
-        val propNameData = getPropertyNameDataNoTransaction(propName)
-        PropertyData.find(
-            PropertyTable.characterID eq characterId.toInt() and
-                    (PropertyTable.nameID eq propNameData.id))
-            .firstOrNull()
-            ?.value
+        getCharacterPropertyNoTransaction(characterId.toInt(), propName)
     }
 
     fun getAllPropertiesOfCharacter(characterId: UInt) = transaction {
@@ -221,11 +230,7 @@ object DBOperator {
             ?: throw IllegalArgumentException("Character #$characterId does not exist")
         characterPropertiesList.keys
             .associateWith { propName ->
-                val propNameData = getPropertyNameDataNoTransaction(propName)
-                PropertyData.find(PropertyTable.nameID eq propNameData.id and
-                        (PropertyTable.characterID eq characterId.toInt()))
-                    .firstOrNull()
-                    ?.value
+                getCharacterPropertyNoTransaction(characterId.toInt(), propName)
                     ?: resetCharacterPropertyNoTransaction(characterData, propName)
             }
     }
@@ -293,7 +298,6 @@ object DBOperator {
         row: Int = 0,
         col: Int = 0,
         basicProperties: BasicProperties = BasicProperties()
-        // properties: Map<String, Int> = mapOf()
     ) = transaction {
         val newCharacter = CharacterData.new {
             session = SessionData.findById(sessionId.toInt())
@@ -493,11 +497,6 @@ object DBOperator {
     // CHARACTER MANIPULATION
     // ======================
 
-    private fun getPropertyNameDataNoTransaction(propName: String): PropertyNameData =
-        PropertyNameData
-            .find(PropertyNameTable.name eq propName)
-            .firstOrNull() ?: throw IllegalArgumentException("Property named `$propName` does not exist")
-
     private fun setCharacterPropertyNoTransaction(character: CharacterData, propName: String, value: Int) {
         val propNameData = getPropertyNameDataNoTransaction(propName)
         PropertyData.find(
@@ -609,6 +608,9 @@ object DBOperator {
         true
     }
 
+    // Примечание: у всех остальных сущностей стоит опция ON DELETE CASCADE,
+    // то есть при удалении сущности удаляются и все использующие её сущности.
+    // С картинками не так: картинку нельзя удалить, если она где-то используется.
     fun deletePictureById(id: UInt): Boolean = transaction {
         PictureData.findById(id.toInt())
             .let {
@@ -617,7 +619,6 @@ object DBOperator {
 
                 if (!CharacterData.find(CharacterTable.avatarID eq it.id).empty() ||
                     !UserData.find(UserTable.avatarID eq it.id).empty())
-                    // throw IllegalAccessException("Cannot remove picture #$id from the DB, because someone's using it")
                     return@transaction false
 
                 it.delete()
