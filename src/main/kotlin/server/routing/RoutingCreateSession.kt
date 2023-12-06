@@ -44,9 +44,9 @@ fun Route.createSession() {
                 .toString()
             )
 
-            logger.info("Successful GET /api/game/$sessionId request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful GET /api/game/$sessionId/mapId request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/game/$sessionId", e)
+            handleHTTPRequestException(call, "GET /api/game/$sessionId/mapId", e)
         }
     }
 }
