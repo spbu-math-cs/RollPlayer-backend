@@ -222,32 +222,32 @@ class ActiveSessionData(
     }
 
     fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
-        val damage = DBOperator.getCharacterProperty(characterId, "Melee attack damage")!!
-        val oppHealth = DBOperator.getCharacterProperty(opponentId, "Current health")!!
+        val damage = DBOperator.getCharacterProperty(characterId, "MELEE_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
 
-        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
-        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
     }
 
     fun processingRangedAttack(characterId: UInt, opponentId: UInt) {
-        val damage = DBOperator.getCharacterProperty(characterId, "Ranged attack damage")!!
-        val oppHealth = DBOperator.getCharacterProperty(opponentId, "Current health")!!
+        val damage = DBOperator.getCharacterProperty(characterId, "RANGED_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
 
-        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
-        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
     }
 
     fun processingMagicAttack(characterId: UInt, opponentId: UInt) {
-        val damage = DBOperator.getCharacterProperty(characterId, "Magic attack damage")!!
-        val oppHealth = DBOperator.getCharacterProperty(opponentId, "Current health")!!
-        val currentMana = DBOperator.getCharacterProperty(characterId, "Current mana")!!
-        val magicAttackCost = DBOperator.getCharacterProperty(characterId, "Magic attack cost")!!
+        val damage = DBOperator.getCharacterProperty(characterId, "MAGIC_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
+        val currentMana = DBOperator.getCharacterProperty(characterId, "CURR_MP")!!
+        val magicAttackCost = DBOperator.getCharacterProperty(characterId, "MAGIC_AT_COST")!!
 
-        DBOperator.setCharacterProperty(opponentId, "Current health", oppHealth - damage)
-        logger.info("Session #$sessionId: change \"Current health\" of character #${opponentId} in db")
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
 
-        DBOperator.setCharacterProperty(characterId, "Current mana", currentMana - magicAttackCost)
-        logger.info("Session #$sessionId: change \"Current mana\" of character #${characterId} in db")
+        DBOperator.setCharacterProperty(characterId, "CURR_MP", currentMana - magicAttackCost)
+        logger.info("Session #$sessionId: change \"CURR_MP\" of character #${characterId} in db")
     }
 
     private fun getCurrentCharacterForActionId(): UInt? {
@@ -268,7 +268,7 @@ class ActiveSessionData(
         if (map.isObstacleTile(pos))
             throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
 
-        val distance = DBOperator.getCharacterProperty(character.id, "Speed")!!
+        val distance = DBOperator.getCharacterProperty(character.id, "SPEED")!!
         if (!map.checkDistance(Position(character.row, character.col), pos, distance))
             throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
@@ -283,18 +283,18 @@ class ActiveSessionData(
     }
 
     fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        val attackDistance = DBOperator.getCharacterProperty(character.id, "Ranged attack distance")!!
+        val attackDistance = DBOperator.getCharacterProperty(character.id, "RANGED_AT_DIST")!!
         if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("ranged", AttackFailReason.BigDist, "Can't attack: too far for ranged attack")
     }
 
     fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
-        val attackDistance = DBOperator.getCharacterProperty(character.id, "Magic attack distance")!!
+        val attackDistance = DBOperator.getCharacterProperty(character.id, "MAGIC_AT_DIST")!!
         if (!inAttackRange(character, opponent, attackDistance))
             throw AttackException("magic", AttackFailReason.BigDist, "Can't attack: too far for magic attack")
 
-        val characterCurrentMana = DBOperator.getCharacterProperty(character.id, "Current mana")!!
-        val characterMagicAttackCost = DBOperator.getCharacterProperty(character.id, "Magic attack cost")!!
+        val characterCurrentMana = DBOperator.getCharacterProperty(character.id, "CURR_MP")!!
+        val characterMagicAttackCost = DBOperator.getCharacterProperty(character.id, "MAGIC_AT_COST")!!
         if (characterCurrentMana < characterMagicAttackCost) {
             throw AttackException("magic", AttackFailReason.LowMana, "Can't attack: too low mana for magic attack")
         }
