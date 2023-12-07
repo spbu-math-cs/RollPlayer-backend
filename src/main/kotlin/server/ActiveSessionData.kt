@@ -13,6 +13,7 @@ import server.utils.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
+import kotlin.random.Random
 
 const val initPrevCharacterId: Int = -1
 
@@ -88,7 +89,7 @@ class ActiveSessionData(
             userData.characters.forEach {
                 val curCharacterForActionId = getCurrentCharacterForActionId()
                 if (it == curCharacterForActionId) {
-                    sendCharacterStatusToConn(it, true, connection)
+                    sendCharacterActionStatusToConn(it, true, connection)
                 }
             }
         }
@@ -107,8 +108,9 @@ class ActiveSessionData(
     }
 
     private suspend fun showCharacter(character: CharacterInfo, connection: Connection, own: Boolean) {
-        val characterJson = JSONObject(Json.encodeToString(character))
+        val characterJson = JSONObject()
             .put("type", "character:new")
+            .put("character", JSONObject(Json.encodeToString(character)))
             .put("own", own)
         sendSafety(connection.connection, characterJson.toString())
     }
@@ -139,8 +141,9 @@ class ActiveSessionData(
         val userData = activeUsers.getValue(character.userId)
         userData.characters.add(character.id)
 
-        val message = JSONObject(Json.encodeToString(character))
+        val message = JSONObject()
             .put("type", "character:new")
+            .put("character", JSONObject(Json.encodeToString(character)))
             .put("own", true)
         userData.connections.forEach {
             sendSafety(it.connection, message.toString())
@@ -161,10 +164,10 @@ class ActiveSessionData(
         val characterForActionAfterAddingId = getCurrentCharacterForActionId()
         if (characterForActionBeforeAddingId != characterForActionAfterAddingId) {
             assert(characterForActionAfterAddingId == characterId)
-            sendCharacterStatus(characterForActionBeforeAddingId, false)
-            sendCharacterStatus(characterForActionAfterAddingId, true)
+            sendCharacterActionStatus(characterForActionBeforeAddingId, false)
+            sendCharacterActionStatus(characterForActionAfterAddingId, true)
         } else if (characterForActionBeforeAddingId == characterId) {
-            sendCharacterStatus(characterId, true)
+            sendCharacterActionStatus(characterId, true)
         }
     }
 
@@ -183,23 +186,22 @@ class ActiveSessionData(
         logger.info("Session #$sessionId for user #${character.userId}: remove active character #${character.id}")
 
         if (character.id == characterForActionBeforeRemovingId) {
-            sendCharacterStatus(getCurrentCharacterForActionId(), true)
+            sendCharacterActionStatus(getCurrentCharacterForActionId(), true)
         }
     }
 
     suspend fun moveCharacter(character: CharacterInfo) {
-        val message = JSONObject(Json.encodeToString(character))
+        val message = JSONObject()
             .put("type", "character:move")
-            .put("row", character.row)
-            .put("col", character.col)
+            .put("id", character.id)
+            .put("character", JSONObject(Json.encodeToString(character)))
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
         logger.info("Session #$sessionId for user #${character.userId}: " +
                 "move character #${character.id} to (${character.row}, ${character.col})")
 
-        sendCharacterStatus(actionProperties.prevCharacterId.get().toUInt(), false)
-        sendCharacterStatus(getCurrentCharacterForActionId(), true)
+        updateActionProperties()
     }
 
     suspend fun attackOneWithoutCounterAttack(characterId: UInt, opponentId: UInt, type: String) {
@@ -217,8 +219,7 @@ class ActiveSessionData(
         logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " + type +
             " attack from character #$characterId to character #$opponentId")
 
-        sendCharacterStatus(actionProperties.prevCharacterId.get().toUInt(), false)
-        sendCharacterStatus(getCurrentCharacterForActionId(), true)
+        updateActionProperties()
     }
 
     fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
@@ -300,15 +301,24 @@ class ActiveSessionData(
         }
     }
 
-    fun validateActionAndUpdateActionProperties(characterId: UInt) {
+    fun validateAction(character: CharacterInfo) {
         val characterForActionId = getCurrentCharacterForActionId()
-        if (characterForActionId != characterId)
+        if (characterForActionId != character.id)
             throw ActionException(ActionFailReason.NotYourTurn, "Can't do action: not your turn now")
 
-        actionProperties.prevCharacterId = AtomicInteger(characterForActionId.toInt())
+        if (character.isDefeated) {
+            throw ActionException(ActionFailReason.IsDefeated, "Can't do action: character is defeated")
+        }
     }
 
-    private suspend fun sendCharacterStatus(characterId: UInt?, canDoAction: Boolean) {
+    suspend fun updateActionProperties() {
+        actionProperties.prevCharacterId = AtomicInteger(getCurrentCharacterForActionId()!!.toInt())
+
+        sendCharacterActionStatus(actionProperties.prevCharacterId.get().toUInt(), false)
+        sendCharacterActionStatus(getCurrentCharacterForActionId(), true)
+    }
+
+    private suspend fun sendCharacterActionStatus(characterId: UInt?, canDoAction: Boolean) {
         if (characterId == null) return
 
         if (canDoAction) {
@@ -326,7 +336,7 @@ class ActiveSessionData(
         }
     }
 
-    private suspend fun sendCharacterStatusToConn(characterId: UInt, canDoAction: Boolean, connection: Connection) {
+    private suspend fun sendCharacterActionStatusToConn(characterId: UInt, canDoAction: Boolean, connection: Connection) {
         if (canDoAction) {
             logger.info("Session #$sessionId: now can do action character #$characterId")
         }
@@ -336,5 +346,45 @@ class ActiveSessionData(
             .put("id", characterId.toLong())
             .put("can_do_action", canDoAction)
         sendSafety(connection.connection, messageStatus.toString())
+    }
+
+    fun validateRevival(character: CharacterInfo) {
+        val characterForActionId = getCurrentCharacterForActionId()
+        if (characterForActionId != character.id)
+            throw ActionException(ActionFailReason.NotYourTurn, "Can't reborn: not your turn now")
+    }
+
+    fun processingRevival(characterId: UInt): CharacterInfo? {
+        if (Random.nextInt(100) < 34) {
+            DBOperator.setCharacterDefeatedStatus(characterId, false)
+            DBOperator.setCharacterProperty(characterId, "CURR_HP", 1)
+            return DBOperator.getCharacterByID(characterId)
+        }
+        return null
+    }
+
+    suspend fun sendCharacterDefeatedStatus(character: CharacterInfo, isDefeated: Boolean) {
+        assert(character.isDefeated == isDefeated)
+
+        val message = JSONObject()
+            .put("type", "character:status")
+            .put("is_defeated", isDefeated)
+            .put("id", character.id)
+            .put("character", JSONObject(Json.encodeToString(character)))
+
+        activeUsers.forEach {
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
+        }
+
+        val info = if (isDefeated) "defeat" else "revive"
+        logger.info("Session #$sessionId for user #${character.userId}: $info character #${character.id}")
+    }
+
+    suspend fun checkIfDefeated(characterId: UInt) {
+        val health = DBOperator.getCharacterProperty(characterId, "CURR_HP")!!
+        if (health <= 0) {
+            DBOperator.setCharacterDefeatedStatus(characterId, true)
+            sendCharacterDefeatedStatus(DBOperator.getCharacterByID(characterId)!!, true)
+        }
     }
 }

@@ -4,8 +4,6 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlin.collections.Map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -22,6 +20,7 @@ object CharacterTable: IntIdTable("character", "character_id") {
     val avatarID = reference("avatar_id", PictureTable).nullable()
     val row = integer("row")
     val col = integer("col")
+    val isDefeated = bool("isDefeated")
 
     val strength = integer("strength")
     val dexterity = integer("dexterity")
@@ -40,6 +39,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var name by CharacterTable.name
     var row by CharacterTable.row
     var col by CharacterTable.col
+    var isDefeated by CharacterTable.isDefeated
 
     var avatar by PictureData optionalReferencedOn CharacterTable.avatarID
     val properties by PropertyData referrersOn PropertyTable.characterID
@@ -62,6 +62,7 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         name,
         avatar?.id?.value?.toUInt(),
         row, col,
+        isDefeated,
         getBasicProperties(),
         properties.associateBy({ it.nameData.name }) { it.value })
 }
@@ -85,6 +86,7 @@ data class CharacterInfo(
     val avatarId: UInt?,
     val row: Int,
     val col: Int,
+    val isDefeated: Boolean,
     val basicProperties: BasicProperties,
     @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
 )
