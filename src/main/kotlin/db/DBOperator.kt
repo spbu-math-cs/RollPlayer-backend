@@ -297,6 +297,7 @@ object DBOperator {
         avatarId: UInt? = null,
         row: Int = 0,
         col: Int = 0,
+        isDefeated: Boolean = false,
         basicProperties: BasicProperties = BasicProperties()
     ) = transaction {
         val newCharacter = CharacterData.new {
@@ -306,11 +307,12 @@ object DBOperator {
                 ?: throw IllegalArgumentException("User #$userId does not exist")
             this.name = name
 
-            // примечание: если картинка не найдена в базе, устанавливает её в null
             this.avatar = if (avatarId != null) PictureData.findById(avatarId.toInt()) else null
 
             this.row = row
             this.col = col
+
+            this.isDefeated = isDefeated
 
             this.strength = basicProperties.strength
             this.dexterity = basicProperties.dexterity
@@ -577,6 +579,12 @@ object DBOperator {
             return@transaction true
         }
         false
+    }
+
+    fun setCharacterDefeatedStatus(characterId: UInt, isDefeated: Boolean) = transaction {
+        (CharacterData.findById(characterId.toInt())
+            ?: throw IllegalArgumentException("Character #$characterId does not exist"))
+            .isDefeated = isDefeated
     }
 
     // ================
