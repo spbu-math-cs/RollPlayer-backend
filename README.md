@@ -36,7 +36,7 @@ ktor {
 ```
 
 ## Logging Configuration
-Logging is configured in the server code. Logs are written to both the console and a log file named server.log.
+Logging is configured in the server code. Logs are written to both the console and a log file named server.log. You can also configure logging in the file logback.xml.
 
 ## Documentation
 Http
@@ -47,32 +47,54 @@ To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-
 
 ```json
 {
- "height":2,
- "layers":[
+  "height":2,
+  "layers":[
     {
-     "data":[1, 2, 0
-             10, 5, 11],
-     "height":2,
-     "width":3,
-    }   
- ],
- "renderorder":"right-down",
- "orientation":"orthogonal",
- "tilesets":[
-    {
-     "firstgid":1,
-     "source":"tmp.tsj"
+      "data":[1, 2, 0,
+        10, 5, 11],
+      "height":2,
+      "width":3,
+      "properties": [
+        {
+          "name":"Obstacle",
+          "type":"bool",
+          "value":false
+        },
+        {
+          "name":"Pass cost",
+          "type":"int",
+          "value":2
+        }]
     },
     {
-     "firstgid":2,
-     "source":"tmp2.tsj"
+      "data":[0, 0, 3,
+        0, 0, 0],
+      "height":2,
+      "width":3,
+      "properties": [
+        {
+          "name":"Obstacle",
+          "type":"bool",
+          "value":true
+        }]
+    }],
+  "renderorder":"right-down",
+  "orientation":"orthogonal",
+  "tilesets":[
+    {
+      "firstgid":1,
+      "source":"tmp.tsj"
     },
     {
-     "firstgid":11,
-     "source":"tmp3.tsj"
+      "firstgid":2,
+      "source":"tmp2.tsj"
+    },
+    {
+      "firstgid":11,
+      "source":"tmp3.tsj"
     }
- ],
- "width":3
+  ],
+  "width":3
 }
 ```
 

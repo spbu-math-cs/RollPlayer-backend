@@ -10,9 +10,6 @@ Create a new game session based on the provided mapId.
 ```bash
 POST /api/game/create?mapId=123 HTTP/1.1
 ```
-#### Status Codes:
-- 200 OK: Successful creation of a new game session.
-- 400 Bad Request: Validation checks failed (e.g. missing or invalid parameters).
 
 #### Example Response:
 ```json
@@ -20,7 +17,7 @@ POST /api/game/create?mapId=123 HTTP/1.1
   "type": "ok",
   "message": "Session created",
   "result": {
-    "mapID": 123u,
+    "mapID": 123,
     "active": false,
     "started": "2023-11-28T12:34:56Z",
     "whoCanMove": -1
@@ -35,9 +32,6 @@ Get a list of all textures.
 ```bash
 GET /api/textures HTTP/1.1
 ```
-#### Status Codes:
-- 200 OK: Successful retrieval of textures.
-- 400 Bad Request: Validation checks failed.
 
 #### Example Response:
 ```json
@@ -52,16 +46,13 @@ GET /api/textures HTTP/1.1
 ### GET /api/textures/{id}
 Get a specific texture by ID.
 
-#### Request Body:
+#### Request Parameters:
 - {id} (UInt): Texture ID.
 
 #### Example Request:
 ```bash
 GET /api/textures/1 HTTP/1.1
 ```
-#### Status Codes:
-- 200 OK: Successful retrieval of the specified texture.
-- 400 Bad Request: Texture with the given ID does not exist.
 
 #### Example Response:
 ```json
@@ -81,9 +72,6 @@ Get a list of all tilesets.
 ```bash
 GET /api/tilesets HTTP/1.1
 ```
-#### Status Codes:
-- 200 OK: Successful retrieval of the list of tilesets.
-- 400 Bad Request: Validation checks failed.
 
 #### Example Response:
 ```json
@@ -109,6 +97,7 @@ Get a specific tileset by ID.
 ```bash
 
 ```
+
 #### Status Codes:
 - 
 
