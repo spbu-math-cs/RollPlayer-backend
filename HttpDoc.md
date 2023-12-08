@@ -158,67 +158,87 @@ GET /api/maps/1 HTTP/1.1
 ```
 
 ### POST /api/register
-
-#### Request Body:
-- 
+Registers a new user with the provided login, email, and password.
 
 #### Example Request:
 ```bash
-
+POST /api/register HTTP/1.1
+{
+  "login": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123"
+}
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "message": "User 1 registered successfully",
+  "result": {
+    "id": "1",
+    "login": "newuser",
+    "email": "newuser@example.com",
+    "password": "password123"
+  }
+}
 ```
 
 ### POST /api/login
-
-#### Request Body:
-- 
+Logs in a user with the provided login, email, and password.
 
 #### Example Request:
 ```bash
-
+POST /api/login HTTP/1.1
+{
+  "login": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123"
+}
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "message": "User 1 logged in successfully",
+  "result": {
+    "id": "1",
+    "login": "existinguser",
+    "email": "existinguser@example.com",
+    "password": "password123"
+  }
+}
 ```
 
 ### POST /api/logout
-
-#### Request Body:
-- 
+Logs out a user.
 
 #### Example Request:
 ```bash
-
+POST /api/logout HTTP/1.1
+{
+  "userId": 1
+}
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "message": "User 1 logged out successfully"
+}
 ```
 
 ### POST /api/edit/{userId}
-
-#### Request Body:
+#### What do?
+#### Request Parameters:
 - 
 
 #### Example Request:
 ```bash
 
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
@@ -226,7 +246,7 @@ GET /api/maps/1 HTTP/1.1
 ```
 
 ### GET /api/users
-
+#### What do?
 #### Request Body:
 - 
 
@@ -243,7 +263,7 @@ GET /api/maps/1 HTTP/1.1
 ```
 
 ### GET /api/{userId}/sessions
-
+#### What do?
 #### Request Body:
 - 
 
