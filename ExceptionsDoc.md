@@ -1,7 +1,15 @@
 # Exceptions Documentation
 
-сообщения от клиента
-- сообщения от сервера об ошибке:
-    - штатные (3 типа)
-    - внештатные
-- сообщения от сервера
+## Error from client
+
+### Error messages
+- regular 
+
+fghjlhgfhjklhkg
+
+- not regular
+
+sfdgfhdjhkjghfgdsasdfhgjhhgs
+
+## From server
+
