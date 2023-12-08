@@ -7,7 +7,29 @@ Connect to WebSocket for real-time communication.
 - {userId} (UInt): User ID.
 - {sessionId} (UInt): Session ID.
 
+#### Example Request:
+```bash
+ws/api/connect/1/2
+```
+
 #### Example Responses:
+
+CharacterInfo:
+```json
+"id": <UInt>,
+"basicProperties": 
+{
+    "strength": <Int, 0>,
+    ...
+}
+"properties": [
+{
+    "name": <String>,
+    "value": <Int>
+}
+...
+]
+```
 1) character creation
 ```json
 {
@@ -15,11 +37,7 @@ Connect to WebSocket for real-time communication.
   "name": "Dovakin",
   "row": 2,
   "col": 3,
-  "basicProperties": {
-    "health": 100,
-    "damage": 20
-  },
-  "avatarId": 1
+  <CharacterInfo>
 }
 ```
 2) character removal
