@@ -25,13 +25,24 @@ POST /api/game/create?mapId=123 HTTP/1.1
 }
 ```
 
+### GET /api/game/{sessionId}/mapId
+Retrieves the map ID associated with a specific game session.
 
+#### Request Parameters:
+- {sessionId} (UInt): Session ID.
 
+#### Example Request:
+```bash
+GET /api/game/1/mapId HTTP/1.1
+```
 
-get("/api/game/{sessionId}/mapId")
-
-
-
+#### Example Response:
+```json
+{
+  "type": "ok",
+  "result": "1"
+}
+```
 
 ### GET /api/textures
 Get a list of all textures.
@@ -166,51 +177,69 @@ GET /api/maps/1 HTTP/1.1
 ```
 
 ### GET /api/pictures
-#### What do?
-
-#### Request Parameters:
-- 
+Retrieves a list of all pictures.
 
 #### Example Request:
 ```bash
-
+GET /api/pictures HTTP/1.1
 ```
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "filepath": ".\\pictures\\picture1.png"
+    },
+    {
+      "id": "2",
+      "filepath": ".\\pictures\\picture2.png"
+    }
+  ]
+}
 ```
 
 ### GET /api/pictures/{id}
-#### What do?
+Retrieves a specific picture by ID.
 
 #### Request Parameters:
-- 
+- {id} (UInt): Picture ID.
 
 #### Example Request:
 ```bash
-
+GET /api/pictures/1 HTTP/1.1
 ```
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": {
+    "filepath": ".\\pictures\\picture1.png",
+    "id": "1"
+  }
+}
 ```
 
 ### POST /api/pictures
-#### What do?
-
-#### Request Parameters:
-- 
+Uploads a new picture.
 
 #### Example Request:
 ```bash
-
+POST /api/pictures HTTP/1.1
 ```
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": {
+    "id": "1",
+    "filepath": ".\\pictures\\picture1.png"
+  }
+}
 ```
 
 ### POST /api/register
