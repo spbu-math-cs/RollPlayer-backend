@@ -1,23 +1,4 @@
-# API Documentation
-
-## WebSocket
-
-### /api/connect/{userId}/{sessionId}
-Connect to WebSocket for real-time communication.
-
-#### Parameters:
-- {userId}: User ID for identifying the user
-- {sessionId}: Session ID for identifying the session
-
-#### Example request:
-```bash
-/ws/api/connect/1/2
-```
-#### Status Codes:
-- 200 OK: Successful WebSocket connection initiation.
-- 400 Bad Request: Invalid userId or sessionId (must be UInt) or user or session does not exist.
-
-## Http
+# Http Documentation
 
 ### POST /api/game/create
 Create a new game session based on the provided mapId.
@@ -35,8 +16,6 @@ POST /api/game/create?mapId=123 HTTP/1.1
 
 #### Example Response:
 ```json
-HTTP/1.1 200 OK
-Content-Type: application/json
 {
     "type": "ok",
     "message": "Session created",
@@ -64,9 +43,6 @@ GET ........
 
 #### Example Response:
 ```json
-HTTP/1.1 200 OK
-Content-Type: application/json
-
 {
     "type": "ok",
     "result": [
@@ -98,8 +74,7 @@ GET ........
 Get a list of all tilesets.
 
 Example Response:
-HTTP/1.1 200 OK
-Content-Type: application/json
+
 
 {
     "type": "ok",
@@ -118,8 +93,6 @@ Get a specific tileset by ID.
 Get a list of all maps.
 
 Example Response:
-HTTP/1.1 200 OK
-Content-Type: application/json
 
 {
     "type": "ok",
