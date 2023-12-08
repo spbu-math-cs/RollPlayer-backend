@@ -39,8 +39,9 @@ ktor {
 Logging is configured in the server code. Logs are written to both the console and a log file named server.log. You can also configure logging in the file logback.xml.
 
 ## Documentation
-Http
-Websocket
+- [Http](HttpDoc.md)
+- [Websocket](WebsocketDoc.md)
+- [Exceptions](ExceptionsDoc.md)
 
 ## Map format
 To store maps we use [Tiled](https://doc.mapeditor.org/en/stable/reference/json-map-format/) json map format. For each map we have a corresponding json (`.tmj`) file, it looks something like:
