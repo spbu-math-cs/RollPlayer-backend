@@ -3,8 +3,8 @@
 ### POST /api/game/create
 Create a new game session based on the provided mapId.
 
-#### Request Body:
-- mapId: ID of the map for the session.
+#### Request Query Parameters:
+- mapId (UInt, required): ID of the map for the session.
 
 #### Example Request:
 ```bash
@@ -17,14 +17,14 @@ POST /api/game/create?mapId=123 HTTP/1.1
 #### Example Response:
 ```json
 {
-    "type": "ok",
-    "message": "Session created",
-    "result": {
-        "mapID": 123u,
-        "active": false,
-        "started": 2023-11-28T12:34:56Z,
-        "whoCanMove": -1,
-    }
+  "type": "ok",
+  "message": "Session created",
+  "result": {
+    "mapID": 123u,
+    "active": false,
+    "started": "2023-11-28T12:34:56Z",
+    "whoCanMove": -1
+  }
 }
 ```
 
