@@ -90,55 +90,71 @@ GET /api/tilesets HTTP/1.1
 ### GET /api/tilesets/{id}
 Get a specific tileset by ID.
 
-#### Request Body:
-- 
+#### Request Parameters:
+- {id} (UInt): Tileset ID.
 
 #### Example Request:
 ```bash
-
+GET /api/tilesets/1 HTTP/1.1
 ```
-
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": {
+    "id": "1",
+    "filepath": ".\\tilesets\\tileset1.json"
+  }
+}
 ```
 
 
 ### GET /api/maps
-
-#### Request Body:
-- 
+Get a list of all maps.
 
 #### Example Request:
 ```bash
-
+GET /api/maps HTTP/1.1
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "filepath": ".\\maps\\map1.json"
+    },
+    {
+      "id": "2",
+      "filepath": ".\\maps\\map2.json"
+    }
+  ]
+}
 ```
 
 ### GET /api/maps/{id}
+Get a specific map by ID.
 
-#### Request Body:
-- 
+#### Request Parameters:
+- {id} (UInt): Map ID.
 
 #### Example Request:
 ```bash
-
+GET /api/maps/1 HTTP/1.1
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": {
+    "id": "1",
+    "filepath": ".\\maps\\map1.json"
+  }
+}
 ```
 
 ### POST /api/register
