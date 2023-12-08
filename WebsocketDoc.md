@@ -7,10 +7,6 @@ Connect to WebSocket for real-time communication.
 - {userId} (UInt): User ID.
 - {sessionId} (UInt): Session ID.
 
-#### Example request:
-```bash
-
-```
 #### Example Responses:
 1) character creation
 ```json
@@ -39,7 +35,6 @@ Connect to WebSocket for real-time communication.
   "row": 3,
   "col": 4
 }
-
 ```
 4) character attack
 ```json
@@ -47,7 +42,6 @@ Connect to WebSocket for real-time communication.
   "type": "character:attack",
   "attackType": "melee"
 }
-
 ```
 5) character revival
 ```json
