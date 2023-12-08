@@ -2,43 +2,44 @@ package server
 
 import db.CharacterInfo
 import db.DBOperator
+import db.Map.Companion.Position
 import db.SessionInfo
 
-import io.ktor.websocket.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
+import server.utils.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.abs
+import kotlin.random.Random
 
-const val initPrevCharacterMovedId: Int = -1
+const val initPrevCharacterId: Int = -1
 
 class ActiveSessionData(
     val sessionId: UInt,
     val mapId: UInt,
     val started: Instant,
-    var moveProperties: MoveProperties = MoveProperties(),
+    var actionProperties: ActionProperties = ActionProperties(),
     val activeUsers: MutableMap<UInt, UserData> = Collections.synchronizedMap(mutableMapOf())
 ) {
     data class UserData(
         val userId: UInt,
         val sessionId: UInt,
         val connections: MutableSet<Connection> = Collections.synchronizedSet(mutableSetOf()),
-        var characters: MutableSet<UInt> = Collections.synchronizedSet(
-            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).map { it.id }.toMutableSet()
-        )
+        var characters: MutableSet<UInt> = Collections.synchronizedSet(mutableSetOf())
     )
 
-    data class MoveProperties(
-        var prevCharacterMovedId: AtomicInteger = AtomicInteger(initPrevCharacterMovedId)
+    data class ActionProperties(
+        var prevCharacterId: AtomicInteger = AtomicInteger(initPrevCharacterId)
     )
 
     constructor(sessionInfo: SessionInfo): this(
         sessionInfo.id,
         sessionInfo.mapID,
         sessionInfo.started,
-        MoveProperties(AtomicInteger(sessionInfo.whoCanMove))
+        ActionProperties(AtomicInteger(sessionInfo.prevCharacterId))
     )
 
     fun toJson(): String {
@@ -55,113 +56,137 @@ class ActiveSessionData(
             mapId,
             true,
             started,
-            moveProperties.prevCharacterMovedId.get()
+            actionProperties.prevCharacterId.get()
         )
     }
 
     suspend fun startConnection(userId: UInt, connection: Connection) {
-        if (!activeUsers.containsKey(userId)) {
+        sendSafety(connection.connection, toJson())
+
+        val isFirstConnectionForThisUser = !activeUsers.containsKey(userId)
+        if (isFirstConnectionForThisUser) {
             activeUsers[userId] = UserData(userId, sessionId)
-            activeUsers.getValue(userId).characters.forEach {
-                val character = DBOperator.getCharacterByID(it)
-                    ?: throw Exception("Character with ID $it does not exist")
-                addCharacterToSession(character)
-            }
         }
+
         val userData = activeUsers.getValue(userId)
         userData.connections.add(connection)
 
-        connection.connection.send(toJson())
         activeUsers.forEach {
             val own = (it.key == userId)
             it.value.characters.forEach { characterId ->
-                showCharacter(
-                    DBOperator.getCharacterByID(characterId)
-                        ?: throw Exception("Character with ID $characterId does not exist"),
-                    connection,
-                    own
-                )
+                val character = DBOperator.getCharacterByID(characterId)
+                    ?: throw Exception("Character with ID $characterId does not exist")
+                showCharacter(character, connection, own)
             }
         }
-        logger.info("WebSocket: characters in session $sessionId to user $userId")
+        logger.info("Session #$sessionId for user #$userId: show all active characters")
+
+        if (isFirstConnectionForThisUser) {
+            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
+                addCharacter(it)
+            }
+        } else {
+            userData.characters.forEach {
+                val curCharacterForActionId = getCurrentCharacterForActionId()
+                if (it == curCharacterForActionId) {
+                    sendCharacterActionStatusToConn(it, true, connection)
+                }
+            }
+        }
     }
 
+    // should not throw exceptions
     suspend fun finishConnection(userId: UInt, connection: Connection) {
         val userData = activeUsers.getValue(userId)
         userData.connections.remove(connection)
-
         if (userData.connections.isEmpty()) {
-            userData.characters.forEach {
-                val character = DBOperator.getCharacterByID(it)
-                    ?: throw Exception("Character with ID $it does not exist")
-                removeCharacterFromSession(character)
+            DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
+                removeCharacter(it)
             }
             activeUsers.remove(userId)
         }
     }
 
     private suspend fun showCharacter(character: CharacterInfo, connection: Connection, own: Boolean) {
-        val characterJson = JSONObject(Json.encodeToString(character))
+        val characterJson = JSONObject()
             .put("type", "character:new")
+            .put("character", JSONObject(Json.encodeToString(character)))
             .put("own", own)
-        connection.connection.send(characterJson.toString())
+        sendSafety(connection.connection, characterJson.toString())
     }
 
     fun getValidCharacter(message: JSONObject, userId: UInt): CharacterInfo {
         val characterId = message.getInt("id").toUInt()
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
-        if (character.userId != userId || character.sessionId != sessionId)
+        if (character.userId != userId)
             throw Exception("Character with ID $characterId doesn't belong to you")
+        if (character.sessionId != sessionId)
+            throw Exception("Character with ID $characterId doesn't belong to this game session")
         return character
     }
 
-    suspend fun addCharacterToSession(character: CharacterInfo) {
-        val curCharacterForMoveId = getCurrentCharacterForMoveId()
+    fun getValidOpponentCharacter(message: JSONObject): CharacterInfo {
+        val characterId = message.getInt("opponentId").toUInt()
+        val character = DBOperator.getCharacterByID(characterId)
+            ?: throw Exception("Opponent character with ID $characterId does not exist")
+        if (character.sessionId != sessionId)
+            throw Exception("Opponent character with ID $characterId doesn't belong to this game session")
+        return character
+    }
+
+    suspend fun addCharacter(character: CharacterInfo) {
+        val characterForActionBeforeAddingId = getCurrentCharacterForActionId()
 
         val userData = activeUsers.getValue(character.userId)
         userData.characters.add(character.id)
 
-        val characterJson = JSONObject(Json.encodeToString(character))
+        val message = JSONObject()
             .put("type", "character:new")
+            .put("character", JSONObject(Json.encodeToString(character)))
             .put("own", true)
         userData.connections.forEach {
-            it.connection.send(characterJson.toString())
+            sendSafety(it.connection, message.toString())
         }
 
-        characterJson.put("own", false)
+        message.put("own", false)
         activeUsers.forEach {
             if (it.key != character.userId) {
-                it.value.connections.forEach { conn ->
-                    conn.connection.send(characterJson.toString())
-                }
+                it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
             }
         }
-        logger.info("WebSocket: add character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: add active character #${character.id}")
 
-        val newCurCharacterForMoveId = getCurrentCharacterForMoveId()
-        if (curCharacterForMoveId != newCurCharacterForMoveId) {
-            sendCharacterStatus(curCharacterForMoveId, false)
-            sendCharacterStatus(newCurCharacterForMoveId, true)
+        processingActionPropertiesInAdding(characterForActionBeforeAddingId, character.id)
+    }
+
+    private suspend fun processingActionPropertiesInAdding(characterForActionBeforeAddingId: UInt?, characterId: UInt) {
+        val characterForActionAfterAddingId = getCurrentCharacterForActionId()
+        if (characterForActionBeforeAddingId != characterForActionAfterAddingId) {
+            assert(characterForActionAfterAddingId == characterId)
+            sendCharacterActionStatus(characterForActionBeforeAddingId, false)
+            sendCharacterActionStatus(characterForActionAfterAddingId, true)
+        } else if (characterForActionBeforeAddingId == characterId) {
+            sendCharacterActionStatus(characterId, true)
         }
     }
 
-    suspend fun removeCharacterFromSession(character: CharacterInfo) {
-        val curCharacterForMoveId = getCurrentCharacterForMoveId()
+    suspend fun removeCharacter(character: CharacterInfo) {
+        val characterForActionBeforeRemovingId = getCurrentCharacterForActionId()
 
         val userData = activeUsers.getValue(character.userId)
         userData.characters.remove(character.id)
 
         val message = JSONObject()
             .put("type", "character:leave")
-            .put("id", character.id)
+            .put("id", character.id.toLong())
         activeUsers.forEach {
-            it.value.connections.forEach { conn -> conn.connection.send(message.toString()) }
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-        logger.info("WebSocket: remove character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: remove active character #${character.id}")
 
-        if (character.id == curCharacterForMoveId) {
-            sendCharacterStatus(getCurrentCharacterForMoveId(), true)
+        if (character.id == characterForActionBeforeRemovingId) {
+            sendCharacterActionStatus(getCurrentCharacterForActionId(), true)
         }
     }
 
@@ -169,20 +194,64 @@ class ActiveSessionData(
         val message = JSONObject()
             .put("type", "character:move")
             .put("id", character.id)
-            .put("row", character.row)
-            .put("col", character.col)
+            .put("character", JSONObject(Json.encodeToString(character)))
         activeUsers.forEach {
-            it.value.connections.forEach { conn -> conn.connection.send(message.toString()) }
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
         }
-        logger.info("WebSocket: move character with ID ${character.id}")
+        logger.info("Session #$sessionId for user #${character.userId}: " +
+                "move character #${character.id} to (${character.row}, ${character.col})")
 
-        val prevId = moveProperties.prevCharacterMovedId.get().toUInt()
-        sendCharacterStatus(prevId, false)
-        val curId = getCurrentCharacterForMoveId()
-        sendCharacterStatus(curId, true)
+        updateActionProperties()
     }
 
-    private fun getCurrentCharacterForMoveId(): UInt? {
+    suspend fun attackOneWithoutCounterAttack(characterId: UInt, opponentId: UInt, type: String) {
+        val updatedCharacter = DBOperator.getCharacterByID(characterId)!!
+        val updatedOpponent = DBOperator.getCharacterByID(opponentId)!!
+        val message = JSONObject()
+            .put("type", "character:attack")
+            .put("attackType", type)
+            .put("character", JSONObject(Json.encodeToString(updatedCharacter)))
+            .put("opponent", JSONObject(Json.encodeToString(updatedOpponent)))
+
+        activeUsers.forEach {
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
+        }
+        logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " + type +
+            " attack from character #$characterId to character #$opponentId")
+
+        updateActionProperties()
+    }
+
+    fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getCharacterProperty(characterId, "MELEE_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
+
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
+    }
+
+    fun processingRangedAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getCharacterProperty(characterId, "RANGED_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
+
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
+    }
+
+    fun processingMagicAttack(characterId: UInt, opponentId: UInt) {
+        val damage = DBOperator.getCharacterProperty(characterId, "MAGIC_AT_DMG")!!
+        val oppHealth = DBOperator.getCharacterProperty(opponentId, "CURR_HP")!!
+        val currentMana = DBOperator.getCharacterProperty(characterId, "CURR_MP")!!
+        val magicAttackCost = DBOperator.getCharacterProperty(characterId, "MAGIC_AT_COST")!!
+
+        DBOperator.setCharacterProperty(opponentId, "CURR_HP", oppHealth - damage)
+        logger.info("Session #$sessionId: change \"CURR_HP\" of character #${opponentId} in db")
+
+        DBOperator.setCharacterProperty(characterId, "CURR_MP", currentMana - magicAttackCost)
+        logger.info("Session #$sessionId: change \"CURR_MP\" of character #${characterId} in db")
+    }
+
+    private fun getCurrentCharacterForActionId(): UInt? {
         val charactersIdInOrderAdded = activeUsers
             .map { it.value.characters }
             .reduce { res, add -> res.plus(add).toMutableSet() }
@@ -190,32 +259,132 @@ class ActiveSessionData(
         if (charactersIdInOrderAdded.isEmpty()) return null
 
         return charactersIdInOrderAdded.firstOrNull {
-            it.toInt() > moveProperties.prevCharacterMovedId.get()
+            it.toInt() > actionProperties.prevCharacterId.get()
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveAndUpdateMoveProperties(characterId: UInt, mapId: UInt, row: Int, col: Int) {
+    fun validateMoveCharacter(character: CharacterInfo, mapId: UInt, pos: Position) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
-        if (map.isObstacleTile(row, col)) throw Exception("Tile is obstacle")
+        if (map.isObstacleTile(pos))
+            throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
 
-        val characterCanMoveId = getCurrentCharacterForMoveId()
-        if (characterCanMoveId != characterId) throw Exception("Can not move now")
-
-        moveProperties.prevCharacterMovedId = AtomicInteger(characterCanMoveId.toInt())
+        val distance = DBOperator.getCharacterProperty(character.id, "SPEED")!!
+        if (!map.checkDistance(Position(character.row, character.col), pos, distance))
+            throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
 
-    private suspend fun sendCharacterStatus(characterId: UInt?, canMove: Boolean) {
+    private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
+        return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
+    }
+
+    fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        if (!inAttackRange(character, opponent, 1))
+            throw AttackException("melee", AttackFailReason.BigDist, "Can't attack: too far for melee attack")
+    }
+
+    fun validateRangedAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        val attackDistance = DBOperator.getCharacterProperty(character.id, "RANGED_AT_DIST")!!
+        if (!inAttackRange(character, opponent, attackDistance))
+            throw AttackException("ranged", AttackFailReason.BigDist, "Can't attack: too far for ranged attack")
+    }
+
+    fun validateMagicAttack(character: CharacterInfo, opponent: CharacterInfo) {
+        val attackDistance = DBOperator.getCharacterProperty(character.id, "MAGIC_AT_DIST")!!
+        if (!inAttackRange(character, opponent, attackDistance))
+            throw AttackException("magic", AttackFailReason.BigDist, "Can't attack: too far for magic attack")
+
+        val characterCurrentMana = DBOperator.getCharacterProperty(character.id, "CURR_MP")!!
+        val characterMagicAttackCost = DBOperator.getCharacterProperty(character.id, "MAGIC_AT_COST")!!
+        if (characterCurrentMana < characterMagicAttackCost) {
+            throw AttackException("magic", AttackFailReason.LowMana, "Can't attack: too low mana for magic attack")
+        }
+    }
+
+    fun validateAction(character: CharacterInfo) {
+        val characterForActionId = getCurrentCharacterForActionId()
+        if (characterForActionId != character.id)
+            throw ActionException(ActionFailReason.NotYourTurn, "Can't do action: not your turn now")
+
+        if (character.isDefeated) {
+            throw ActionException(ActionFailReason.IsDefeated, "Can't do action: character is defeated")
+        }
+    }
+
+    suspend fun updateActionProperties() {
+        actionProperties.prevCharacterId = AtomicInteger(getCurrentCharacterForActionId()!!.toInt())
+
+        sendCharacterActionStatus(actionProperties.prevCharacterId.get().toUInt(), false)
+        sendCharacterActionStatus(getCurrentCharacterForActionId(), true)
+    }
+
+    private suspend fun sendCharacterActionStatus(characterId: UInt?, canDoAction: Boolean) {
         if (characterId == null) return
+
+        if (canDoAction) {
+            logger.info("Session #$sessionId: now can do action character #$characterId")
+        }
 
         val messageStatus = JSONObject()
             .put("type", "character:status")
-            .put("id", characterId)
-            .put("can_move", canMove)
+            .put("id", characterId.toLong())
+            .put("can_do_action", canDoAction)
         val character = DBOperator.getCharacterByID(characterId)
             ?: throw Exception("Character with ID $characterId does not exist")
         activeUsers.getValue(character.userId).connections.forEach {
-            it.connection.send(messageStatus.toString())
+            sendSafety(it.connection, messageStatus.toString())
+        }
+    }
+
+    private suspend fun sendCharacterActionStatusToConn(characterId: UInt, canDoAction: Boolean, connection: Connection) {
+        if (canDoAction) {
+            logger.info("Session #$sessionId: now can do action character #$characterId")
+        }
+
+        val messageStatus = JSONObject()
+            .put("type", "character:status")
+            .put("id", characterId.toLong())
+            .put("can_do_action", canDoAction)
+        sendSafety(connection.connection, messageStatus.toString())
+    }
+
+    fun validateRevival(character: CharacterInfo) {
+        val characterForActionId = getCurrentCharacterForActionId()
+        if (characterForActionId != character.id)
+            throw ActionException(ActionFailReason.NotYourTurn, "Can't reborn: not your turn now")
+    }
+
+    fun processingRevival(characterId: UInt): CharacterInfo? {
+        if (Random.nextInt(100) < 34) {
+            DBOperator.setCharacterDefeatedStatus(characterId, false)
+            DBOperator.setCharacterProperty(characterId, "CURR_HP", 1)
+            return DBOperator.getCharacterByID(characterId)
+        }
+        return null
+    }
+
+    suspend fun sendCharacterDefeatedStatus(character: CharacterInfo, isDefeated: Boolean) {
+        assert(character.isDefeated == isDefeated)
+
+        val message = JSONObject()
+            .put("type", "character:status")
+            .put("is_defeated", isDefeated)
+            .put("id", character.id)
+            .put("character", JSONObject(Json.encodeToString(character)))
+
+        activeUsers.forEach {
+            it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
+        }
+
+        val info = if (isDefeated) "defeat" else "revive"
+        logger.info("Session #$sessionId for user #${character.userId}: $info character #${character.id}")
+    }
+
+    suspend fun checkIfDefeated(characterId: UInt) {
+        val health = DBOperator.getCharacterProperty(characterId, "CURR_HP")!!
+        if (health <= 0) {
+            DBOperator.setCharacterDefeatedStatus(characterId, true)
+            sendCharacterDefeatedStatus(DBOperator.getCharacterByID(characterId)!!, true)
         }
     }
 }

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import server.utils.handleHTTPRequestException
 
 fun Route.requestsUser(){
     post("/api/register") {
@@ -21,12 +22,17 @@ fun Route.requestsUser(){
             val login = data.getString("login")
             val email = data.getString("email")
             val password = data.getString("password")
+            val avatarId = if (data.has("avatarId")) {
+                data.getInt("avatarId").toUInt()
+            } else {
+                null
+            }
 
-            val userId = DBOperator.addUser(login, email, password)
+            val userInfo = DBOperator.addUser(login, email, password, avatarId)
             call.respond(HttpStatusCode.Created, JSONObject()
                 .put("type", "ok")
-                .put("message", "User $userId registered successfully")
-                .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                .put("message", "User ${userInfo.id} registered successfully")
+                .put("result", JSONObject(Json.encodeToString(userInfo)))
                 .toString()
             )
 
@@ -61,7 +67,7 @@ fun Route.requestsUser(){
                 DBOperator.getUserByLogin(data.getString("login"))
             } else if (data.has("email")) {
                 DBOperator.getUserByEmail(data.getString("email"))
-            } else throw Exception("Invalid request POST /api/login: missing login and email")
+            } else throw Exception("Missing login and email")
 
             if (user != null) {
                 if (DBOperator.checkUserPassword(user.id, password)) {
@@ -71,7 +77,7 @@ fun Route.requestsUser(){
                         .put("result", JSONObject(Json.encodeToString(user)))
                         .toString()
                     )
-                } else throw Exception("Invalid request POST /api/login: invalid login/email or password")
+                } else throw Exception("Invalid login/email or password")
             } else throw Exception("User with this login/email is not exist")
 
             logger.info("Successful POST /api/login request from: ${call.request.origin.remoteAddress}")
@@ -101,10 +107,8 @@ fun Route.requestsUser(){
     }
 
     post("/api/edit/{userId}") {
+        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
         try {
-            val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw Exception("Invalid request POST /api/edit/{userId}: invalid userId, must be UInt")
-
             val data = JSONObject(call.receiveText())
             if (data.has("login")) {
                 val newLogin = data.getString("login")
@@ -121,6 +125,11 @@ fun Route.requestsUser(){
                 DBOperator.updateUserPassword(userId, newPassword)
                 logger.info("Password for User $userId edit successfully")
             }
+            if (data.has("avatarId")) {
+                val newAvatarId = data.getInt("avatarId").toUInt()
+                DBOperator.updateUserAvatar(userId, newAvatarId)
+                logger.info("Avatar for User $userId edit successfully")
+            }
 
             call.respond(HttpStatusCode.OK, JSONObject()
                 .put("type", "ok")
@@ -129,25 +138,23 @@ fun Route.requestsUser(){
                 .toString()
             )
 
-            logger.info("Successful POST /api/edit/${userId} request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful POST /api/edit/$userId request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/edit/{userId}", e)
+            handleHTTPRequestException(call, "POST /api/edit/$userId", e)
         }
     }
 
     get("/api/{userId}/sessions") {
+        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
         try {
-            val userId = call.parameters["userId"]?.toUIntOrNull()
-                ?: throw Exception("Invalid request GET /api/edit/{userId}: invalid userId, must be UInt")
-
             call.respond(HttpStatusCode.OK, JSONObject()
                 .put("type", "ok")
                 .put("result", JSONArray(DBOperator.getAllSessionsWithUser(userId).map { JSONObject(Json.encodeToString(it)) }))
                 .toString()
             )
-            logger.info("Successful GET /api/${userId}/sessions request from: ${call.request.origin.remoteAddress}")
+            logger.info("Successful GET /api/$userId/sessions request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/{userId}/sessions", e)
+            handleHTTPRequestException(call, "GET /api/$userId/sessions", e)
         }
     }
 }

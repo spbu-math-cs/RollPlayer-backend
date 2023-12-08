@@ -9,6 +9,7 @@ import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.json.JSONObject
+import server.utils.handleHTTPRequestException
 import java.io.File
 
 fun Route.requestsMap() {
@@ -44,7 +45,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/textures/$textureID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/textures/$textureID", e)
+            handleHTTPRequestException(call, "GET /api/textures/$textureID", e)
         }
     }
 
@@ -74,7 +75,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/tilesets/$tilesetID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/tilesets/$tilesetID", e)
+            handleHTTPRequestException(call, "GET /api/tilesets/$tilesetID", e)
         }
     }
 
@@ -104,7 +105,7 @@ fun Route.requestsMap() {
 
             logger.info("Successful GET /api/maps/$mapID request from: ${call.request.origin.remoteAddress}")
         } catch (e: Exception) {
-            handleHTTPRequestException(call, "/api/maps/$mapID", e)
+            handleHTTPRequestException(call, "GET /api/maps/$mapID", e)
         }
     }
 }

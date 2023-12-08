@@ -55,6 +55,7 @@ private fun Application.extracted() {
 
         requestsUser()
         requestsMap()
+        requestsPictures()
 
         createSession()
         connection(activeSessions)
