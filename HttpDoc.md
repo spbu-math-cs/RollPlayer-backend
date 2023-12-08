@@ -231,50 +231,95 @@ POST /api/logout HTTP/1.1
 ```
 
 ### POST /api/edit/{userId}
-#### What do?
+Edits user information, such as login, email, or password.
+
 #### Request Parameters:
-- 
+- {userId} (UInt): User ID.
 
 #### Example Request:
 ```bash
-
+POST /api/edit/1 HTTP/1.1
+{
+  "login": "newlogin",
+  "email": "newemail@example.com",
+  "password": "newpassword"
+}
 ```
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "message": "Data for user 1 edited successfully",
+  "result": {
+    "id": "1",
+    "login": "newlogin",
+    "email": "newemail@example.com",
+    "password": "newpassword"
+  }
+}
 ```
 
 ### GET /api/users
-#### What do?
-#### Request Body:
-- 
+Retrieves a list of all users.
 
 #### Example Request:
 ```bash
-
+GET /api/users HTTP/1.1
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
-
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "login": "user1",
+      "email": "user1@example.com",
+      "password": "password1"
+    },
+    {
+      "id": "2",
+      "login": "user2",
+      "email": "user2@example.com",
+      "password": "password2"
+    }
+  ]
+}
 ```
 
 ### GET /api/{userId}/sessions
-#### What do?
-#### Request Body:
-- 
+Retrieves a list of sessions associated with a specific user.
+
+#### Request Parameters:
+- {userId} (UInt): User ID.
 
 #### Example Request:
 ```bash
-
+GET /api/1/sessions HTTP/1.1
 ```
-#### Status Codes:
-- 
 
 #### Example Response:
 ```json
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "mapID": "1",
+      "active": true,
+      "started": "2023-01-01T00:00:00Z",
+      "whoCanMove": 1
+    },
+    {
+      "id": "2",
+      "mapID": "2",
+      "active": false,
+      "started": "2023-01-02T00:00:00Z",
+      "whoCanMove": 2
+    }
+  ]
+}
 
 ```
