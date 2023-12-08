@@ -30,40 +30,47 @@ CharacterInfo:
 ...
 ]
 ```
+
 1) character creation
 ```json
 {
   "type": "character:new",
+  "id": <UInt>,
   "name": "Dovakin",
-  "row": 2,
-  "col": 3,
-  <CharacterInfo>
+  "row": <UInt>,
+  "col": <UInt>,
+  "own": <bool, required>, <CharacterInfo>
 }
 ```
 2) character removal
 ```json
 {
-  "type": "character:remove"
+  "type": "character:remove",
+  "id": <UInt>
 }
 ```
 3) character movement
 ```json
 {
   "type": "character:move",
-  "row": 3,
-  "col": 4
+  "id": <UInt>,
+  "row": <UInt>,
+  "col": <UInt>
 }
 ```
 4) character attack
 ```json
 {
   "type": "character:attack",
-  "attackType": "melee"
+  "id": <UInt>,
+  "opponentId": <UInt>,
+  "attackType": "melee" (or "ranged" or "magic")
 }
 ```
 5) character revival
 ```json
 {
-  "type": "character:revive"
+  "type": "character:revive",
+  "id": <UInt>
 }
 ```
