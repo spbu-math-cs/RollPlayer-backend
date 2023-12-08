@@ -31,24 +31,21 @@ POST /api/game/create?mapId=123 HTTP/1.1
 ### GET /api/textures
 Get a list of all textures.
 
-#### Request Body:
-- ........
-
 #### Example Request:
 ```bash
-GET ........
+GET /api/textures HTTP/1.1
 ```
 #### Status Codes:
-- ........
+- 200 OK: Successful retrieval of textures.
+- 400 Bad Request: Validation checks failed.
 
 #### Example Response:
 ```json
 {
-    "type": "ok",
-    "result": [
-        {"id": "1", "filepath": "/textures/texture1.png"},
-        {"id": "2", "filepath": "/textures/texture2.png"}
-    ]
+  "type": "ok",
+  "result": [
+    {"filepath": ".\\textures\\tileset_packed.png", "id": "1"}
+  ]
 }
 ```
 
@@ -56,92 +53,203 @@ GET ........
 Get a specific texture by ID.
 
 #### Request Body:
-- {id}: Texture ID
+- {id} (UInt): Texture ID.
 
 #### Example Request:
 ```bash
-GET ........
+GET /api/textures/1 HTTP/1.1
 ```
 #### Status Codes:
-- ........
+- 200 OK: Successful retrieval of the specified texture.
+- 400 Bad Request: Texture with the given ID does not exist.
 
 #### Example Response:
 ```json
-........
+{
+  "type": "ok",
+  "result": {
+    "filepath": ".\\textures\\texture1.png",
+    "id": "1"
+  }
+}
 ```
 
 ### GET /api/tilesets
 Get a list of all tilesets.
 
-Example Response:
+#### Example Request:
+```bash
+GET /api/tilesets HTTP/1.1
+```
+#### Status Codes:
+- 200 OK: Successful retrieval of the list of tilesets.
+- 400 Bad Request: Validation checks failed.
 
-
+#### Example Response:
+```json
 {
-    "type": "ok",
-    "result": [
-        {"id": "1", "filepath": "/tilesets/tileset1.json"},
-        {"id": "2", "filepath": "/tilesets/tileset2.json"}
-    ]
+  "type": "ok",
+  "result": 
+  [
+    {
+      "id": "1",
+      "filepath": ".\\tilesets\\tileset1.json"
+    }
+  ]
 }
+```
 
 ### GET /api/tilesets/{id}
 Get a specific tileset by ID.
 
-{id} – Tileset ID
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
+
 
 ### GET /api/maps
-Get a list of all maps.
 
-Example Response:
+#### Request Body:
+- 
 
-{
-    "type": "ok",
-    "result": [
-        {"id": "1", "filepath": "/maps/map1.json"},
-        {"id": "2", "filepath": "/maps/map2.json"}
-    ]
-}
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### GET /api/maps/{id}
-Get a specific map by ID.
 
-{id} – Map ID
-User Authentication API
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### POST /api/register
-Register a new user.
 
-Request Body:
-login – User login
-email – User email
-password – User password
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### POST /api/login
-Login an existing user.
 
-Request Body:
-login or email – User login or email
-password – User password
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### POST /api/logout
-Logout the current user.
 
-Request Body:
-userId – User ID
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### POST /api/edit/{userId}
-Edit user information.
 
-{userId} – User ID
-Request Body (Optional):
-login – New user login
-email – New user email
-password – New user password
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### GET /api/users
-Get a list of all users.
+
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
 
 ### GET /api/{userId}/sessions
-Get sessions associated with a specific user.
 
-{userId} – User ID
+#### Request Body:
+- 
+
+#### Example Request:
+```bash
+
+```
+#### Status Codes:
+- 
+
+#### Example Response:
+```json
+
+```
