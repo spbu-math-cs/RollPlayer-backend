@@ -25,6 +25,14 @@ POST /api/game/create?mapId=123 HTTP/1.1
 }
 ```
 
+
+
+
+get("/api/game/{sessionId}/mapId")
+
+
+
+
 ### GET /api/textures
 Get a list of all textures.
 
@@ -155,6 +163,54 @@ GET /api/maps/1 HTTP/1.1
     "filepath": ".\\maps\\map1.json"
   }
 }
+```
+
+### GET /api/pictures
+#### What do?
+
+#### Request Parameters:
+- 
+
+#### Example Request:
+```bash
+
+```
+
+#### Example Response:
+```json
+
+```
+
+### GET /api/pictures/{id}
+#### What do?
+
+#### Request Parameters:
+- 
+
+#### Example Request:
+```bash
+
+```
+
+#### Example Response:
+```json
+
+```
+
+### POST /api/pictures
+#### What do?
+
+#### Request Parameters:
+- 
+
+#### Example Request:
+```bash
+
+```
+
+#### Example Response:
+```json
+
 ```
 
 ### POST /api/register
