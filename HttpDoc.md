@@ -11,16 +11,16 @@ Create a new game session based on the provided mapId.
 POST /api/game/create?mapId=123 HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
   "message": "Session created",
   "result": {
+    "id": 1,
     "mapID": 123,
     "active": false,
-    "started": "2023-11-28T12:34:56Z",
-    "whoCanMove": -1
+    "started": "2023-11-28T12:34:56Z"
   }
 }
 ```
@@ -36,7 +36,7 @@ Retrieves the map ID associated with a specific game session.
 GET /api/game/1/mapId HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -52,7 +52,7 @@ Get a list of all textures.
 GET /api/textures HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -73,7 +73,7 @@ Get a specific texture by ID.
 GET /api/textures/1 HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -92,7 +92,7 @@ Get a list of all tilesets.
 GET /api/tilesets HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -117,7 +117,7 @@ Get a specific tileset by ID.
 GET /api/tilesets/1 HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -137,7 +137,7 @@ Get a list of all maps.
 GET /api/maps HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -165,7 +165,7 @@ Get a specific map by ID.
 GET /api/maps/1 HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -184,7 +184,7 @@ Retrieves a list of all pictures.
 GET /api/pictures HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -212,7 +212,7 @@ Retrieves a specific picture by ID.
 GET /api/pictures/1 HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -231,7 +231,7 @@ Uploads a new picture.
 POST /api/pictures HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -282,7 +282,7 @@ POST /api/login HTTP/1.1
 }
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -307,7 +307,7 @@ POST /api/logout HTTP/1.1
 }
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -331,7 +331,7 @@ POST /api/edit/1 HTTP/1.1
 }
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -353,7 +353,7 @@ Retrieves a list of all users.
 GET /api/users HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -385,7 +385,7 @@ Retrieves a list of sessions associated with a specific user.
 GET /api/1/sessions HTTP/1.1
 ```
 
-#### Example Response:
+#### Type of response:
 ```json
 {
   "type": "ok",
@@ -394,17 +394,14 @@ GET /api/1/sessions HTTP/1.1
       "id": "1",
       "mapID": "1",
       "active": true,
-      "started": "2023-01-01T00:00:00Z",
-      "whoCanMove": 1
+      "started": "2023-01-01T00:00:00Z"
     },
     {
       "id": "2",
       "mapID": "2",
       "active": false,
-      "started": "2023-01-02T00:00:00Z",
-      "whoCanMove": 2
+      "started": "2023-01-02T00:00:00Z"
     }
   ]
 }
-
 ```
