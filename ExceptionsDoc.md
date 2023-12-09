@@ -63,3 +63,11 @@ Handling exceptions related to character attacks during WebSocket communication.
 
 ## From server
 
+
+
+#####   Exception
+
+- Type of response:
+```json
+
+```
