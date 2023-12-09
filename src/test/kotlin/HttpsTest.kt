@@ -146,7 +146,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-users returns expected response`() = testApplication {
         mockk<DBOperator> {
-            every { getAllUsers() } returns listOf(UserInfo(1u, "testLogin", "test@email.ru", 1234567890))
+            every { getAllUsers() } returns listOf(UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u))
         }
 
         val response: HttpResponse = client.get("/api/users")
@@ -171,8 +171,8 @@ class HttpsTest {
     @Test
     fun `POST request to api-register returns expected response`() = testApplication {
         mockk<DBOperator> {
-            every { addUser(any(), any(), any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
-            every { getUserByID(1u) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { addUser(any(), any(), any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+            every { getUserByID(1u) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
         val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
@@ -188,7 +188,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-login returns expected response`() = testApplication {
         mockk<DBOperator> {
-            every { getUserByLogin(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { getUserByLogin(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
             every { checkUserPassword(userId = 1u, any()) } returns true
         }
 
@@ -238,7 +238,7 @@ class HttpsTest {
             every { updateUserLogin(any(), any()) } returns Unit
             every { updateUserEmail(any(), any()) } returns Unit
             every { updateUserPassword(any(), any()) } returns Unit
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
         val requestBody = """{"login": "newLogin", "email": "newEmail", "password": "newPassword"}"""
@@ -253,7 +253,7 @@ class HttpsTest {
     @Test
     fun `POST request with existing email to api-register returns 400 error`() = testApplication {
         mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
         val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
@@ -271,7 +271,7 @@ class HttpsTest {
     @Test
     fun `POST request with incorrect email to api-register returns 400 error`() = testApplication {
         mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
         val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "testPassword"}"""
@@ -287,7 +287,7 @@ class HttpsTest {
     @Test
     fun `POST request with incorrect password to api-register returns 400 error`() = testApplication {
         mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890)
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
         val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "pass"}"""

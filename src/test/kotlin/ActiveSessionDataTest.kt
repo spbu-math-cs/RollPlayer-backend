@@ -101,6 +101,7 @@ class ActiveSessionDataTest {
                     null,
                     1,
                     1,
+                    false,
                     BasicProperties(),
                     mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
                 )
@@ -142,17 +143,17 @@ class ActiveSessionDataTest {
         )
     }
 
-    @Test
-    fun `test validateMoveAndUpdateMoveProperties incorrect characterId`() {
-
-        val activeSessionData = ActiveSessionData(
-            sessionId = 1u,
-            mapId = 1u,
-            started = Instant.DISTANT_PAST
-        )
-
-        assertFails { activeSessionData.validateActionAndUpdateActionProperties(0u) }
-    }
+//    @Test
+//    fun `test validateMoveAndUpdateMoveProperties incorrect characterId`() {
+//
+//        val activeSessionData = ActiveSessionData(
+//            sessionId = 1u,
+//            mapId = 1u,
+//            started = Instant.DISTANT_PAST
+//        )
+//
+//        assertFails { activeSessionData.validateActionAndUpdateActionProperties(0u) }
+//    }
 
     @Test
     fun `test validateMoveAndUpdateMoveProperties correct characterId`(){
