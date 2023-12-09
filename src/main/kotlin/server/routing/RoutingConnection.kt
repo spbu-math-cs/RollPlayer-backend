@@ -107,7 +107,9 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 logger.info("Session #$sessionId for user #$userId: " +
                                         "change coords of character #${character.id} in db")
 
-                                session.moveCharacter(newCharacter!!)
+                                session.processTileEffects(newCharacter!!.id, session.mapId, Position(newRow, newCol))
+
+                                session.moveCharacter(newCharacter)
                                 session.checkIfDefeated(character.id)
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:move", e)

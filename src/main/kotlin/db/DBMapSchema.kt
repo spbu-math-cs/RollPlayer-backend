@@ -40,16 +40,28 @@ class Map(pathToJson: String) {
             return false
         }
 
-        fun getLayerPassCost(layer: JSONObject): Int {
+        private fun getLayerIntProperty(layer: JSONObject, propName: String, defaultValue: Int = 0): Int {
             if (!layer.has("properties")) {
-                return 1
+                return defaultValue
             }
             layer.getJSONArray("properties").forEach { prop ->
-                if (prop is JSONObject && prop.getString("name") == "Pass cost") {
+                if (prop is JSONObject && prop.getString("name") == propName) {
                     return prop.getInt("value")
                 }
             }
-            return 1
+            return defaultValue
+        }
+
+        fun getLayerPassCost(layer: JSONObject): Int {
+            return getLayerIntProperty(layer, "Pass cost", 1)
+        }
+
+        fun getLayerHealthUpdate(layer: JSONObject): Int {
+            return getLayerIntProperty(layer, "Restore HP") - getLayerIntProperty(layer, "Lose HP")
+        }
+
+        fun getLayerManaUpdate(layer: JSONObject): Int {
+            return getLayerIntProperty(layer, "Restore MP") - getLayerIntProperty(layer, "Lose MP")
         }
     }
 
@@ -57,6 +69,8 @@ class Map(pathToJson: String) {
     private var width = 0
     private var obstacles: Array<BooleanArray> = emptyArray<BooleanArray>()
     private var passCosts: Array<IntArray> = emptyArray<IntArray>()
+    private var healthUpdate: Array<IntArray> = emptyArray<IntArray>()
+    private var manaUpdate: Array<IntArray> = emptyArray<IntArray>()
 
     init {
         val map = JSONObject(File(pathToJson).readText())
@@ -64,10 +78,14 @@ class Map(pathToJson: String) {
         width = map.getInt("width")
         obstacles = Array(height) { BooleanArray(width) { false } }
         passCosts = Array(height) { IntArray(width) { 0 } }
+        healthUpdate = Array(height) { IntArray(width) { 0 } }
+        manaUpdate = Array(height) { IntArray(width) { 0 } }
         map.getJSONArray("layers").forEach { layer ->
             layer as JSONObject
             val isObstacleLayer = isObstacleLayer(layer)
             val layerPassCost = if (isObstacleLayer) Int.MAX_VALUE else getLayerPassCost(layer)
+            val layerHealthUpdate = getLayerHealthUpdate(layer)
+            val layerManaUpdate = getLayerManaUpdate(layer)
             var tileIdx = 0
             layer.getJSONArray("data").forEach { tile ->
                 tile as Int
@@ -76,6 +94,8 @@ class Map(pathToJson: String) {
                     val col = tileIdx % width
                     obstacles[row][col] = isObstacleLayer
                     passCosts[row][col] = layerPassCost
+                    healthUpdate[row][col] += layerHealthUpdate
+                    manaUpdate[row][col] += layerManaUpdate
                 }
                 tileIdx++
             }
@@ -85,6 +105,18 @@ class Map(pathToJson: String) {
     fun isObstacleTile(pos: Position): Boolean = obstacles[pos.row][pos.col]
 
     fun getTilePassCost(pos: Position): Int = passCosts[pos.row][pos.col]
+
+    fun getTileHealthUpdate(pos: Position): Int {
+        val update = healthUpdate[pos.row][pos.col]
+        healthUpdate[pos.row][pos.col] = 0
+        return update
+    }
+
+    fun getTileManaUpdate(pos: Position): Int {
+        val update = manaUpdate[pos.row][pos.col]
+        manaUpdate[pos.row][pos.col] = 0
+        return update
+    }
 
     private fun getNeighbors(pos: Position): List<Position> {
         val neighbors: MutableList<Position> = mutableListOf()

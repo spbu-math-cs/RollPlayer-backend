@@ -13,6 +13,7 @@ import server.utils.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.random.Random
 
 const val initPrevCharacterId: Int = -1
@@ -272,6 +273,27 @@ class ActiveSessionData(
         val distance = DBOperator.getCharacterProperty(character.id, "SPEED")!!
         if (!map.checkDistance(Position(character.row, character.col), pos, distance))
             throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
+    }
+
+    fun processTileEffects(characterId: UInt, mapId: UInt, pos: Position) {
+        val map = DBOperator.getMapByID(mapId)?.load()
+            ?: throw Exception("Map #$mapId does not exist")
+        val healthUpdate = map.getTileHealthUpdate(pos)
+        val manaUpdate = map.getTileManaUpdate(pos)
+
+        if (healthUpdate != 0) {
+            val health = DBOperator.getCharacterProperty(characterId, "CURR_HP")!!
+            val maxHealth = DBOperator.getCharacterProperty(characterId, "MAX_HP")!!
+            DBOperator.setCharacterProperty(characterId, "CURR_HP", min(health + healthUpdate, maxHealth))
+            logger.info("Session #$sessionId: change \"CURR_HP\" of character #${characterId} in db")
+        }
+
+        if (manaUpdate != 0) {
+            val mana = DBOperator.getCharacterProperty(characterId, "CURR_MP")!!
+            val maxMana = DBOperator.getCharacterProperty(characterId, "MAX_MP")!!
+            DBOperator.setCharacterProperty(characterId, "CURR_MP", min(mana + healthUpdate, maxMana))
+            logger.info("Session #$sessionId: change \"CURR_MP\" of character #${characterId} in db")
+        }
     }
 
     private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
