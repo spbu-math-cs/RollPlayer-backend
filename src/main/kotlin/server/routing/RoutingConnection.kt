@@ -8,21 +8,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 import org.json.JSONObject
 import server.*
 import server.utils.*
-
-fun characterPropsToMap(characterProps: JSONArray?): Map<String, Int> {
-    val characterPropsMap = mutableMapOf<String, Int>()
-    if (characterProps != null) {
-        for (i in 0 until characterProps.length()) {
-            val prop = characterProps.getJSONObject(i)
-            characterPropsMap[prop.getString("name")] = prop.getInt("value")
-        }
-    }
-    return characterPropsMap
-}
 
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
@@ -65,20 +53,24 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                         "character:new" -> {
                             try {
                                 val characterName = message.optString("name", "Dovakin")
-                                // TODO: сделать нормальную загрузку аватарок
-                                val characterAvatarPath = message.optString("avatarPath").ifEmpty { null }
                                 val characterRow = message.optInt("row", 0)
                                 val characterCol = message.optInt("col", 0)
                                 val characterBasicProps = Json.decodeFromString<BasicProperties>(
                                     message.optString("basicProperties", "{}"))
+                                val characterAvatarId = if (message.has("avatarId")) {
+                                    message.getInt("avatarId").toUInt()
+                                } else {
+                                    null
+                                }
 
                                 val character = DBOperator.addCharacter(
                                     userId,
                                     sessionId,
                                     characterName,
-                                    characterAvatarPath,
+                                    characterAvatarId,
                                     characterRow,
                                     characterCol,
+                                    false,
                                     characterBasicProps
                                 )
                                 logger.info("Session #$sessionId for user #$userId: " +
@@ -108,14 +100,17 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val newRow = message.getInt("row")
                                 val newCol = message.getInt("col")
 
+                                session.validateAction(character)
                                 session.validateMoveCharacter(character, session.mapId, Position(newRow, newCol))
-                                session.validateActionAndUpdateActionProperties(character.id)
 
                                 val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
                                 logger.info("Session #$sessionId for user #$userId: " +
                                         "change coords of character #${character.id} in db")
 
-                                session.moveCharacter(newCharacter!!)
+                                session.processTileEffects(newCharacter!!.id, session.mapId, Position(newRow, newCol))
+
+                                session.moveCharacter(newCharacter)
+                                session.checkIfDefeated(character.id)
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:move", e)
                             } catch (e: MoveException) {
@@ -128,6 +123,8 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             try {
                                 val character = session.getValidCharacter(message, userId)
                                 val opponent = session.getValidOpponentCharacter(message)
+
+                                session.validateAction(character)
 
                                 val attackType = message.optString("attackType", "melee")
                                 when (attackType) {
@@ -147,14 +144,29 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
-                                session.validateActionAndUpdateActionProperties(character.id)
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
+                                session.checkIfDefeated(character.id)
+                                session.checkIfDefeated(opponent.id)
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:attack", e)
                             } catch (e: AttackException) {
                                 sendAttackExceptionReason(conn, e)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:attack", e)
+                            }
+                        }
+                        "character:revive" -> {
+                            try {
+                                val character = session.getValidCharacter(message, userId)
+
+                                session.validateRevival(character)
+                                val characterAfterRevival = session.processingRevival(character.id)
+                                if (characterAfterRevival != null) {
+                                    session.sendCharacterDefeatedStatus(characterAfterRevival, false)
+                                }
+                                session.updateActionProperties()
+                            } catch (e: Exception) {
+                                handleWebsocketIncorrectMessage(conn, "character:revive", e)
                             }
                         }
                         else -> {

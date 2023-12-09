@@ -4,8 +4,6 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlin.collections.Map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -19,9 +17,10 @@ object CharacterTable: IntIdTable("character", "character_id") {
     val userID = reference("user_id", UserTable,
         onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", identifierLength)
-    val avatarID = reference("avatar_id", AvatarTable).nullable()
+    val avatarID = reference("avatar_id", PictureTable).nullable()
     val row = integer("row")
     val col = integer("col")
+    val isDefeated = bool("isDefeated")
 
     val strength = integer("strength")
     val dexterity = integer("dexterity")
@@ -40,8 +39,9 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
     var name by CharacterTable.name
     var row by CharacterTable.row
     var col by CharacterTable.col
+    var isDefeated by CharacterTable.isDefeated
 
-    var avatar by AvatarData optionalReferencedOn CharacterTable.avatarID
+    var avatar by PictureData optionalReferencedOn CharacterTable.avatarID
     val properties by PropertyData referrersOn PropertyTable.characterID
 
     var strength by CharacterTable.strength
@@ -60,23 +60,11 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
         user.id.value.toUInt(),
         session.id.value.toUInt(),
         name,
-        avatar?.pathToFile,
+        avatar?.id?.value?.toUInt(),
         row, col,
+        isDefeated,
         getBasicProperties(),
         properties.associateBy({ it.nameData.name }) { it.value })
-}
-
-object PropertiesJsonArraySerializer:
-    JsonTransformingSerializer<Map<String, Int>>(MapSerializer(String.serializer(), Int.serializer())) {
-    override fun transformSerialize(element: JsonElement): JsonElement {
-        if (element !is JsonObject) {
-            throw Exception("Incorrect element for PropertiesJsonArraySerializer")
-        }
-        return JsonArray(element.map { JsonObject(mapOf(
-            "name" to JsonPrimitive(it.key),
-            "value" to JsonPrimitive(it.value.toString().toInt())
-        )) })
-    }
 }
 
 @Serializable
@@ -95,9 +83,10 @@ data class CharacterInfo(
     val userId: UInt,
     val sessionId: UInt,
     val name: String,
-    val avatarPath: String?,
+    val avatarId: UInt?,
     val row: Int,
     val col: Int,
+    val isDefeated: Boolean,
     val basicProperties: BasicProperties,
     @Serializable(PropertiesJsonArraySerializer::class) val properties: Map<String, Int>
 )

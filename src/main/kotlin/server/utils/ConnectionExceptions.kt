@@ -2,6 +2,7 @@ package server.utils
 
 enum class ActionFailReason(val str: String) {
     NotYourTurn("not_your_turn"),
+    IsDefeated("is_defeated")
 }
 
 class ActionException(reason: ActionFailReason, message:String): Exception(message) {
