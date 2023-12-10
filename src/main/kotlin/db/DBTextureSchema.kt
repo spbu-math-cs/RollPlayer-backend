@@ -1,10 +1,11 @@
 package db
 
+import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.*
 import org.jetbrains.exposed.dao.id.*
 
 object TextureTable: IntIdTable("texture", "texture_id") {
-    val pathToFile = varchar("path_to_file", 1024).uniqueIndex()
+    val pathToFile = varchar("path_to_file", pathLength).uniqueIndex()
 }
 
 class TextureData(id: EntityID<Int>): IntEntity(id) {
@@ -12,15 +13,8 @@ class TextureData(id: EntityID<Int>): IntEntity(id) {
 
     var pathToFile by TextureTable.pathToFile
 
-    fun raw(): TextureInfo = TextureInfo(pathToFile, id.value)
+    fun raw(): TextureInfo = TextureInfo(id.value.toUInt(), pathToFile)
 }
 
-data class TextureInfo(val pathToFile: String, val id: Int = -1) {
-    fun load(): Texture = Texture(pathToFile)
-}
-
-class Texture(pathToFile: String) {
-    init {
-        TODO()
-    }
-}
+@Serializable
+data class TextureInfo(val id: UInt, val pathToFile: String)

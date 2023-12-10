@@ -1,9 +1,9 @@
 package server
 
-import io.ktor.websocket.*
+import io.ktor.server.websocket.*
 import java.util.concurrent.atomic.*
 
-class Connection(val session: DefaultWebSocketSession) {
+class Connection(val connection: DefaultWebSocketServerSession, val userId: UInt, val sessionId: UInt) {
     companion object {
         val lastId = AtomicInteger(0)
     }
