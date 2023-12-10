@@ -126,7 +126,7 @@ CharacterInfo:
 }
 ```
 
-2) character:move
+3) character:move
 ```json
 {
   "type": "character:move",
@@ -156,7 +156,7 @@ CharacterInfo:
 
 ```
 
-3) character:attack
+4) character:attack
 ```json
 {
   "type": "character:attack",
@@ -206,7 +206,7 @@ CharacterInfo:
 }
 ```
 
-4) character:status
+5) character:status
 ```json
 {
   "type": "character:status",
