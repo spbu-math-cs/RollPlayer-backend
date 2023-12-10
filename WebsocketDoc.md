@@ -12,62 +12,65 @@ Connect to WebSocket for real-time communication.
 ws/api/connect/1/2
 ```
 
-#### Response types:
+### Messages from client:
 
 1) character creation
-```json
+```
 {
   "type": "character:new",
   "id": <UInt, required>,
-  "name": <String, opt, "Dovakin" = default>, 
-  "row": <Int, opt, 0 = default>,
-  "col": <Int, opt, 0 = default>,
+  "name": <String, opt, "Dovakin">, 
+  "row": <Int, opt, 0>,
+  "col": <Int, opt, 0>,
   "own": <bool, required>,
-  "basicProperties": <bool, {} = default>,
-  "avatarId": <UInt, required>
+  "basicProperties": <bool, opt, {}>,
+  "avatarId": <UInt, opt, null>
 }
 ```
 2) character removal
-```json
+```
 {
   "type": "character:remove",
   "id": <UInt, required>
 }
 ```
 3) character movement
-```json
+```
 {
   "type": "character:move",
   "id": <Int, required>,
-  "row": <Int>,
-  "col": <Int>
+  "row": <Int, required>,
+  "col": <Int, required>
 }
 ```
 4) character attack
-```json
+```
 {
   "type": "character:attack",
-  "id": <Int, required>,
-  "opponentId": <Int, required>,
-  "attackType": <String, required>
+  "attackType": "melee"/"ranged"/"magic",
+  "id": <UInt, required>,
+  "opponentId": <UInt, required>,
 }
 ```
 5) character revival
-```json
+```
 {
   "type": "character:revive",
   "id": <Int, required>
 }
 ```
 
-#### Responses from server
+### Messages from server
 
 CharacterInfo:
-```json
+```
 {
     "id": <UInt>,
     "userId": <UInt>,
     "sessionId": <UInt>,
+    "name": <String>,
+    "row": <Int>,
+    "col": <Int>,
     "avatarId": <UInt>
     "isDefeated": <Boolean>
     "basicProperties": 
@@ -84,133 +87,108 @@ CharacterInfo:
             "name": <String>,
             "value": <Int>,
         }
+        ...
     ]
 }
 ```
 
 1) character:new
-```json
+```
 {
   "type": "character:new",
-  "character": {
-    "id": 123,
-    "userId": 456,
-    "sessionId": 789,
-    "avatarId": 987,
-    "isDefeated": false,
-    "basicProperties": {
-      "strength": 10,
-      "dexterity": 15,
-      "constitution": 12,
-      "intelligence": 8,
-      "wisdom": 14,
-      "charisma": 16
-    },
-    "properties": [
-      {
-        "name": "abc",
-        "value": 100
-      }
-    ]
-  },
-  "own": true
+  "character": <CharacterInfo>,
+  "own": <Boolean>
 }
 
 ```
 
 2) character:leave
-```json
+```
 {
   "type": "character:leave",
-  "id": 123
+  "id": <UInt>
 }
 ```
 
 3) character:move
-```json
+```
 {
   "type": "character:move",
-  "id": 123,
-  "character": {
-    "id": 123,
-    "userId": 456,
-    "sessionId": 789,
-    "avatarId": 987,
-    "isDefeated": false,
-    "basicProperties": {
-      "strength": 10,
-      "dexterity": 15,
-      "constitution": 12,
-      "intelligence": 8,
-      "wisdom": 14,
-      "charisma": 16
-    },
-    "properties": [
-      {
-        "name": "abc",
-        "value": 100
-      }
-    ]
-  }
+  "id": <UInt>,
+  "character": <CharacterInfo>
 }
 
 ```
 
 4) character:attack
-```json
+```
 {
   "type": "character:attack",
-  "attackType": "melee",
-  "character": {
-    "id": 123,
-    "userId": 456,
-    "sessionId": 789,
-    "avatarId": 987,
-    "isDefeated": false,
-    "basicProperties": {
-      "strength": 10,
-      "dexterity": 15,
-      "constitution": 12,
-      "intelligence": 8,
-      "wisdom": 14,
-      "charisma": 16
-    },
-    "properties": [
-      {
-        "name": "abc",
-        "value": 80
-      }
-    ]
-  },
-  "opponent": {
-    "id": 456,
-    "userId": 789,
-    "sessionId": 1011,
-    "avatarId": 1213,
-    "isDefeated": false,
-    "basicProperties": {
-      "strength": 8,
-      "dexterity": 12,
-      "constitution": 10,
-      "intelligence": 15,
-      "wisdom": 13,
-      "charisma": 14
-    },
-    "properties": [
-      {
-        "name": "dcb",
-        "value": 70
-      }
-    ]
-  }
+  "attackType": "melee"/"ranged"/"magic",
+  "character": <CharacterInfo>,
+  "opponent": <CharacterInfo>
 }
 ```
 
 5) character:status
-```json
+```
 {
   "type": "character:status",
-  "id": 123,
-  "can_do_action": true
+  "id": <UInt>,
+  "can_do_action": <opt, Boolean>,
+  "is_defeated": <opt, Boolean>,
+  "character": <opt, CharacterInfo>
 }
 ```
+
+### Messages with errors from server
+
+Handling exceptions related to WebSocket communication.
+
+```
+{
+  "type": "error",
+  "on": <requestType>, 
+  "message": "some exception" 
+}
+```
+
+### Regular error messages
+
+#### Action
+Handling reasons of exceptions related to WebSocket communication.
+
+```
+{
+  "type": "error",
+  "on": <requestType>, 
+  "reason": "not_your_turn"/"is_defeated"
+  "message": <String>
+}
+```
+
+#### Move
+Handling exceptions related to character movement during WebSocket communication
+
+```
+{
+  "type": "error",
+  "on": "character:move",
+  "reason": "big_dist"/"tile_obstacle"
+  "message": <String>
+}
+```
+
+#### Attack
+Handling exceptions related to character attacks during WebSocket communication.
+
+```
+{
+  "type": "error",
+  "on": "character:attack",
+  "attackType": "melee"/"ranged"/"magic",
+  "reason": "big_dist"/"low_mana"
+  "message": <String>
+}
+```
+
