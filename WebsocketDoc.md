@@ -64,76 +64,153 @@ ws/api/connect/1/2
 
 CharacterInfo:
 ```json
-"id": <UInt>,
-"userId": <UInt>,
-"sessionId": <UInt>,
-"avatarId": <UInt>
-"isDefeated": <Boolean>
-"basicProperties": 
-    {
-      "strength": <Int, 0 = default>,
-      "dexterity": <Int, 0 = default>,
-      "constitution": <Int, 0 = default>,
-      "intelligence": <Int, 0 = default>,
-      "wisdom": <Int, 0 = default>,
-      "charisma": <Int, 0 = default>
-    }
-"properties": [
-    {
-        "name": <String>,
-        "value": <Int>,
-    }
-]
+{
+    "id": <UInt>,
+    "userId": <UInt>,
+    "sessionId": <UInt>,
+    "avatarId": <UInt>
+    "isDefeated": <Boolean>
+    "basicProperties": 
+        {
+          "strength": <Int, 0 = default>,
+          "dexterity": <Int, 0 = default>,
+          "constitution": <Int, 0 = default>,
+          "intelligence": <Int, 0 = default>,
+          "wisdom": <Int, 0 = default>,
+          "charisma": <Int, 0 = default>
+        }
+    "properties": [
+        {
+            "name": <String>,
+            "value": <Int>,
+        }
+    ]
+}
 ```
-1) character creation
+
+1) character:new
 ```json
 {
   "type": "character:new",
-  "id": 123,
-  "name": "Sechenov",
-  "row": 2,
-  "col": 3,
-  "own": true,
-  "basicProperties": {
-    "strength": 50,
-    "dexterity": 100,
-    "constitution": 20,
-    "intelligence": 1000,
-    "wisdom": 1000,
-    "charisma": 999
+  "character": {
+    "id": 123,
+    "userId": 456,
+    "sessionId": 789,
+    "avatarId": 987,
+    "isDefeated": false,
+    "basicProperties": {
+      "strength": 10,
+      "dexterity": 15,
+      "constitution": 12,
+      "intelligence": 8,
+      "wisdom": 14,
+      "charisma": 16
+    },
+    "properties": [
+      {
+        "name": "abc",
+        "value": 100
+      }
+    ]
   },
-  "avatarId": 456
+  "own": true
 }
+
 ```
-2) character removal
+
+2) character:leave
 ```json
 {
-  "type": "character:remove",
+  "type": "character:leave",
   "id": 123
 }
 ```
-3) character movement
+
+2) character:move
 ```json
 {
   "type": "character:move",
   "id": 123,
-  "row": 4,
-  "col": 5
+  "character": {
+    "id": 123,
+    "userId": 456,
+    "sessionId": 789,
+    "avatarId": 987,
+    "isDefeated": false,
+    "basicProperties": {
+      "strength": 10,
+      "dexterity": 15,
+      "constitution": 12,
+      "intelligence": 8,
+      "wisdom": 14,
+      "charisma": 16
+    },
+    "properties": [
+      {
+        "name": "abc",
+        "value": 100
+      }
+    ]
+  }
 }
+
 ```
-4) character attack
+
+3) character:attack
 ```json
 {
   "type": "character:attack",
-  "id": 123,
-  "opponentId": 456,
-  "attackType": "melee"
+  "attackType": "melee",
+  "character": {
+    "id": 123,
+    "userId": 456,
+    "sessionId": 789,
+    "avatarId": 987,
+    "isDefeated": false,
+    "basicProperties": {
+      "strength": 10,
+      "dexterity": 15,
+      "constitution": 12,
+      "intelligence": 8,
+      "wisdom": 14,
+      "charisma": 16
+    },
+    "properties": [
+      {
+        "name": "abc",
+        "value": 80
+      }
+    ]
+  },
+  "opponent": {
+    "id": 456,
+    "userId": 789,
+    "sessionId": 1011,
+    "avatarId": 1213,
+    "isDefeated": false,
+    "basicProperties": {
+      "strength": 8,
+      "dexterity": 12,
+      "constitution": 10,
+      "intelligence": 15,
+      "wisdom": 13,
+      "charisma": 14
+    },
+    "properties": [
+      {
+        "name": "dcb",
+        "value": 70
+      }
+    ]
+  }
 }
 ```
-5) character revival
+
+4) character:status
 ```json
 {
-  "type": "character:revive",
-  "id": 123
+  "type": "character:status",
+  "id": 123,
+  "can_do_action": true
 }
 ```
