@@ -1,4 +1,5 @@
 import db.*
+import db.Map
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.delay
@@ -143,21 +144,227 @@ class ActiveSessionDataTest {
         )
     }
 
-//    @Test
-//    fun `test validateMoveAndUpdateMoveProperties incorrect characterId`() {
-//
-//        val activeSessionData = ActiveSessionData(
-//            sessionId = 1u,
-//            mapId = 1u,
-//            started = Instant.DISTANT_PAST
-//        )
-//
-//        assertFails { activeSessionData.validateActionAndUpdateActionProperties(0u) }
-//    }
+    @Test
+    fun `test getValidCharacter with correct parameters`() = runBlocking{
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+        activeSessionData.startConnection(1u, connection1)
+
+        activeSessionData.addCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
+            )
+        )
+
+        assertEquals(1u, activeSessionData.getValidCharacter(JSONObject().put("id", 1u), 1u).id)
+    }
 
     @Test
-    fun `test validateMoveAndUpdateMoveProperties correct characterId`(){
+    fun `test getValidCharacter with incorrect userId`(): Unit = runBlocking{
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
 
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+        activeSessionData.startConnection(1u, connection1)
+
+        activeSessionData.addCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
+            )
+        )
+
+        assertFails { activeSessionData.getValidCharacter(JSONObject().put("id", 1u), 2u) }
+    }
+
+
+    @Test
+    fun `test getValidCharacter with incorrect characterId`(): Unit = runBlocking{
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+        activeSessionData.startConnection(1u, connection1)
+
+        activeSessionData.addCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
+            )
+        )
+
+        assertFails { activeSessionData.getValidCharacter(JSONObject().put("id", 2u), 1u) }
+    }
+
+    @Test
+    fun `test getValidOpponentCharacter with correct opponentId`(){
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+
+        assertEquals(1u, activeSessionData.getValidOpponentCharacter(JSONObject().put("opponentId", 1u)).id)
+    }
+
+
+    @Test
+    fun `test getValidOpponentCharacter with incorrect opponentId`(){
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+
+        assertFails {activeSessionData.getValidOpponentCharacter(JSONObject().put("opponentId", 10u))}
+    }
+
+
+    @Test
+    fun `test getValidOpponentCharacter with other sessionId`(){
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+
+        assertFails {activeSessionData.getValidOpponentCharacter(JSONObject().put("opponentId", 2u))}
+    }
+
+
+    @Test
+    fun `test removeCharacter`() = runBlocking {
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+
+        activeSessionData.startConnection(1u, connection1)
+
+        activeSessionData.addCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
+            )
+        )
+
+        activeSessionData.removeCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("prop1" to 1, "prop2" to 2, "prop3" to 3)
+            )
+        )
+
+        assertEquals(0, activeSessionData.activeUsers[1u]!!.characters.size)
+
+    }
+
+
+    @Test
+    fun `test moveCharacter`() = runBlocking {
+        val sessionId = 1u
+        val mapId = 1u
+        val started = Instant.DISTANT_PAST
+
+        val activeSessionData = ActiveSessionData(
+            sessionId = sessionId,
+            mapId = mapId,
+            started = started
+        )
+
+        activeSessionData.startConnection(1u, connection1)
+
+        activeSessionData.moveCharacter(
+            CharacterInfo(
+                1u,
+                1u,
+                1u,
+                "character1",
+                null,
+                1,
+                1,
+                false,
+                BasicProperties(),
+                mapOf("CURR_HP" to 1, "MAX_HP" to 2, "prop3" to 3)
+            )
+        )
+
+        assertEquals(AtomicInteger(1).get(), activeSessionData.actionProperties.prevCharacterId.get())
     }
 
 
@@ -179,6 +386,15 @@ class ActiveSessionDataTest {
         @BeforeAll
         fun createTestDB() {
             DBOperator.createDBForTests()
+            DBOperator.addSession(1u, true, java.time.Instant.now())
+            DBOperator.addSession(2u, true, java.time.Instant.now())
+            DBOperator.addUser("Vasia", "vasia@mail.ru", "vasia12345")
+            DBOperator.addUser("Semen", "semen@mail.ru", "semen12345")
+            DBOperator.addUser("Sasha", "sasha@mail.ru", "sasha12345")
+            DBOperator.addCharacter(1u, 1u, "Dragonosaur", null, 1, 2,
+                basicProperties = BasicProperties(1, 2, 3, 4, 5, 6))
+            DBOperator.addCharacter(3u, 2u, "Berserk", null, 1, 2,
+                basicProperties = BasicProperties(1, 2, 3, 4, 5, 6))
         }
 
         @JvmStatic
