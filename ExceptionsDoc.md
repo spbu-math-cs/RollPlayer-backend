@@ -2,6 +2,10 @@
 
 ## From client
 
+
+
+## From server about Exceptions
+
 ### Regular error messages
 
 ##### HandleHTTPRequestException
