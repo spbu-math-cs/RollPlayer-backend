@@ -48,7 +48,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
-    implementation("org.jetbrains.kotlin:kotlin-test:$exposedVersion")
+    implementation("org.jetbrains.kotlin:kotlin-test:1.5.21")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
 
