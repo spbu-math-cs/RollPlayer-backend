@@ -229,7 +229,7 @@ class DBTests {
         assertEquals(pictureIds[0], DBOperator.getUserByLogin("Vasia")?.avatarID)
         assertEquals(pictureIds[2], DBOperator.getUserByEmail("clara@yandex.ru")?.avatarID)
 
-        var unusedPic = pictureIds.first {
+        val unusedPic = pictureIds.first {
             DBOperator.getPictureByID(it)?.pathToFile == "$picturesFolder/avatar05.png"
         }
         assertEquals(unusedPic, DBOperator.getPictureByPath("$picturesFolder/avatar05.png")?.id)
@@ -291,7 +291,7 @@ class DBTests {
 
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Dragonosaur",
             avatarIds[0], 1, 2,
-            BasicProperties(1, 2, 3, 4, 5, 6))
+            basicProperties = BasicProperties(1, 2, 3, 4, 5, 6))
         DBOperator.addCharacter(userIds["Vasia"]!!, sId1, "Mad Professor",
             null, 1, 2)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId2, "Terminator",
@@ -300,10 +300,10 @@ class DBTests {
             avatarIds[1], 1, 3)
         DBOperator.addCharacter(userIds["Petya"]!!, sId1, "Sensei",
             null, 2, 3,
-            BasicProperties())
+            basicProperties = BasicProperties())
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Kongzilla",
             null, 3, 4,
-            BasicProperties(-1, 1, -1, 1, -1, 1))
+            basicProperties = BasicProperties(-1, 1, -1, 1, -1, 1))
         DBOperator.addCharacter(userIds["Petya"]!!, sId3, "Hippoceros",
             null, 3, 4)
         DBOperator.addCharacter(userIds["Vasia"]!!, sId2, "Heffalump",
@@ -317,7 +317,7 @@ class DBTests {
         // returned characterInfo testing
         val tigerrat = DBOperator.addCharacter(userIds["Clara"]!!, sId2, "Tigerrat",
             avatarIds[2], 9000, 4,
-            BasicProperties(1, -2, 3, -4, 5, -6))
+            basicProperties = BasicProperties(1, -2, 3, -4, 5, -6))
         assertEquals("Tigerrat", tigerrat.name)
         assertEquals(Pair(9000, 4), Pair(tigerrat.row, tigerrat.col))
         assertEquals(sId2, tigerrat.sessionId)
