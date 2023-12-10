@@ -1,9 +1,5 @@
 # Exceptions Documentation
 
-## From client
-
-
-
 ## From server about Exceptions
 
 ### Not Regular error messages
