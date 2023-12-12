@@ -19,7 +19,7 @@ ws/api/connect/1/2
 {
   "type": "character:new",
   "id": <UInt, required>,
-  "name": <String, opt, "Dovakin">, 
+  "name": <String, opt, "Dovahkiin">, 
   "row": <Int, opt, 0>,
   "col": <Int, opt, 0>,
   "own": <bool, required>,
@@ -191,4 +191,3 @@ Handling exceptions related to character attacks during WebSocket communication.
   "message": <String>
 }
 ```
-
