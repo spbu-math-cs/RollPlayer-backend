@@ -12,6 +12,8 @@ import org.json.JSONObject
 import server.*
 import server.utils.*
 
+const val DEFAULT_CHARACTER_NAME = "Dovahkiin"
+
 fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
     webSocket("/api/connect/{userId}/{sessionId}") {
         val userId = call.parameters["userId"]?.toUIntOrNull()
@@ -52,9 +54,9 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                     when (message.getString("type")) {
                         "character:new" -> {
                             try {
-                                val characterName = message.optString("name", "Dovakin")
-                                val characterRow = message.optInt("row", 0)
-                                val characterCol = message.optInt("col", 0)
+                                val characterName = message.optString("name", DEFAULT_CHARACTER_NAME)
+                                val characterRow = message.optInt("row")
+                                val characterCol = message.optInt("col")
                                 val characterBasicProps = Json.decodeFromString<BasicProperties>(
                                     message.optString("basicProperties", "{}"))
                                 val characterAvatarId = if (message.has("avatarId")) {
@@ -62,6 +64,9 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 } else {
                                     null
                                 }
+
+                                session.validateBasicProperties(characterBasicProps)
+                                session.validateTile(Position(characterRow, characterCol))
 
                                 val character = DBOperator.addCharacter(
                                     userId,
@@ -101,13 +106,13 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val newCol = message.getInt("col")
 
                                 session.validateAction(character)
-                                session.validateMoveCharacter(character, session.mapId, Position(newRow, newCol))
+                                session.validateMoveCharacter(character, Position(newRow, newCol))
 
                                 val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
                                 logger.info("Session #$sessionId for user #$userId: " +
                                         "change coords of character #${character.id} in db")
 
-                                session.processTileEffects(newCharacter!!.id, session.mapId, Position(newRow, newCol))
+                                session.processTileEffects(newCharacter!!.id, Position(newRow, newCol))
 
                                 session.moveCharacter(newCharacter)
                                 session.checkIfDefeated(character.id)
@@ -123,10 +128,11 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             try {
                                 val character = session.getValidCharacter(message, userId)
                                 val opponent = session.getValidOpponentCharacter(message)
+                                val attackType = message.optString("attackType", "melee")
 
                                 session.validateAction(character)
+                                session.validateAttack(opponent)
 
-                                val attackType = message.optString("attackType", "melee")
                                 when (attackType) {
                                     "melee" -> {
                                         session.validateMeleeAttack(character, opponent)
@@ -144,6 +150,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
+
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
                                 session.checkIfDefeated(character.id)
                                 session.checkIfDefeated(opponent.id)
@@ -160,12 +167,15 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val character = session.getValidCharacter(message, userId)
 
                                 session.validateRevival(character)
+
                                 val characterAfterRevival = session.processingRevival(character.id)
                                 if (characterAfterRevival != null) {
                                     session.sendCharacterDefeatedStatus(characterAfterRevival, false)
                                 }
                                 session.updateActionProperties()
-                            } catch (e: Exception) {
+                            } catch (e: ReviveException) {
+                                sendReviveExceptionReason(conn, e)
+                            }catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:revive", e)
                             }
                         }

@@ -80,3 +80,17 @@ suspend fun sendAttackExceptionReason(
         "message" to e.message.orEmpty()
     )).toString())
 }
+
+suspend fun sendReviveExceptionReason(
+    connection: Connection,
+    e: ReviveException
+) {
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed character:revive because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to "character:revive",
+        "reason" to e.reason.str,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
