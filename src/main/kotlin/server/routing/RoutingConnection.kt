@@ -128,10 +128,11 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                             try {
                                 val character = session.getValidCharacter(message, userId)
                                 val opponent = session.getValidOpponentCharacter(message)
+                                val attackType = message.optString("attackType", "melee")
 
                                 session.validateAction(character)
+                                session.validateAttack(opponent)
 
-                                val attackType = message.optString("attackType", "melee")
                                 when (attackType) {
                                     "melee" -> {
                                         session.validateMeleeAttack(character, opponent)
@@ -149,6 +150,7 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
+
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
                                 session.checkIfDefeated(character.id)
                                 session.checkIfDefeated(opponent.id)
@@ -165,12 +167,15 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val character = session.getValidCharacter(message, userId)
 
                                 session.validateRevival(character)
+
                                 val characterAfterRevival = session.processingRevival(character.id)
                                 if (characterAfterRevival != null) {
                                     session.sendCharacterDefeatedStatus(characterAfterRevival, false)
                                 }
                                 session.updateActionProperties()
-                            } catch (e: Exception) {
+                            } catch (e: ReviveException) {
+                                sendReviveExceptionReason(conn, e)
+                            }catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:revive", e)
                             }
                         }

@@ -156,7 +156,7 @@ Handling exceptions related to WebSocket communication.
 ### Regular error messages
 
 #### Action
-Handling reasons of exceptions related to WebSocket communication.
+Handling exceptions related to not defeated character actions during WebSocket communication
 
 ```
 {
@@ -187,7 +187,19 @@ Handling exceptions related to character attacks during WebSocket communication.
   "type": "error",
   "on": "character:attack",
   "attackType": "melee"/"ranged"/"magic",
-  "reason": "big_dist"/"low_mana"
+  "reason": "big_dist"/"low_mana"/"opponent_is_defeated"
+  "message": <String>
+}
+```
+
+#### Revive
+Handling exceptions related to character revival during WebSocket communication.
+
+```
+{
+  "type": "error",
+  "on": "character:revive",
+  "reason": "not_your_turn"/"is_not_defeated"
   "message": <String>
 }
 ```

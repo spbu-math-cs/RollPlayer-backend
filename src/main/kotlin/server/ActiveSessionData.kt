@@ -323,6 +323,11 @@ class ActiveSessionData(
         return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
     }
 
+    fun validateAttack(opponent: CharacterInfo) {
+        if (opponent.isDefeated)
+            throw AttackException("", AttackFailReason.OpponentIsDefeated, "Can't attack: opponent is defeated")
+    }
+
     fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
         if (!inAttackRange(character, opponent, 1))
             throw AttackException("melee", AttackFailReason.BigDist, "Can't attack: too far for melee attack")
@@ -396,7 +401,11 @@ class ActiveSessionData(
     fun validateRevival(character: CharacterInfo) {
         val characterForActionId = getCurrentCharacterForActionId()
         if (characterForActionId != character.id)
-            throw ActionException(ActionFailReason.NotYourTurn, "Can't reborn: not your turn now")
+            throw ReviveException(ReviveFailReason.NotYourTurn, "Can't revive: not your turn now")
+
+        if (!character.isDefeated) {
+            throw ReviveException(ReviveFailReason.IsNotDefeated, "Can't revive: character is not defeated")
+        }
     }
 
     fun processingRevival(characterId: UInt): CharacterInfo? {
