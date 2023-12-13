@@ -216,8 +216,26 @@ Logs out a user.
 }
 ```
 
+### GET /api/user (authorization)
+Return user data.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "message": "User data get successfully",
+  "result": {
+    "id": "1",
+    "login": "newlogin",
+    "email": "newemail@example.com",
+    "password": "newpassword",
+    "avatarId": null
+  }
+}
+```
+
 ### POST /api/user/edit (authorization)
-Edits user data.
+Edits user data and return new user data.
 
 #### Response example:
 ```json
