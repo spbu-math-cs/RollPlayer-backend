@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import server.utils.handleHTTPRequestException
 
-fun Route.createSession() {
+fun Route.gameSession() {
     post("/api/game/create") {
         try {
             val mapId = call.request.queryParameters["mapId"]?.toUIntOrNull()

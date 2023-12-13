@@ -2,8 +2,13 @@ package server.routing
 
 import server.*
 import db.DBOperator
+
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -14,8 +19,23 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import server.utils.handleHTTPRequestException
+import java.util.*
 
-fun Route.requestsUser(){
+fun Route.requestsUser(jwtParams: JWTParams){
+    get("/api/users"){
+        try {
+            val users = DBOperator.getAllUsers()
+            call.respond(HttpStatusCode.OK, JSONObject()
+                .put("type", "ok")
+                .put("result", JSONArray(users.map { JSONObject(Json.encodeToString(it)) }))
+                .toString()
+            )
+            logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
+        } catch (e: Exception) {
+            handleHTTPRequestException(call, "GET /api/users", e)
+        }
+    }
+
     post("/api/register") {
         try {
             val data = JSONObject(call.receiveText())
@@ -44,20 +64,6 @@ fun Route.requestsUser(){
         }
     }
 
-    get("/api/users"){
-        try {
-            val users = DBOperator.getAllUsers()
-            call.respond(HttpStatusCode.OK, JSONObject()
-                .put("type", "ok")
-                .put("result", JSONArray(users.map { JSONObject(Json.encodeToString(it)) }))
-                .toString()
-            )
-            logger.info("Successful GET /api/users request from: ${call.request.origin.remoteAddress}")
-        } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/users", e)
-        }
-    }
-
     post("/api/login") {
         try {
             val data = JSONObject(call.receiveText())
@@ -71,10 +77,18 @@ fun Route.requestsUser(){
 
             if (user != null) {
                 if (DBOperator.checkUserPassword(user.id, password)) {
+                    val token = JWT.create()
+                        .withAudience(jwtParams.audience)
+                        .withIssuer(jwtParams.issuer)
+                        .withClaim("id", user.id.toLong())
+                        .withClaim("login", user.login)
+                        .withExpiresAt(Date(System.currentTimeMillis() + 24*60*60000))
+                        .sign(Algorithm.HMAC256(jwtParams.secret))
+
                     call.respond(HttpStatusCode.OK, JSONObject()
                         .put("type", "ok")
                         .put("message", "User ${user.id} logged in successfully")
-                        .put("result", JSONObject(Json.encodeToString(user)))
+                        .put("result", token)
                         .toString()
                     )
                 } else throw Exception("Invalid login/email or password")
@@ -88,73 +102,98 @@ fun Route.requestsUser(){
         }
     }
 
-    post("/api/logout") {
-        try {
-            val data = JSONObject(call.receiveText())
-            val userId = data.getInt("userId").toUInt()
+    authenticate("auth-jwt") {
+        post("/api/logout") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("id").asInt().toUInt()
 
-            call.respond(HttpStatusCode.OK, JSONObject()
-                .put("type", "ok")
-                .put("message", "User $userId logged out successfully")
-                .toString()
-            )
-            logger.info("Successful POST /api/logout request from: ${call.request.origin.remoteAddress}")
-        } catch (e: JSONException) {
-            handleHTTPRequestException(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
-        } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/logout", e)
+            try {
+                call.respond(HttpStatusCode.OK, JSONObject()
+                    .put("type", "ok")
+                    .put("message", "User $userId logged out successfully")
+                    .toString()
+                )
+                logger.info("Successful POST /api/logout request from: ${call.request.origin.remoteAddress}")
+            } catch (e: JSONException) {
+                handleHTTPRequestException(call, "POST /api/logout", e, "Invalid body for request POST /api/logout")
+            } catch (e: Exception) {
+                handleHTTPRequestException(call, "POST /api/logout", e)
+            }
         }
-    }
 
-    post("/api/edit/{userId}") {
-        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
-        try {
-            val data = JSONObject(call.receiveText())
-            if (data.has("login")) {
-                val newLogin = data.getString("login")
-                DBOperator.updateUserLogin(userId, newLogin)
-                logger.info("Login for User $userId edit successfully")
-            }
-            if (data.has("email")) {
-                val newEmail = data.getString("email")
-                DBOperator.updateUserEmail(userId, newEmail)
-                logger.info("Email for User $userId edit successfully")
-            }
-            if (data.has("password")) {
-                val newPassword = data.getString("password")
-                DBOperator.updateUserPassword(userId, newPassword)
-                logger.info("Password for User $userId edit successfully")
-            }
-            if (data.has("avatarId")) {
-                val newAvatarId = data.getInt("avatarId").toUInt()
-                DBOperator.updateUserAvatar(userId, newAvatarId)
-                logger.info("Avatar for User $userId edit successfully")
-            }
+        get("/api/user") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("id").asInt().toUInt()
 
-            call.respond(HttpStatusCode.OK, JSONObject()
-                .put("type", "ok")
-                .put("message", "Data for user $userId edit successfully")
-                .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
-                .toString()
-            )
-
-            logger.info("Successful POST /api/edit/$userId request from: ${call.request.origin.remoteAddress}")
-        } catch (e: Exception) {
-            handleHTTPRequestException(call, "POST /api/edit/$userId", e)
+            try {
+                call.respond(
+                    HttpStatusCode.OK, JSONObject()
+                        .put("type", "ok")
+                        .put("message", "Get userdata successfully")
+                        .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                        .toString()
+                )
+                logger.info("Successful GET /api/user request from: ${call.request.origin.remoteAddress}")
+            } catch (e: Exception) {
+                handleHTTPRequestException(call, "GET /api/user", e)
+            }
         }
-    }
 
-    get("/api/{userId}/sessions") {
-        val userId = call.parameters["userId"]?.toUIntOrNull() ?: 0u
-        try {
-            call.respond(HttpStatusCode.OK, JSONObject()
-                .put("type", "ok")
-                .put("result", JSONArray(DBOperator.getAllSessionsWithUser(userId).map { JSONObject(Json.encodeToString(it)) }))
-                .toString()
-            )
-            logger.info("Successful GET /api/$userId/sessions request from: ${call.request.origin.remoteAddress}")
-        } catch (e: Exception) {
-            handleHTTPRequestException(call, "GET /api/$userId/sessions", e)
+        post("/api/user/edit") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("id").asInt().toUInt()
+
+            try {
+                val data = JSONObject(call.receiveText())
+                if (data.has("login")) {
+                    val newLogin = data.getString("login")
+                    DBOperator.updateUserLogin(userId, newLogin)
+                    logger.info("Login for User $userId edit successfully")
+                }
+                if (data.has("email")) {
+                    val newEmail = data.getString("email")
+                    DBOperator.updateUserEmail(userId, newEmail)
+                    logger.info("Email for User $userId edit successfully")
+                }
+                if (data.has("password")) {
+                    val newPassword = data.getString("password")
+                    DBOperator.updateUserPassword(userId, newPassword)
+                    logger.info("Password for User $userId edit successfully")
+                }
+                if (data.has("avatarId")) {
+                    val newAvatarId = data.getInt("avatarId").toUInt()
+                    DBOperator.updateUserAvatar(userId, newAvatarId)
+                    logger.info("Avatar for User $userId edit successfully")
+                }
+
+                call.respond(
+                    HttpStatusCode.OK, JSONObject()
+                        .put("type", "ok")
+                        .put("message", "Data for user $userId edit successfully")
+                        .put("result", JSONObject(Json.encodeToString(DBOperator.getUserByID(userId)!!)))
+                        .toString()
+                )
+
+                logger.info("Successful POST /api/user/edit request from: ${call.request.origin.remoteAddress}")
+            } catch (e: Exception) {
+                handleHTTPRequestException(call, "POST /api/user/edit", e)
+            }
+        }
+
+        get("/api/user/sessions") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal!!.payload.getClaim("id").asInt().toUInt()
+
+            try {
+                call.respond(HttpStatusCode.OK, JSONObject()
+                    .put("type", "ok")
+                    .put("result", JSONArray(DBOperator.getAllSessionsWithUser(userId).map { JSONObject(Json.encodeToString(it)) }))
+                    .toString()
+                )
+                logger.info("Successful GET /api/user/sessions request from: ${call.request.origin.remoteAddress}")
+            } catch (e: Exception) {
+                handleHTTPRequestException(call, "GET /api/user/sessions", e)
+            }
         }
     }
 }

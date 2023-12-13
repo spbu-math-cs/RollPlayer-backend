@@ -1,16 +1,10 @@
 # WebSocket Documentation
 
-### /api/connect/{userId}/{sessionId}
+### /api/user/sessions/{sessionId}/connect (authorization)
 Connect to WebSocket for real-time communication.
 
 #### Parameters:
-- {userId} (UInt): User ID.
 - {sessionId} (UInt): Session ID.
-
-#### Example Request:
-```bash
-ws/api/connect/1/2
-```
 
 ### Messages from client:
 
