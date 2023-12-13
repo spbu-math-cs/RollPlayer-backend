@@ -196,7 +196,7 @@ class ActiveSessionData(
     suspend fun moveCharacter(character: CharacterInfo) {
         val message = JSONObject()
             .put("type", "character:move")
-            .put("id", character.id)
+            .put("id", character.id.toLong())
             .put("character", JSONObject(Json.encodeToString(character)))
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
@@ -298,7 +298,7 @@ class ActiveSessionData(
             throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
 
-    fun processTileEffects(characterId: UInt, pos: Position) {
+    fun processTileEffects(characterId: UInt, pos: Position): CharacterInfo {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
         val healthUpdate = map.getTileHealthUpdate(pos)
@@ -317,6 +317,8 @@ class ActiveSessionData(
             DBOperator.setCharacterProperty(characterId, "CURR_MP", min(mana + healthUpdate, maxMana))
             logger.info("Session #$sessionId: change \"CURR_MP\" of character #${characterId} in db")
         }
+
+        return DBOperator.getCharacterByID(characterId)!!
     }
 
     private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
@@ -423,7 +425,7 @@ class ActiveSessionData(
         val message = JSONObject()
             .put("type", "character:status")
             .put("is_defeated", isDefeated)
-            .put("id", character.id)
+            .put("id", character.id.toLong())
             .put("character", JSONObject(Json.encodeToString(character)))
 
         activeUsers.forEach {

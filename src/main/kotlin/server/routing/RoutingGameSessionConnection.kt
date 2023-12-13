@@ -120,13 +120,13 @@ fun Route.gameSessionConnection(activeSessions: MutableMap<UInt, ActiveSessionDa
                                     session.validateAction(character)
                                     session.validateMoveCharacter(character, Position(newRow, newCol))
 
-                                    val newCharacter = DBOperator.moveCharacter(character.id, newRow, newCol)
+                                    DBOperator.moveCharacter(character.id, newRow, newCol)
                                     logger.info(
                                         "Session #$sessionId for user #$userId: " +
                                                 "change coords of character #${character.id} in db"
                                     )
-
-                                    session.processTileEffects(newCharacter!!.id, Position(newRow, newCol))
+                                    val newCharacter =
+                                        session.processTileEffects(character.id, Position(newRow, newCol))
 
                                     session.moveCharacter(newCharacter)
                                     session.checkIfDefeated(character.id)
