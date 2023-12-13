@@ -16,7 +16,6 @@ Connect to WebSocket for real-time communication.
   "name": <String, opt, "Dovahkiin">, 
   "row": <Int, opt, 0>,
   "col": <Int, opt, 0>,
-  "own": <bool, required>,
   "basicProperties": <bool, opt, {}>,
   "avatarId": <UInt, opt, null>
 }
@@ -32,7 +31,7 @@ Connect to WebSocket for real-time communication.
 ```
 {
   "type": "character:move",
-  "id": <Int, required>,
+  "id": <UInt, required>,
   "row": <Int, required>,
   "col": <Int, required>
 }
@@ -50,7 +49,7 @@ Connect to WebSocket for real-time communication.
 ```
 {
   "type": "character:revive",
-  "id": <Int, required>
+  "id": <UInt, required>
 }
 ```
 
