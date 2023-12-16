@@ -1,5 +1,6 @@
 package server
 
+import db.BasicProperties
 import db.CharacterInfo
 import db.DBOperator
 import db.Map.Companion.Position
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.random.Random
+import kotlin.reflect.full.memberProperties
 
 const val initPrevCharacterId: Int = -1
 
@@ -194,7 +196,7 @@ class ActiveSessionData(
     suspend fun moveCharacter(character: CharacterInfo) {
         val message = JSONObject()
             .put("type", "character:move")
-            .put("id", character.id)
+            .put("id", character.id.toLong())
             .put("character", JSONObject(Json.encodeToString(character)))
         activeUsers.forEach {
             it.value.connections.forEach { conn -> sendSafety(conn.connection, message.toString()) }
@@ -264,7 +266,28 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveCharacter(character: CharacterInfo, mapId: UInt, pos: Position) {
+    fun validateBasicProperties(basicProperties: BasicProperties) {
+        var propsSum = 0
+        for (prop in BasicProperties::class.memberProperties) {
+            val value = prop.get(basicProperties) as Int
+            if (value < -4 || value > 4) {
+                throw Exception("Incorrect basic property: must be from -4 to 4")
+            }
+            propsSum += value
+        }
+        if (propsSum < 6 || propsSum > 8) {
+            throw Exception("Incorrect basic properties sum: must be from 6 to 8")
+        }
+    }
+
+    fun validateTile(pos: Position) {
+        val map = DBOperator.getMapByID(mapId)?.load()
+            ?: throw Exception("Map #$mapId does not exist")
+        if (map.isObstacleTile(pos))
+            throw Exception("Target tile is obstacle")
+    }
+
+    fun validateMoveCharacter(character: CharacterInfo, pos: Position) {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
         if (map.isObstacleTile(pos))
@@ -275,7 +298,7 @@ class ActiveSessionData(
             throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
 
-    fun processTileEffects(characterId: UInt, mapId: UInt, pos: Position) {
+    fun processTileEffects(characterId: UInt, pos: Position): CharacterInfo {
         val map = DBOperator.getMapByID(mapId)?.load()
             ?: throw Exception("Map #$mapId does not exist")
         val healthUpdate = map.getTileHealthUpdate(pos)
@@ -294,10 +317,17 @@ class ActiveSessionData(
             DBOperator.setCharacterProperty(characterId, "CURR_MP", min(mana + healthUpdate, maxMana))
             logger.info("Session #$sessionId: change \"CURR_MP\" of character #${characterId} in db")
         }
+
+        return DBOperator.getCharacterByID(characterId)!!
     }
 
     private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
         return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
+    }
+
+    fun validateAttack(opponent: CharacterInfo) {
+        if (opponent.isDefeated)
+            throw AttackException("", AttackFailReason.OpponentIsDefeated, "Can't attack: opponent is defeated")
     }
 
     fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
@@ -373,7 +403,11 @@ class ActiveSessionData(
     fun validateRevival(character: CharacterInfo) {
         val characterForActionId = getCurrentCharacterForActionId()
         if (characterForActionId != character.id)
-            throw ActionException(ActionFailReason.NotYourTurn, "Can't reborn: not your turn now")
+            throw ReviveException(ReviveFailReason.NotYourTurn, "Can't revive: not your turn now")
+
+        if (!character.isDefeated) {
+            throw ReviveException(ReviveFailReason.IsNotDefeated, "Can't revive: character is not defeated")
+        }
     }
 
     fun processingRevival(characterId: UInt): CharacterInfo? {
@@ -391,7 +425,7 @@ class ActiveSessionData(
         val message = JSONObject()
             .put("type", "character:status")
             .put("is_defeated", isDefeated)
-            .put("id", character.id)
+            .put("id", character.id.toLong())
             .put("character", JSONObject(Json.encodeToString(character)))
 
         activeUsers.forEach {
