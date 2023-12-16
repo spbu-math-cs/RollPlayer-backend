@@ -1,12 +1,24 @@
 import db.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
 import io.ktor.server.testing.*
+import io.ktor.util.*
 import io.mockk.every
 import io.mockk.mockk
+import netscape.javascript.JSObject
+import org.json.JSONObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import server.module
+import java.io.File
 import kotlin.test.assertEquals
 
 private fun createErrorResponseMessage(msg: String?) = mapOf(
@@ -28,6 +40,10 @@ class HttpsTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
 
+        assertEquals(
+            "{\"result\":[{\"filepath\":\"/path/to/file1\",\"id\":\"1\"}],\"type\":\"ok\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -42,6 +58,7 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/textures/1")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
     }
 
 
@@ -53,9 +70,11 @@ class HttpsTest {
             )
         }
 
-        val response: HttpResponse = client.get("/api/textures/1")
+        val response: HttpResponse = client.get("/api/textures/1ewd")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals("{\"type\":\"error\",\"message\":\"Texture #0 does not exist\"}", response.bodyAsText())
     }
 
 
@@ -68,6 +87,8 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/textures/999")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals("{\"type\":\"error\",\"message\":\"Texture #999 does not exist\"}", response.bodyAsText())
     }
 
 
@@ -80,6 +101,11 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/tilesets")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"result\":[{\"filepath\":\"./path/to/tileset1.json\",\"id\":\"1\"}],\"type\":\"ok\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -92,6 +118,11 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/tilesets/1")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{ \"columns\":49, \"image\":\"tileset_packed.png\", \"imageheight\":352, \"imagewidth\":784, \"margin\":0, \"name\":\"tileset_packed\", \"spacing\":0, \"tilecount\":1078, \"tiledversion\":\"1.10.2\", \"tileheight\":16, \"tilewidth\":16, \"type\":\"tileset\", \"version\":\"1.10\" }",
+            response.bodyAsText()
+        )
     }
 
 
@@ -104,6 +135,11 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/tilesets/100")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Tileset #100 does not exist\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -116,6 +152,11 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/maps")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"result\":[{\"filepath\":\"./path/to/map1.json\",\"id\":\"1\"}],\"type\":\"ok\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -128,6 +169,8 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/maps/1")
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(File("./resources/maps/example_map.tmj").readText(), response.bodyAsText())
     }
 
 
@@ -140,24 +183,37 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/maps/100")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Map #100 does not exist\"}",
+            response.bodyAsText()
+        )
+
     }
 
 
     @Test
     fun `GET request to api-users returns expected response`() = testApplication {
         mockk<DBOperator> {
-            every { getAllUsers() } returns listOf(UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u))
+            every { getAllUsers() } returns listOf(
+                UserInfo(1u, "testLogin", "test@email.ru", 1930943205, null),
+                UserInfo(2u, "testLogin2", "test2@email.ru", 1930943205, null)
+            )
         }
 
         val response: HttpResponse = client.get("/api/users")
 
         assertEquals(HttpStatusCode.OK, response.status)
 
+        assertEquals(
+            "{\"result\":[{\"avatarID\":null,\"id\":1,\"login\":\"testLogin\",\"email\":\"test@email.ru\",\"passwordHash\":1930943205},{\"avatarID\":null,\"id\":2,\"login\":\"testLogin2\",\"email\":\"test2@email.ru\",\"passwordHash\":1240535341}],\"type\":\"ok\"}",
+            response.bodyAsText()
+        )
     }
 
 
     @Test
-    fun `GET request to non-existing api-users returns 400 error`() = testApplication {
+    fun `GET request to non-existing api-users returns expected response`() = testApplication {
         mockk<DBOperator> {
             every { getAllUsers() } returns emptyList()
         }
@@ -165,6 +221,8 @@ class HttpsTest {
         val response: HttpResponse = client.get("/api/users")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals("{\"result\":[],\"type\":\"ok\"}", response.bodyAsText())
     }
 
 
@@ -182,6 +240,11 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
+
+        assertEquals(
+            "{\"result\":{\"avatarID\":null,\"id\":1,\"login\":\"testLogin\",\"email\":\"test@email.ru\",\"passwordHash\":1484766988},\"type\":\"ok\",\"message\":\"User 1 registered successfully\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -199,6 +262,8 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals("User 1 logged in successfully", JSONObject(response.bodyAsText()).getString("message"))
     }
 
 
@@ -215,11 +280,39 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"User with this login/email is not exist\"}",
+            response.bodyAsText()
+        )
     }
 
 
     @Test
     fun `POST request to api-logout returns expected response`() = testApplication {
+
+        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+
+        val login: HttpResponse = client.post("/api/login") {
+            setBody(loginBody)
+        }
+
+        val token = JSONObject(login.bodyAsText()).get("result").toString()
+
+        val requestBody = "{\"id\": 1}"
+
+        val logout: HttpResponse = client.post("/api/logout") {
+            headers["Authorization"] = token
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.OK, logout.status)
+
+    }
+
+
+    @Test
+    fun `POST request to api-logout returns error`() = testApplication {
         mockk<DBOperator> {}
 
         val requestBody = """{"userId": 1}"""
@@ -228,7 +321,9 @@ class HttpsTest {
             setBody(requestBody)
         }
 
-        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+
+        assertEquals("Token is not valid or has expired", response.bodyAsText())
     }
 
 
@@ -241,12 +336,50 @@ class HttpsTest {
             every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
-        val requestBody = """{"login": "newLogin", "email": "newEmail", "password": "newPassword"}"""
-        val response: HttpResponse = client.post("/api/edit/1") {
+        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+
+        val login: HttpResponse = client.post("/api/login") {
+            setBody(loginBody)
+        }
+
+        val token = JSONObject(login.bodyAsText()).get("result").toString()
+
+        val requestBody = """{"login": "newLogin", "email": "test1@email.ru", "password": "testPassword"}"""
+        val response: HttpResponse = client.post("/api/user/edit") {
+            headers["Authorization"] = token
             setBody(requestBody)
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"result\":{\"avatarID\":null,\"id\":1,\"login\":\"newLogin\",\"email\":\"test1@email.ru\",\"passwordHash\":796678170},\"type\":\"ok\",\"message\":\"Data for user 1 edit successfully\"}",
+            response.bodyAsText()
+        )
+    }
+
+
+    @Test
+    fun `POST request to api-edit-userId without JWT returns error`() = testApplication {
+        mockk<DBOperator> {
+            every { updateUserLogin(any(), any()) } returns Unit
+            every { updateUserEmail(any(), any()) } returns Unit
+            every { updateUserPassword(any(), any()) } returns Unit
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+        }
+
+        val requestBody = """{"login": "newLogin", "email": "test1@email.ru", "password": "testPassword"}"""
+
+        val response: HttpResponse = client.post("/api/user/edit") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "Token is not valid or has expired",
+            response.bodyAsText()
+        )
     }
 
 
@@ -265,6 +398,11 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"User with login `testLogin` already exists\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -281,6 +419,11 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Email does not match regex ^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z.-]+\$\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -297,6 +440,11 @@ class HttpsTest {
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"User password must have at least 8 characters\"}",
+            response.bodyAsText()
+        )
     }
 
 
@@ -306,9 +454,16 @@ class HttpsTest {
             every { getAllSessionsWithUser(any()) } returns emptyList()
         }
 
-        val response = client.get("/api/1/sessions")
+        val requestBody = """{"id": 1}"""
+
+        val response = client.get("/api/user/sessions"){
+            setBody(requestBody)
+        }
 
         assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals("{\"result\":[],\"type\":\"ok\"}",
+            response.bodyAsText())
     }
 
     @Test
