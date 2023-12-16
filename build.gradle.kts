@@ -41,8 +41,6 @@ dependencies {
     implementation("io.ktor:ktor-server-websockets:$ktorVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
-    implementation("io.ktor:ktor-server-auth:$ktorVersion")
-    implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
@@ -56,6 +54,8 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.214")
+    implementation("io.mockk:mockk:1.12.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
     implementation("org.json:json:20230618")
     implementation ("io.github.microutils:kotlin-logging-jvm:2.0.11")
 }
