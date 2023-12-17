@@ -222,7 +222,7 @@ class HttpsTest {
 
         val response: HttpResponse = client.get("/api/users")
 
-        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals(HttpStatusCode.OK, response.status)
 
         assertEquals("{\"result\":[],\"type\":\"ok\"}", response.bodyAsText())
     }
