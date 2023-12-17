@@ -13,6 +13,8 @@ import io.ktor.server.testing.*
 import io.ktor.util.*
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import netscape.javascript.JSObject
 import org.json.JSONObject
 import org.junit.jupiter.api.Test
@@ -247,6 +249,67 @@ class HttpsTest {
         )
     }
 
+    @Test
+    fun `POST request with incorrect password to api-register returns 400 error`() = testApplication {
+        mockk<DBOperator> {
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+        }
+
+        val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "pass"}"""
+
+        val response = client.post("/api/register") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"User password must have at least 8 characters\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `POST request with existing email to api-register returns 400 error`() = testApplication {
+        mockk<DBOperator> {
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+        }
+
+        val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
+
+        client.post("/api/register") { setBody(requestBody) }
+
+        val response = client.post("/api/register") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"User with login `testLogin` already exists\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `POST request with incorrect email to api-register returns 400 error`() = testApplication {
+        mockk<DBOperator> {
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+        }
+
+        val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "testPassword"}"""
+
+        val response = client.post("/api/register") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Email does not match regex ^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z.-]+\$\"}",
+            response.bodyAsText()
+        )
+    }
 
     @Test
     fun `POST request to api-login returns expected response`() = testApplication {
@@ -358,7 +421,6 @@ class HttpsTest {
         )
     }
 
-
     @Test
     fun `POST request to api-edit-userId without JWT returns error`() = testApplication {
         mockk<DBOperator> {
@@ -381,72 +443,6 @@ class HttpsTest {
             response.bodyAsText()
         )
     }
-
-
-    @Test
-    fun `POST request with existing email to api-register returns 400 error`() = testApplication {
-        mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
-        }
-
-        val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
-
-        client.post("/api/register") { setBody(requestBody) }
-
-        val response = client.post("/api/register") {
-            setBody(requestBody)
-        }
-
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-
-        assertEquals(
-            "{\"type\":\"error\",\"message\":\"User with login `testLogin` already exists\"}",
-            response.bodyAsText()
-        )
-    }
-
-
-    @Test
-    fun `POST request with incorrect email to api-register returns 400 error`() = testApplication {
-        mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
-        }
-
-        val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "testPassword"}"""
-
-        val response = client.post("/api/register") {
-            setBody(requestBody)
-        }
-
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-
-        assertEquals(
-            "{\"type\":\"error\",\"message\":\"Email does not match regex ^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z.-]+\$\"}",
-            response.bodyAsText()
-        )
-    }
-
-
-    @Test
-    fun `POST request with incorrect password to api-register returns 400 error`() = testApplication {
-        mockk<DBOperator> {
-            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
-        }
-
-        val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "pass"}"""
-
-        val response = client.post("/api/register") {
-            setBody(requestBody)
-        }
-
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-
-        assertEquals(
-            "{\"type\":\"error\",\"message\":\"User password must have at least 8 characters\"}",
-            response.bodyAsText()
-        )
-    }
-
 
     @Test
     fun `GET request to api-userId-sessions returns expected response`() = testApplication {
@@ -485,5 +481,136 @@ class HttpsTest {
         val response = client.get("/api/nonUIntId/sessions")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST request to api-game-create returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { addSession(any()) } returns SessionInfo(1u, 2u, true, Clock.System.now(), 0)
+        }
+
+        val response: HttpResponse = client.post("/api/game/create?mapId=2")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"ok\",\"message\":\"Session created\",\"result\":{\"sessionId\":1,\"mapId\":2,\"active\":true,\"started\":\"${Clock.System.now()}\",\"prevCharacterId\":0}}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `POST request to api-game-create without mapId returns 400 error`() = testApplication {
+        mockk<DBOperator> {}
+
+        val response: HttpResponse = client.post("/api/game/create")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Request must contain \\\"mapId\\\" query parameter\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to api-game-sessionId-mapId returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { getSessionByID(any()) } returns SessionInfo(1u, 2u, true, Clock.System.now(), 0)
+        }
+
+        val response: HttpResponse = client.get("/api/game/1/mapId")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"ok\",\"result\":{\"id\":1,\"mapID\":2,\"active\":true,\"started\":\"${Clock.System.now()}\",\"prevCharacterId\":0}}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to non-existing api-game-sessionId-mapId returns 400 error`() = testApplication {
+        mockk<DBOperator> {
+            every { getSessionByID(any()) } returns null
+        }
+
+        val response: HttpResponse = client.get("/api/game/999/mapId")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Session #999 does not exist\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to api-pictures returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { getAllPictures() } returns listOf(
+                PictureInfo(1u, "./path/to/picture1.png"),
+                PictureInfo(2u, "./path/to/picture2.png")
+            )
+        }
+
+        val response: HttpResponse = client.get("/api/pictures")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"ok\",\"result\":[{\"id\":\"1\",\"filepath\":\"./path/to/picture1.png\"},{\"id\":\"2\",\"filepath\":\"./path/to/picture2.png\"}]}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to api-pictures-id returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { getPictureByID(any()) } returns PictureInfo(1u, ".\\pictures\\picture1.png")
+        }
+
+        val response: HttpResponse = client.get("/api/pictures/1")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"ok\",\"result\":{\"filepath\":\".\\\\pictures\\\\picture1.png\",\"id\":\"1\"}}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to non-existing api-pictures-id returns 400 error`() = testApplication {
+        mockk<DBOperator> {
+            every { getPictureByID(any()) } returns null
+        }
+
+        val response: HttpResponse = client.get("/api/pictures/999")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Picture #999 does not exist\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `POST request to api-pictures returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { addPicture(any()) } returns PictureInfo(1u, ".\\pictures\\picture1.png")
+        }
+
+        val response: HttpResponse = client.post("/api/pictures") {
+            setBody("test image content")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"type\":\"ok\",\"result\":{\"id\":\"1\",\"filepath\":\".\\\\pictures\\\\picture1.png\"}}",
+            response.bodyAsText()
+        )
     }
 }
