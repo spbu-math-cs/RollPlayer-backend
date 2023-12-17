@@ -365,7 +365,7 @@ class HttpsTest {
         val requestBody = "{\"id\": 1}"
 
         val logout: HttpResponse = client.post("/api/logout") {
-            headers["Authorization"] = token
+            headers["Authorization"] = "Bearer $token"
             setBody(requestBody)
         }
 
@@ -409,7 +409,7 @@ class HttpsTest {
 
         val requestBody = """{"login": "newLogin", "email": "test1@email.ru", "password": "testPassword"}"""
         val response: HttpResponse = client.post("/api/user/edit") {
-            headers["Authorization"] = token
+            headers["Authorization"] = "Bearer $token"
             setBody(requestBody)
         }
 
@@ -430,9 +430,18 @@ class HttpsTest {
             every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
         }
 
+        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+
+        val login: HttpResponse = client.post("/api/login") {
+            setBody(loginBody)
+        }
+
+        val token = JSONObject(login.bodyAsText()).get("result").toString()
+
         val requestBody = """{"login": "newLogin", "email": "test1@email.ru", "password": "testPassword"}"""
 
         val response: HttpResponse = client.post("/api/user/edit") {
+            headers["Authorization"] = "Bearer $token"
             setBody(requestBody)
         }
 
@@ -450,38 +459,42 @@ class HttpsTest {
             every { getAllSessionsWithUser(any()) } returns emptyList()
         }
 
+        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+
+        val login: HttpResponse = client.post("/api/login") {
+            setBody(loginBody)
+        }
+
+        val token = JSONObject(login.bodyAsText()).get("result").toString()
+
         val requestBody = """{"id": 1}"""
 
-        val response = client.get("/api/user/sessions"){
+        val response = client.get("/api/user/sessions") {
+            headers["Authorization"] = "Bearer $token"
             setBody(requestBody)
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
 
-        assertEquals("{\"result\":[],\"type\":\"ok\"}",
-            response.bodyAsText())
+        assertEquals("{\"result\":[],\"type\":\"ok\"}", response.bodyAsText())
     }
 
+
     @Test
-    fun `GET request to non-existing api-userId-sessions returns 400 error`() = testApplication {
+    fun `GET request to api-userId-sessions returns error`() = testApplication {
         mockk<DBOperator> {
-            every { getAllSessionsWithUser(any()) } throws Throwable("User #100 does not exist")
+            every { getAllSessionsWithUser(any()) } returns emptyList()
         }
 
-        val response = client.get("/api/100/sessions")
+        val requestBody = """{"id": 1}"""
 
-        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val response = client.get("/api/user/sessions") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
-
-    @Test
-    fun `GET request with non-cast-to-UInt id to api-userId-sessions returns 400 error`() = testApplication {
-        mockk<DBOperator> {}
-
-        val response = client.get("/api/nonUIntId/sessions")
-
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-    }
 
     @Test
     fun `POST request to api-game-create returns expected response`() = testApplication {
@@ -612,5 +625,48 @@ class HttpsTest {
             "{\"type\":\"ok\",\"result\":{\"id\":\"1\",\"filepath\":\".\\\\pictures\\\\picture1.png\"}}",
             response.bodyAsText()
         )
+    }
+
+    @Test
+    fun `GET request to api-user returns expected response`() = testApplication {
+        mockk<DBOperator> {
+            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
+        }
+
+        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+
+        val login: HttpResponse = client.post("/api/login") {
+            setBody(loginBody)
+        }
+
+        val token = JSONObject(login.bodyAsText()).get("result").toString()
+
+        val requestBody = """{"id": 1}"""
+
+        val response: HttpResponse = client.post("/api/user") {
+            headers["Authorization"] = "Bearer $token"
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        assertEquals(
+            "{\"result\":{\"avatarID\":null,\"id\":1,\"login\":\"testLogin\",\"email\":\"test@email.ru\",\"passwordHash\":1838241622},\"type\":\"ok\",\"message\":\"Get userdata successfully\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to api-user returns error`() = testApplication {
+        mockk<DBOperator> {
+        }
+
+        val requestBody = """{"id": 1}"""
+
+        val response: HttpResponse = client.post("/api/user") {
+            setBody(requestBody)
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 }
