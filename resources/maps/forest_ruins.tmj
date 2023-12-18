@@ -386,11 +386,6 @@
          "opacity":1,
          "properties":[
                 {
-                 "name":"Lose HP",
-                 "type":"int",
-                 "value":20
-                }, 
-                {
                  "name":"Pass cost",
                  "type":"int",
                  "value":4
