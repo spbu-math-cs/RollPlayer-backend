@@ -21,10 +21,10 @@ import kotlin.reflect.full.memberProperties
 const val initPrevCharacterId: Int = -1
 
 class ActiveSessionData(
-    val sessionId: UInt,
-    val mapId: UInt,
-    val started: Instant,
-    var actionProperties: ActionProperties = ActionProperties(),
+    private val sessionId: UInt,
+    private val mapId: UInt,
+    private val started: Instant,
+    private var actionProperties: ActionProperties = ActionProperties(),
     val activeUsers: MutableMap<UInt, UserData> = Collections.synchronizedMap(mutableMapOf())
 ) {
     data class UserData(
@@ -45,7 +45,7 @@ class ActiveSessionData(
         ActionProperties(AtomicInteger(sessionInfo.prevCharacterId))
     )
 
-    fun toJson(): String {
+    private fun toJson(): String {
         val json = JSONObject()
             .put("sessionId", sessionId)
             .put("mapId", mapId)
@@ -62,6 +62,9 @@ class ActiveSessionData(
             actionProperties.prevCharacterId.get()
         )
     }
+
+    val map = DBOperator.getMapByID(mapId)?.load()
+        ?: throw Exception("Map #$mapId does not exist")
 
     suspend fun startConnection(userId: UInt, connection: Connection) {
         sendSafety(connection.connection, toJson())
@@ -281,15 +284,11 @@ class ActiveSessionData(
     }
 
     fun validateTile(pos: Position) {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         if (map.isObstacleTile(pos))
             throw Exception("Target tile is obstacle")
     }
 
     fun validateMoveCharacter(character: CharacterInfo, pos: Position) {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         if (map.isObstacleTile(pos))
             throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
 
@@ -299,8 +298,6 @@ class ActiveSessionData(
     }
 
     fun processTileEffects(characterId: UInt, pos: Position): CharacterInfo {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         val healthUpdate = map.getTileHealthUpdate(pos)
         val manaUpdate = map.getTileManaUpdate(pos)
 

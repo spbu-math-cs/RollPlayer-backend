@@ -20,22 +20,22 @@ private fun fromCharisma(mul: Int, add: Int)     = { bProps: BasicProperties -> 
 
 // FIXME: подобрать адекватные коэффициенты и значения
 val characterPropertiesList: Map<String, (BasicProperties) -> Int> = mapOf(
-    "MAX_HP" to fromConstitution(10, 100),
-    "MAX_MP" to fromWisdom(20, 150),
+    "MAX_HP" to fromConstitution(4, 32),
+    "MAX_MP" to fromWisdom(5, 20),
 
     // при создании на максимум
-    "CURR_HP" to fromConstitution(10, 100),
-    "CURR_MP" to fromWisdom(20, 150),
+    "CURR_HP" to fromConstitution(4, 32),
+    "CURR_MP" to fromWisdom(5, 20),
 
-    "MELEE_AT_DMG" to fromStrength(6, 30),
-    "RANGED_AT_DMG" to fromDexterity(3, 20),
+    "MELEE_AT_DMG" to fromStrength(2, 16),
+    "RANGED_AT_DMG" to fromDexterity(2, 8),
 
-    "MAGIC_AT_DMG" to fromIntelligence(15, 120),
-    "MAGIC_AT_COST" to constant(25),
+    "MAGIC_AT_DMG" to fromIntelligence(2, 24),
+    "MAGIC_AT_COST" to constant(20),
 
     "RANGED_AT_DIST" to constant(16),
     "MAGIC_AT_DIST" to constant(16),
 
-    "INIT" to fromCharisma(3, 16),
+    "INIT" to fromCharisma(1, 10),
     "SPEED" to constant(5)
 )
