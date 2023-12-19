@@ -1,30 +1,22 @@
-import io.ktor.server.netty.*
+import db.MapInfo
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.client.utils.EmptyContent.contentType
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.testing.*
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
-import org.h2.engine.Database
 import org.json.JSONObject
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.io.File
-import org.junit.jupiter.api.Assertions.*
 
 private fun createErrorResponseMessage(msg: String?) = mapOf(
     "type" to "error", "message" to msg
 ).toString()
 
 class HttpsTest {
-    fun main(args: Array<String>): Unit = EngineMain.main(args)
     @Test
     fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
         val response = HttpClient().get("http://127.0.0.1:9999/api/textures")
@@ -40,7 +32,7 @@ class HttpsTest {
     fun `GET request to api-textures-id returns expected response`(): Unit = runBlocking {
         val response = HttpClient().get("http://127.0.0.1:9999/api/textures/1")
         assertEquals(HttpStatusCode.OK, response.status)
-        val responseBody: ByteArray = response.body()
+//        val responseBody: ByteArray = response.body()
 //        assertEquals(
 //            "[B@10641c09",
 //            responseBody.toString()
@@ -303,220 +295,176 @@ class HttpsTest {
         )
     }
 
+
+
 //    @Test
-//    fun `POST request to api-edit-userId without JWT returns error`(): Unit = runBlocking {
+//    fun `GET request to api-userId-sessions returns expected response`(): Unit = runBlocking {
 //        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
+//
 //        val login = HttpClient().post("http://127.0.0.1:9999/api/login"){
 //            setBody(loginBody)
 //        }
-//        val token = JSONObject(login.bodyAsText()).get("result").toString()
-//
-//        val requestBody = """{"login": "newLogin", "email": "test1@email.ru", "password": "testPassword"}"""
-//
-//        val response: HttpResponse = HttpClient().post("/api/user/edit") {
-//            headers["Authorization"] = "Bearer $token"
+//        assertEquals(HttpStatusCode.OK, login.status)
+//        val requestBody = """{"id": 1}"""
+//        val response = HttpClient().post("http://127.0.0.1:9999/api/user/sessions"){
 //            setBody(requestBody)
 //        }
 //        assertEquals(HttpStatusCode.OK, response.status)
 //
 //        assertEquals(
-//            "Token is not valid or has expired",
+//            "{\"result\":[],\"type\":\"ok\"}",
 //            response.bodyAsText()
 //        )
 //    }
 
+    @Test
+    fun `GET request to api-userId-sessions returns error`(): Unit = runBlocking {
+        val requestBody = """{"id": 1}"""
 
-//
+        val response = HttpClient().get("http://127.0.0.1:9999/api/user/sessions") {
+            setBody(requestBody)
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertEquals(
+            "Token is not valid or has expired",
+            response.bodyAsText()
+        )
+    }
+
 //    @Test
-//    fun `GET request to api-userId-sessions returns expected response`() = testApplication {
+//    fun `POST request to api-game-create returns expected response`(): Unit = runBlocking {
+//        val requestBody = MapInfo(1u, "/maps/example_map.tmj")
 //
-//        mockk<DBOperator> {
-//            every { getAllSessionsWithUser(any()) } returns emptyList()
-//        }
-//
-//        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
-//
-//        val login: HttpResponse = client.post("/api/login") {
-//            setBody(loginBody)
-//        }
-//
-//        val token = JSONObject(login.bodyAsText()).get("result").toString()
-//
-//        val requestBody = """{"id": 1}"""
-//
-//        val response = client.get("/api/user/sessions") {
-//            headers["Authorization"] = "Bearer $token"
+//        val response = HttpClient().post("http://127.0.0.1:999/api/game/create") {
 //            setBody(requestBody)
 //        }
-//
-//        assertEquals(HttpStatusCode.OK, response.status)
-//
-//        assertEquals("{\"result\":[],\"type\":\"ok\"}", response.bodyAsText())
-//    }
-//
-//
-//    @Test
-//    fun `GET request to api-userId-sessions returns error`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getAllSessionsWithUser(any()) } returns emptyList()
-//        }
-//
-//        val requestBody = """{"id": 1}"""
-//
-//        val response = client.get("/api/user/sessions") {
-//            setBody(requestBody)
-//        }
-//
-//        assertEquals(HttpStatusCode.Unauthorized, response.status)
-//    }
-//
-//
-//    @Test
-//    fun `POST request to api-game-create returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { addSession(any()) } returns SessionInfo(1u, 2u, true, Clock.System.now(), 0)
-//        }
-//        val response: HttpResponse = client.post("/api/game/create?mapId=2")
 //        assertEquals(HttpStatusCode.OK, response.status)
 //        assertEquals(
 //            "{\"type\":\"ok\",\"message\":\"Session created\",\"result\":{\"sessionId\":1,\"mapId\":2,\"active\":true,\"started\":\"${Clock.System.now()}\",\"prevCharacterId\":0}}",
 //            response.bodyAsText()
 //        )
 //    }
-//
+
+    @Test
+    fun `POST request to api-game-create without mapId returns 400 error`(): Unit = runBlocking {
+        val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/game/create")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Request must contain \\\"mapId\\\" query parameter\"}",
+            response.bodyAsText()
+        )
+    }
+
 //    @Test
-//    fun `POST request to api-game-create without mapId returns 400 error`() = testApplication {
-//        mockk<DBOperator> {}
+//    fun `GET request to api-game-sessionId-mapId returns expected response`(): Unit = runBlocking {
+//        val requestBody = MapInfo(1u, "/path/to/map1.json")
+//        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/game/1/mapId") {
+//            setBody(requestBody)
+//        }
 //
-//        val response: HttpResponse = client.post("/api/game/create")
-//
-//        assertEquals(HttpStatusCode.BadRequest, response.status)
+//        assertEquals(HttpStatusCode.NotFound, response.status)
 //
 //        assertEquals(
-//            "{\"type\":\"error\",\"message\":\"Request must contain \\\"mapId\\\" query parameter\"}",
+//            "",
 //            response.bodyAsText()
 //        )
 //    }
-//
+
+    @Test
+    fun `GET request to non-existing api-game-sessionId-mapId returns 400 error`(): Unit = runBlocking {
+        val requestBody = """{"id": 999}"""
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/game/999/mapId") {
+            setBody(requestBody)
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals(
+            "{\"type\":\"error\",\"message\":\"Session #999 does not exist\"}",
+            response.bodyAsText()
+        )
+    }
+
+    @Test
+    fun `GET request to api-pictures returns expected response`(): Unit = runBlocking {
+        //val requestBody = PictureInfo(1u, "./path/to/picture1.png")
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/pictures")
+        assertEquals(HttpStatusCode.OK, response.status)
+
+//        assertEquals(
+//            "{\"result\":{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:49.105280400.png\",\"id\":\"8\"},\"type\":\"ok\"}",
+//            response.bodyAsText()
+//        )
+    }
+
+    @Test
+    fun `GET request to api-pictures-id returns expected response`(): Unit = runBlocking {
+        val requestBody = """{"id": 1}"""
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/pictures") {
+            setBody(requestBody)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+//        assertEquals(
+//            """
+//    {
+//        "result":[
+//            {"filepath":"./resources/pictures/img_2023-12-19T21:54:40.758162900.png","id":"4"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T21:54:53.159829700.png","id":"5"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:05.662137600.png","id":"6"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:30.200976600.png","id":"7"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:49.105280400.png","id":"8"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T22:12:15.016607900.png","id":"9"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T22:12:48.981366100.png","id":"10"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T22:14:01.303129.png","id":"11"},
+//            {"filepath":"./resources/pictures/img_2023-12-19T22:20:59.605302.png","id":"12"},
+//            {"filepath":".\\resources\\pictures\\avatar01.png","id":"1"},
+//            {"filepath":".\\resources\\pictures\\avatar02.png","id":"2"},
+//            {"filepath":".\\resources\\pictures\\avatar03.png","id":"3"}
+//        ],
+//        "type":"ok"
+//    }
+//    """.trimIndent(),
+//            response.bodyAsText()
+//        )
+
+    }
+
 //    @Test
-//    fun `GET request to api-game-sessionId-mapId returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getSessionByID(any()) } returns SessionInfo(1u, 2u, true, Clock.System.now(), 0)
+//    fun `GET request to non-existing api-pictures-id returns 400 error`(): Unit = runBlocking {
+//        val requestBody = """{"id": -1000}"""
+//        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/pictures") {
+//            setBody(requestBody)
 //        }
-//
-//        val response: HttpResponse = client.get("/api/game/1/mapId")
-//
 //        assertEquals(HttpStatusCode.OK, response.status)
-//
 //        assertEquals(
-//            "{\"type\":\"ok\",\"result\":{\"id\":1,\"mapID\":2,\"active\":true,\"started\":\"${Clock.System.now()}\",\"prevCharacterId\":0}}",
+//            "{\"result\":[{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:40.758162900.png\",\"id\":\"4\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:53.159829700.png\",\"id\":\"5\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:05.662137600.png\",\"id\":\"6\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:30.200976600.png\",\"id\":\"7\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:49.105280400.png\",\"id\":\"8\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar01.png\",\"id\":\"1\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar02.png\",\"id\":\"2\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar03.png\",\"id\":\"3\"}],\"type\":\"ok\"}",
 //            response.bodyAsText()
 //        )
 //    }
-//
-//    @Test
-//    fun `GET request to non-existing api-game-sessionId-mapId returns 400 error`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getSessionByID(any()) } returns null
-//        }
-//
-//        val response: HttpResponse = client.get("/api/game/999/mapId")
-//
-//        assertEquals(HttpStatusCode.BadRequest, response.status)
-//
+
+    @Test
+    fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
+        val requestBody = """{"id": 1}"""
+        val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/pictures") {
+            setBody(requestBody)
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
 //        assertEquals(
-//            "{\"type\":\"error\",\"message\":\"Session #999 does not exist\"}",
+//            "{\"result\":{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:15.016607900.png\",\"id\":\"9\"},\"type\":\"ok\"}",
 //            response.bodyAsText()
 //        )
-//    }
-//
+    }
+
 //    @Test
-//    fun `GET request to api-pictures returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getAllPictures() } returns listOf(
-//                PictureInfo(1u, "./path/to/picture1.png"),
-//                PictureInfo(2u, "./path/to/picture2.png")
-//            )
-//        }
-//
-//        val response: HttpResponse = client.get("/api/pictures")
-//
-//        assertEquals(HttpStatusCode.OK, response.status)
-//
-//        assertEquals(
-//            "{\"type\":\"ok\",\"result\":[{\"id\":\"1\",\"filepath\":\"./path/to/picture1.png\"},{\"id\":\"2\",\"filepath\":\"./path/to/picture2.png\"}]}",
-//            response.bodyAsText()
-//        )
-//    }
-//
-//    @Test
-//    fun `GET request to api-pictures-id returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getPictureByID(any()) } returns PictureInfo(1u, ".\\pictures\\picture1.png")
-//        }
-//
-//        val response: HttpResponse = client.get("/api/pictures/1")
-//
-//        assertEquals(HttpStatusCode.OK, response.status)
-//
-//        assertEquals(
-//            "{\"type\":\"ok\",\"result\":{\"filepath\":\".\\\\pictures\\\\picture1.png\",\"id\":\"1\"}}",
-//            response.bodyAsText()
-//        )
-//    }
-//
-//    @Test
-//    fun `GET request to non-existing api-pictures-id returns 400 error`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getPictureByID(any()) } returns null
-//        }
-//
-//        val response: HttpResponse = client.get("/api/pictures/999")
-//
-//        assertEquals(HttpStatusCode.BadRequest, response.status)
-//
-//        assertEquals(
-//            "{\"type\":\"error\",\"message\":\"Picture #999 does not exist\"}",
-//            response.bodyAsText()
-//        )
-//    }
-//
-//    @Test
-//    fun `POST request to api-pictures returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { addPicture(any()) } returns PictureInfo(1u, ".\\pictures\\picture1.png")
-//        }
-//
-//        val response: HttpResponse = client.post("/api/pictures") {
-//            setBody("test image content")
-//        }
-//
-//        assertEquals(HttpStatusCode.OK, response.status)
-//
-//        assertEquals(
-//            "{\"type\":\"ok\",\"result\":{\"id\":\"1\",\"filepath\":\".\\\\pictures\\\\picture1.png\"}}",
-//            response.bodyAsText()
-//        )
-//    }
-//
-//    @Test
-//    fun `GET request to api-user returns expected response`() = testApplication {
-//        mockk<DBOperator> {
-//            every { getUserByID(any()) } returns UserInfo(1u, "testLogin", "test@email.ru", 1234567890, 1u)
-//        }
-//
+//    fun `GET request to api-user returns expected response`(): Unit = runBlocking {
 //        val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
-//
-//        val login: HttpResponse = client.post("/api/login") {
+//        val login: HttpResponse = HttpClient().post("/api/login") {
 //            setBody(loginBody)
 //        }
-//
-//        val token = JSONObject(login.bodyAsText()).get("result").toString()
-//
+//        assertEquals(HttpStatusCode.OK, login.status)
 //        val requestBody = """{"id": 1}"""
 //
-//        val response: HttpResponse = client.post("/api/user") {
-//            headers["Authorization"] = "Bearer $token"
+//        val response: HttpResponse = HttpClient().get("/api/user") {
 //            setBody(requestBody)
 //        }
 //
@@ -527,18 +475,16 @@ class HttpsTest {
 //            response.bodyAsText()
 //        )
 //    }
-//
+
+
 //    @Test
-//    fun `GET request to api-user returns error`() = testApplication {
-//        mockk<DBOperator> {
-//        }
-//
+//    fun `GET request to api-user returns error`(): Unit = runBlocking {
 //        val requestBody = """{"id": 1}"""
 //
-//        val response: HttpResponse = client.post("/api/user") {
-//            setBody(requestBody)
-//        }
+//        val response: HttpResponse = HttpClient().get("/api/user")
 //
 //        assertEquals(HttpStatusCode.Unauthorized, response.status)
 //    }
+//
+
 }
