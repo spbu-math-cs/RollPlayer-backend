@@ -1,4 +1,4 @@
-import db.*
+import io.ktor.server.netty.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -24,7 +24,7 @@ private fun createErrorResponseMessage(msg: String?) = mapOf(
 ).toString()
 
 class HttpsTest {
-
+    fun main(args: Array<String>): Unit = EngineMain.main(args)
     @Test
     fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
         val response = HttpClient().get("http://127.0.0.1:9999/api/textures")
