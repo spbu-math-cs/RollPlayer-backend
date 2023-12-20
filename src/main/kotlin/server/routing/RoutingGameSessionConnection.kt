@@ -1,5 +1,9 @@
 package server.routing
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.JWTVerificationException
 import db.BasicProperties
 import db.DBOperator
 import db.Map.Companion.Position
@@ -16,11 +20,31 @@ import server.utils.*
 
 const val DEFAULT_CHARACTER_NAME = "Dovahkiin"
 
-fun Route.gameSessionConnection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
-    authenticate("auth-jwt") {
+fun Route.gameSessionConnection(
+    activeSessions: MutableMap<UInt, ActiveSessionData>,
+    jwtVerifier: JWTVerifier
+) {
         webSocket("/api/user/sessions/{sessionId}/connect") {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal!!.payload.getClaim("id").asInt().toUInt()
+            val tokenFrame = incoming.receive() as? Frame.Text
+            if (tokenFrame == null) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "First message in WS must be a user token"))
+                return@webSocket
+            }
+
+            val token = tokenFrame.readText()
+            val decodedJWT = try {
+                jwtVerifier.verify(token)
+            } catch (e: JWTVerificationException) {
+                close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Can't accept token: $e"))
+                return@webSocket
+            }
+
+            val userId = try {
+                decodedJWT.getClaim("id").asInt().toUInt()
+            } catch (e: Exception) {
+                close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Can't accept token: $e"))
+                return@webSocket
+            }
 
             val sessionId = call.parameters["sessionId"]?.toUIntOrNull()
             if (sessionId == null) {
@@ -220,5 +244,4 @@ fun Route.gameSessionConnection(activeSessions: MutableMap<UInt, ActiveSessionDa
                 logger.info("Session #$sessionId for user #$userId: finish connection")
             }
         }
-    }
 }
