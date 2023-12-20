@@ -1,11 +1,13 @@
 package db
 
-import java.io.File
-import java.util.PriorityQueue
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.dao.*
-import org.jetbrains.exposed.dao.id.*
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.json.JSONObject
+import java.io.File
+import java.util.*
 
 object MapTable: IntIdTable("map", "map_id") {
     val pathToJson = varchar("path_to_json", pathLength).uniqueIndex()
