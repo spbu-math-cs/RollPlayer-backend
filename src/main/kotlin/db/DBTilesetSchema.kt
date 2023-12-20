@@ -1,7 +1,9 @@
 package db
 
-import org.jetbrains.exposed.dao.*
-import org.jetbrains.exposed.dao.id.*
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IntIdTable
 
 object TilesetTable: IntIdTable("tileset", "tileset_id") {
     val pathToJson = varchar("path_to_json", pathLength).uniqueIndex()

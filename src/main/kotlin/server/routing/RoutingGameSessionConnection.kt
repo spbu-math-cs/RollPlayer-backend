@@ -5,13 +5,14 @@ import com.auth0.jwt.exceptions.JWTVerificationException
 import db.BasicProperties
 import db.DBOperator
 import db.Map.Companion.Position
-
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
-import server.*
+import server.ActiveSessionData
+import server.Connection
+import server.logger
 import server.utils.*
 
 const val DEFAULT_CHARACTER_NAME = "Dovahkiin"

@@ -1,8 +1,5 @@
 package server
 
-import db.*
-import server.routing.*
-
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import db.DBOperator
@@ -19,9 +16,6 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.response.*
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import server.routing.*

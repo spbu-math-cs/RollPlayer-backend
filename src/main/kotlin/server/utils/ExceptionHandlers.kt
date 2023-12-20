@@ -1,13 +1,12 @@
 package server.utils
 
 import io.ktor.http.*
-import io.ktor.network.sockets.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import org.json.JSONObject
-import server.logger
 import server.Connection
+import server.logger
 
 suspend fun handleHTTPRequestException(
     call: ApplicationCall,
