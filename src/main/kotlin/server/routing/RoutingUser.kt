@@ -1,10 +1,8 @@
 package server.routing
 
-import server.*
-import db.DBOperator
-
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import db.DBOperator
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -18,6 +16,8 @@ import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import server.JWTParams
+import server.logger
 import server.utils.handleHTTPRequestException
 import java.util.*
 

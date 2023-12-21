@@ -2,7 +2,6 @@ package db
 
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlin.collections.Map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.dao.IntEntity
@@ -10,6 +9,7 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
+import kotlin.collections.Map
 
 object CharacterTable: IntIdTable("character", "character_id") {
     val sessionID = reference("session_id", SessionTable,

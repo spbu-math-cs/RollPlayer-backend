@@ -1,14 +1,13 @@
 package server.routing
 
 import db.DBOperator
-import server.*
-
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.json.JSONObject
+import server.logger
 import server.utils.handleHTTPRequestException
 import java.io.File
 

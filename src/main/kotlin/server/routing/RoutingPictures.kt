@@ -1,9 +1,6 @@
 package server.routing
 
 import db.DBOperator
-import server.logger
-import server.utils.handleHTTPRequestException
-
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -13,6 +10,8 @@ import io.ktor.server.routing.*
 import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import org.json.JSONObject
+import server.logger
+import server.utils.handleHTTPRequestException
 import java.io.File
 import java.time.LocalDateTime
 
@@ -57,7 +56,7 @@ fun Route.requestsPictures() {
     post("/api/pictures") {
         try {
             val dateTime = LocalDateTime.now().toString()
-            val filePath = "./resources/pictures/img_$dateTime.png";
+            val filePath = "./resources/pictures/img_$dateTime.png"
             val file = File(filePath)
             call.receiveChannel().copyAndClose(file.writeChannel())
 
