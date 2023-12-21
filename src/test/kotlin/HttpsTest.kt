@@ -32,7 +32,7 @@ class HttpsTest {
     fun `GET request to api-textures-id returns expected response`(): Unit = runBlocking {
         val response = HttpClient().get("http://127.0.0.1:9999/api/textures/1")
         assertEquals(HttpStatusCode.OK, response.status)
-//        val responseBody: ByteArray = response.body()
+        val responseBody: ByteArray = response.body()
 //        assertEquals(
 //            "[B@10641c09",
 //            responseBody.toString()
@@ -72,31 +72,16 @@ class HttpsTest {
         )
     }
 
-//    @Test
-//    fun `GET request to api-tilesets-id returns expected response`(): Unit = runBlocking {
-//        val response = HttpClient().get("http://127.0.0.1:9999/api/tilesets/1")
-//        assertEquals(HttpStatusCode.OK, response.status)
-//        val responseBody = response
-//        println (responseBody)
-//        assertEquals(
-//            """{
-//        "columns": 49,
-//        "image": "tileset_packed.png",
-//        "imageheight": 352,
-//        "imagewidth": 784,
-//        "margin": 0,
-//        "name": "tileset_packed",
-//        "spacing": 0,
-//        "tilecount": 1078,
-//        "tiledversion": "1.10.2",
-//        "tileheight": 16,
-//        "tilewidth": 16,
-//        "type": "tileset",
-//        "version": "1.10"
-//    }""",
-//            responseBody
-//        )
-//    }
+    @Test
+    fun `GET request to api-tilesets-id returns expected response`(): Unit = runBlocking {
+        val response = HttpClient().get("http://127.0.0.1:9999/api/tilesets/1")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val responseBody: String = response.bodyAsText()
+        assertEquals(
+            "{\"columns\": 49, \"image\": \"tileset_packed.png\", \"imageheight\": 352, \"imagewidth\": 784, \"margin\": 0, \"name\": \"tileset_packed\", \"spacing\": 0, \"tilecount\": 1078, \"tiledversion\": \"1.10.2\", \"tileheight\": 16, \"tilewidth\": 16, \"type\": \"tileset\", \"version\": \"1.10\"}".filter { !it.isWhitespace() },
+            responseBody.filter { !it.isWhitespace() }
+        )
+    }
 
     @Test
     fun `GET request to non-existing api-tilesets returns 400 error`(): Unit = runBlocking {
@@ -148,21 +133,22 @@ class HttpsTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
-            "{\"result\":[{\"avatarID\":null,\"id\":1,\"login\":\"newLogin\",\"email\":\"test1@email.ru\",\"passwordHash\":1173239797},{\"avatarID\":null,\"id\":2,\"login\":\"testLogin999\",\"email\":\"test999@email.ru\",\"passwordHash\":1190994742},{\"avatarID\":null,\"id\":3,\"login\":\"testLogin\",\"email\":\"test@email.ru\",\"passwordHash\":885373811}],\"type\":\"ok\"}",
+            "{\"result\":[{\"avatarID\":null,\"id\":1,\"login\":\"newLogin\",\"email\":\"test1@email.ru\",\"passwordHash\":1173239797},{\"avatarID\":null,\"id\":2,\"login\":\"testLogin999\",\"email\":\"test999@email.ru\",\"passwordHash\":1190994742},{\"avatarID\":null,\"id\":3,\"login\":\"testLogin\",\"email\":\"test@email.ru\",\"passwordHash\":885373811},{\"avatarID\":null,\"id\":4,\"login\":\"testLogin9999\",\"email\":\"test9999@email.ru\",\"passwordHash\":986307396}],\"type\":\"ok\"}",
             responseBody
         )
     }
 
+    // проходит нормально ровно один раз - когда впервые запускаешь и юзер создается
 //    @Test
 //    fun `POST request to api-register returns expected response`(): Unit = runBlocking {
-//        val requestBody = """{"login": "testLogin999", "email": "test999@email.ru", "password": "test999Password"}"""
+//        val requestBody = """{"login": "testLogin9999", "email": "test9999@email.ru", "password": "test9999Password"}"""
 //        val response = HttpClient().post("http://127.0.0.1:9999/api/register"){
 //            setBody(requestBody)
 //        }
 //        assertEquals(HttpStatusCode.Created, response.status)
 //        val responseBody: String = response.bodyAsText()
 //        assertEquals(
-//            "{\"result\":{\"avatarID\":null,\"id\":2,\"login\":\"testLogin999\",\"email\":\"test999@email.ru\",\"passwordHash\":1190994742},\"type\":\"ok\",\"message\":\"User 2 registered successfully\"}",
+//            "{\"result\":{\"avatarID\":null,\"id\":4,\"login\":\"testLogin9999\",\"email\":\"test9999@email.ru\",\"passwordHash\":986307396},\"type\":\"ok\",\"message\":\"User 4 registered successfully\"}",
 //            responseBody
 //        )
 //    }
@@ -405,25 +391,7 @@ class HttpsTest {
         }
         assertEquals(HttpStatusCode.OK, response.status)
 //        assertEquals(
-//            """
-//    {
-//        "result":[
-//            {"filepath":"./resources/pictures/img_2023-12-19T21:54:40.758162900.png","id":"4"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T21:54:53.159829700.png","id":"5"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:05.662137600.png","id":"6"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:30.200976600.png","id":"7"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T21:55:49.105280400.png","id":"8"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T22:12:15.016607900.png","id":"9"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T22:12:48.981366100.png","id":"10"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T22:14:01.303129.png","id":"11"},
-//            {"filepath":"./resources/pictures/img_2023-12-19T22:20:59.605302.png","id":"12"},
-//            {"filepath":".\\resources\\pictures\\avatar01.png","id":"1"},
-//            {"filepath":".\\resources\\pictures\\avatar02.png","id":"2"},
-//            {"filepath":".\\resources\\pictures\\avatar03.png","id":"3"}
-//        ],
-//        "type":"ok"
-//    }
-//    """.trimIndent(),
+//            "{\"result\":[{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:40.758162900.png\",\"id\":\"4\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:53.159829700.png\",\"id\":\"5\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:05.662137600.png\",\"id\":\"6\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:30.200976600.png\",\"id\":\"7\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:49.105280400.png\",\"id\":\"8\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:15.016607900.png\",\"id\":\"9\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:48.981366100.png\",\"id\":\"10\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:14:01.303129.png\",\"id\":\"11\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:20:59.605302.png\",\"id\":\"12\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:26:32.474949400.png\",\"id\":\"13\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:03:59.439532700.png\",\"id\":\"14\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:12:51.205454400.png\",\"id\":\"15\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:29:28.991237.png\",\"id\":\"16\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:29:58.590485700.png\",\"id\":\"17\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:32:24.953699900.png\",\"id\":\"18\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar01.png\",\"id\":\"1\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar02.png\",\"id\":\"2\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar03.png\",\"id\":\"3\"}],\"type\":\"ok\"}",
 //            response.bodyAsText()
 //        )
 
@@ -444,13 +412,14 @@ class HttpsTest {
 
     @Test
     fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
-        val requestBody = """{"id": 1}"""
+        //val requestBody = """{"id": 999}"""
+        val requestBody = "0x10, 0x10, 0x01, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff"
         val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/pictures") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.OK, response.status)
 //        assertEquals(
-//            "{\"result\":{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:15.016607900.png\",\"id\":\"9\"},\"type\":\"ok\"}",
+//            "{\"result\":{\"filepath\":\"./resources/pictures/img_2023-12-21T12:29:28.991237.png\",\"id\":\"16\"},\"type\":\"ok\"}",
 //            response.bodyAsText()
 //        )
     }
