@@ -18,7 +18,6 @@ private fun fromIntelligence(mul: Int, add: Int) = { bProps: BasicProperties -> 
 private fun fromWisdom(mul: Int, add: Int)       = { bProps: BasicProperties -> bProps.wisdom * mul + add }
 private fun fromCharisma(mul: Int, add: Int)     = { bProps: BasicProperties -> bProps.charisma * mul + add }
 
-// FIXME: подобрать адекватные коэффициенты и значения
 val characterPropertiesList: Map<String, (BasicProperties) -> Int> = mapOf(
     "MAX_HP" to fromConstitution(4, 32),
     "MAX_MP" to fromWisdom(5, 20),

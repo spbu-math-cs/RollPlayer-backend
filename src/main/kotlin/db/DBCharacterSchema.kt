@@ -69,12 +69,12 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
 
 @Serializable
 data class BasicProperties @OptIn(ExperimentalSerializationApi::class) constructor(
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val strength: Int = 0, // FIXME: значение по умолчанию 0 или нет??
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val dexterity: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val constitution: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val intelligence: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val wisdom: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val charisma: Int = 0
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val strength: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val dexterity: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val constitution: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val intelligence: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val wisdom: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val charisma: Int = 1,
 )
 
 @Serializable
