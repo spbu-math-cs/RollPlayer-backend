@@ -82,7 +82,11 @@ class ActiveSessionData(
             it.value.characters.forEach { characterId ->
                 val character = DBOperator.getCharacterByID(characterId)
                     ?: throw Exception("Character with ID $characterId does not exist")
+
                 showCharacter(character, connection, own)
+                if (character.isDefeated) {
+                    sendCharacterDefeatedStatusToConn(character, true, connection)
+                }
             }
         }
         logger.info("Session #$sessionId for user #$userId: show all active characters")
@@ -90,6 +94,9 @@ class ActiveSessionData(
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
                 addCharacter(it)
+                if (it.isDefeated) {
+                    sendCharacterDefeatedStatus(it, true)
+                }
             }
         } else {
             userData.characters.forEach {
@@ -431,6 +438,19 @@ class ActiveSessionData(
 
         val info = if (isDefeated) "defeat" else "revive"
         logger.info("Session #$sessionId for user #${character.userId}: $info character #${character.id}")
+    }
+
+    private suspend fun sendCharacterDefeatedStatusToConn(character: CharacterInfo, isDefeated: Boolean,
+                                                          connection: Connection) {
+        assert(character.isDefeated == isDefeated)
+
+        val message = JSONObject()
+            .put("type", "character:status")
+            .put("is_defeated", isDefeated)
+            .put("id", character.id.toLong())
+            .put("character", JSONObject(Json.encodeToString(character)))
+
+        sendSafety(connection.connection, message.toString())
     }
 
     suspend fun checkIfDefeated(characterId: UInt) {
