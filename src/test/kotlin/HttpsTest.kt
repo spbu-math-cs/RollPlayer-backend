@@ -132,7 +132,7 @@ class HttpsTest {
     @BeforeAll
     fun setUp() {
         engine = TestApplicationEngine(createTestEnvironment())
-        engine.start(wait = false)
+        engine.start(wait = true)
 
         // You may want to add some delay here to ensure that the server has started before running tests
         // Thread.sleep(2000)
