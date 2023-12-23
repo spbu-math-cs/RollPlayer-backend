@@ -48,21 +48,14 @@ private fun createErrorResponseMessage(msg: String?) = mapOf(
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class HttpsTest {
 
-    private lateinit var engine: TestApplicationEngine
-
     @BeforeAll
     fun setUp() {
-        val serverAddress = "http://127.0.0.1:1234"
-        embeddedServer(Netty, port = 1234) {
+        embeddedServer(Netty, port = 1234, host = "127.0.0.1") {
 
-        }.start(wait = true)
+        }.start(wait = false)
+
+        Thread.sleep(2000)
     }
-
-    @AfterAll
-    fun tearDown() {
-        engine.stop(1000, 2000)
-    }
-
 
     @Test
     fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
