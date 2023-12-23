@@ -100,6 +100,10 @@ fun Application.extractedT(jwtParams: JWTParams) {
 class HttpsTest {
     private val server: ApplicationEngine
     val config = HoconApplicationConfig(ConfigFactory.load())
+    val port = config.propertyOrNull("ktor.deployment.port")
+        ?.getString()?.toIntOrNull() ?: 1234
+    val host = config.propertyOrNull("ktor.deployment.host")
+        ?.getString() ?: "127.0.0.1"
     val secret = config.property("jwt.secret").getString()
     val issuer = config.property("jwt.issuer").getString()
     val audience = config.property("jwt.audience").getString()
