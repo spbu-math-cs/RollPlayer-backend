@@ -39,103 +39,23 @@ import io.ktor.server.testing.createTestEnvironment
 import io.ktor.server.testing.withApplication
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
+import kotlin.time.ExperimentalTime
 
 private fun createErrorResponseMessage(msg: String?) = mapOf(
     "type" to "error", "message" to msg
 ).toString()
 
-//fun Application.extractedT(jwtParams: JWTParams) {
-//
-//    install(ContentNegotiation) {
-//        json()
-//    }
-//    install(WebSockets) {
-//        contentConverter = KotlinxWebsocketSerializationConverter(Json)
-//        pingPeriod = Duration.ofSeconds(2)
-//        maxFrameSize = Long.MAX_VALUE
-//        masking = false
-//    }
-//    install(Authentication) {
-//        jwt ("auth-jwt") {
-//            realm = jwtParams.myRealm
-//            verifier(
-//                JWT
-//                    .require(Algorithm.HMAC256(jwtParams.secret))
-//                    .withAudience(jwtParams.audience)
-//                    .withIssuer(jwtParams.issuer)
-//                    .build())
-//            validate { credential ->
-//                if (credential.payload.getClaim("id").asString() != "" &&
-//                    credential.payload.getClaim("login").asString() != "" &&
-//                    (credential.expiresAt?.time?.minus(System.currentTimeMillis()) ?: 0) > 0
-//                ) {
-//                    JWTPrincipal(credential.payload)
-//                } else {
-//                    null
-//                }
-//            }
-//            challenge { _, _ ->
-//                call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
-//            }
-//        }
-//    }
-//
-//    val activeSessions = Collections.synchronizedMap<UInt, ActiveSessionData>(mutableMapOf())
-//
-//    DBOperator.connectOrCreate(true)
-//
-//    routing {
-//        staticFiles("", File("static"))
-//
-//        requestsUser(jwtParams)
-//        requestsMap()
-//        requestsPictures()
-//
-//        gameSession()
-//        gameSessionConnection(activeSessions)
-//    }
-//}
-//fun main() {
-//    embeddedServer(Netty, port = 8080) {
-//        extracted(JWTParams(secret, issuer, audience, myRealm))
-//
-//    }.start(wait = true)
-//}
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Ignore
 class HttpsTest {
 
-//    val config = HoconApplicationConfig(ConfigFactory.load())
-//    val secret = config.property("jwt.secret").getString()
-//    val issuer = config.property("jwt.issuer").getString()
-//    val audience = config.property("jwt.audience").getString()
-//    val myRealm = config.property("jwt.realm").getString()
-//    init {
-//        embeddedServer(Netty, port = 1234) {
-//            extractedT(JWTParams(secret, issuer, audience, myRealm))
-//
-//        }.start(wait = false)
-//    }
-//
-//    @BeforeAll
-//    fun setUp() {
-//        var engine = TestApplicationEngine(createTestEnvironment())
-//        engine.start(wait = false)
-//    }
-//    @AfterAll
-//    fun tearDown() {
-//        server.stop(1000, 2000)
-//    }
     private lateinit var engine: TestApplicationEngine
 
     @BeforeAll
     fun setUp() {
-        engine = TestApplicationEngine(createTestEnvironment())
-        engine.start(wait = true)
+        val serverAddress = "http://127.0.0.1:1234"
+        embeddedServer(Netty, port = 1234) {
 
-        // You may want to add some delay here to ensure that the server has started before running tests
-        // Thread.sleep(2000)
+        }.start(wait = true)
     }
 
     @AfterAll
@@ -143,9 +63,10 @@ class HttpsTest {
         engine.stop(1000, 2000)
     }
 
+
     @Test
     fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:9999/api/textures")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/textures")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody = response.body<String>()
         assertEquals(
