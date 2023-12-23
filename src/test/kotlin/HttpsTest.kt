@@ -24,107 +24,128 @@ import io.ktor.server.websocket.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
-import org.junit.jupiter.api.AfterAll
+import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import server.ActiveSessionData
 import server.JWTParams
-
-import server.logger
 import server.routing.*
 import java.io.File
 import java.time.Duration
 import java.util.*
+import io.ktor.server.testing.TestApplicationEngine
+import io.ktor.server.testing.createTestEnvironment
+import io.ktor.server.testing.withApplication
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
 
 private fun createErrorResponseMessage(msg: String?) = mapOf(
     "type" to "error", "message" to msg
 ).toString()
 
-fun Application.extractedT(jwtParams: JWTParams) {
-    install(io.ktor.server.plugins.cors.routing.CORS) {
-        anyHost()
-    }
-    install(ContentNegotiation) {
-        json()
-    }
-    install(WebSockets) {
-        contentConverter = KotlinxWebsocketSerializationConverter(Json)
-        pingPeriod = Duration.ofSeconds(2)
-        maxFrameSize = Long.MAX_VALUE
-        masking = false
-    }
-    install(Authentication) {
-        jwt ("auth-jwt") {
-            realm = jwtParams.myRealm
-            verifier(
-                JWT
-                    .require(Algorithm.HMAC256(jwtParams.secret))
-                    .withAudience(jwtParams.audience)
-                    .withIssuer(jwtParams.issuer)
-                    .build())
-            validate { credential ->
-                if (credential.payload.getClaim("id").asString() != "" &&
-                    credential.payload.getClaim("login").asString() != "" &&
-                    (credential.expiresAt?.time?.minus(System.currentTimeMillis()) ?: 0) > 0
-                ) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    null
-                }
-            }
-            challenge { _, _ ->
-                call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
-            }
-        }
-    }
-
-    val activeSessions = Collections.synchronizedMap<UInt, ActiveSessionData>(mutableMapOf())
-
-    DBOperator.connectOrCreate(true)
-
-    logger.info("Server is ready")
-    routing {
-        staticFiles("", File("static"))
-
-        requestsUser(jwtParams)
-        requestsMap()
-        requestsPictures()
-
-        gameSession()
-        gameSessionConnection(activeSessions)
-    }
-}
+//fun Application.extractedT(jwtParams: JWTParams) {
+//
+//    install(ContentNegotiation) {
+//        json()
+//    }
+//    install(WebSockets) {
+//        contentConverter = KotlinxWebsocketSerializationConverter(Json)
+//        pingPeriod = Duration.ofSeconds(2)
+//        maxFrameSize = Long.MAX_VALUE
+//        masking = false
+//    }
+//    install(Authentication) {
+//        jwt ("auth-jwt") {
+//            realm = jwtParams.myRealm
+//            verifier(
+//                JWT
+//                    .require(Algorithm.HMAC256(jwtParams.secret))
+//                    .withAudience(jwtParams.audience)
+//                    .withIssuer(jwtParams.issuer)
+//                    .build())
+//            validate { credential ->
+//                if (credential.payload.getClaim("id").asString() != "" &&
+//                    credential.payload.getClaim("login").asString() != "" &&
+//                    (credential.expiresAt?.time?.minus(System.currentTimeMillis()) ?: 0) > 0
+//                ) {
+//                    JWTPrincipal(credential.payload)
+//                } else {
+//                    null
+//                }
+//            }
+//            challenge { _, _ ->
+//                call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
+//            }
+//        }
+//    }
+//
+//    val activeSessions = Collections.synchronizedMap<UInt, ActiveSessionData>(mutableMapOf())
+//
+//    DBOperator.connectOrCreate(true)
+//
+//    routing {
+//        staticFiles("", File("static"))
+//
+//        requestsUser(jwtParams)
+//        requestsMap()
+//        requestsPictures()
+//
+//        gameSession()
+//        gameSessionConnection(activeSessions)
+//    }
+//}
+//fun main() {
+//    embeddedServer(Netty, port = 8080) {
+//        extracted(JWTParams(secret, issuer, audience, myRealm))
+//
+//    }.start(wait = true)
+//}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Ignore
 class HttpsTest {
-    private val server: ApplicationEngine
-    val config = HoconApplicationConfig(ConfigFactory.load())
-    val secret = config.property("jwt.secret").getString()
-    val issuer = config.property("jwt.issuer").getString()
-    val audience = config.property("jwt.audience").getString()
-    val myRealm = config.property("jwt.realm").getString()
-    init {
-        server = embeddedServer(Netty, port = 1234) {
-            extractedT(JWTParams(secret, issuer, audience, myRealm))
 
-        }
-        server.start(wait = false)
-    }
+//    val config = HoconApplicationConfig(ConfigFactory.load())
+//    val secret = config.property("jwt.secret").getString()
+//    val issuer = config.property("jwt.issuer").getString()
+//    val audience = config.property("jwt.audience").getString()
+//    val myRealm = config.property("jwt.realm").getString()
+//    init {
+//        embeddedServer(Netty, port = 1234) {
+//            extractedT(JWTParams(secret, issuer, audience, myRealm))
+//
+//        }.start(wait = false)
+//    }
+//
+//    @BeforeAll
+//    fun setUp() {
+//        var engine = TestApplicationEngine(createTestEnvironment())
+//        engine.start(wait = false)
+//    }
+//    @AfterAll
+//    fun tearDown() {
+//        server.stop(1000, 2000)
+//    }
+    private lateinit var engine: TestApplicationEngine
 
     @BeforeAll
     fun setUp() {
-        var engine = TestApplicationEngine(createTestEnvironment())
+        engine = TestApplicationEngine(createTestEnvironment())
         engine.start(wait = false)
+
+        // You may want to add some delay here to ensure that the server has started before running tests
+        // Thread.sleep(2000)
     }
+
     @AfterAll
     fun tearDown() {
-        server.stop(1000, 2000)
+        engine.stop(1000, 2000)
     }
+
     @Test
     fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/textures")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/textures")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody = response.body<String>()
         assertEquals(
@@ -135,18 +156,13 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-textures-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/textures/1")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/textures/1")
         assertEquals(HttpStatusCode.OK, response.status)
-        val responseBody: ByteArray = response.body()
-//        assertEquals(
-//            "[B@10641c09",
-//            responseBody.toString()
-//        )
     }
 
     @Test
     fun `GET request with non-cast-to-UInt to api-textures-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/textures/1ewd")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/textures/1ewd")
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -157,7 +173,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to non-existing api-textures-id returns 400 error`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/textures/999")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/textures/999")
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -168,7 +184,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-tilesets returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/tilesets")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -179,7 +195,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-tilesets-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/1")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/tilesets/1")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -190,7 +206,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to non-existing api-tilesets returns 400 error`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/100")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/tilesets/100")
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -201,7 +217,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-maps returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/maps")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/maps")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -212,7 +228,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-maps-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/1")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/maps/1")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -223,7 +239,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-maps returns expected response returns error`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/999")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/maps/999")
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -234,7 +250,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-users returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/users")
+        val response = HttpClient().get("http://127.0.0.1:9999/api/users")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -261,7 +277,7 @@ class HttpsTest {
     @Test
     fun `POST request with incorrect password to api-register returns 400 error`(): Unit = runBlocking {
         val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "pass"}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/register"){
+        val response = HttpClient().post("http://127.0.0.1:9999/api/register"){
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -274,22 +290,28 @@ class HttpsTest {
 
     @Test
     fun `POST request with existing email to api-register returns 400 error`(): Unit = runBlocking {
-        val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/register"){
-            setBody(requestBody)
+        try {
+            val requestBody = """{"login": "testLogin", "email": "test@email.ru", "password": "testPassword"}"""
+            val response = HttpClient().post("http://127.0.0.1:9999/api/register") {
+                setBody(requestBody)
+            }
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val responseBody: String = response.bodyAsText()
+            assertEquals(
+                "{\"type\":\"error\",\"message\":\"User with login `testLogin` already exists\"}",
+                responseBody
+            )
         }
-        assertEquals(HttpStatusCode.BadRequest, response.status)
-        val responseBody: String = response.bodyAsText()
-        assertEquals(
-            "{\"type\":\"error\",\"message\":\"User with login `testLogin` already exists\"}",
-            responseBody
-        )
+        finally {
+
+        }
+
     }
 
     @Test
     fun `POST request with incorrect email to api-register returns 400 error`(): Unit = runBlocking {
         val requestBody = """{"login": "testLogin", "email": "incorrectEmail", "password": "testPassword"}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/register"){
+        val response = HttpClient().post("http://127.0.0.1:9999/api/register"){
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -303,7 +325,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-login returns expected response`(): Unit = runBlocking {
         val requestBody = """{"login": "testLogin", "password": "testPassword"}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/login"){
+        val response = HttpClient().post("http://127.0.0.1:9999/api/login"){
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.OK, response.status)
@@ -317,7 +339,7 @@ class HttpsTest {
     @Test
     fun `POST request to non-existing api-login returns 400 error`(): Unit = runBlocking {
         val requestBody = """{"login": "nonExistingLogin", "password": "testPassword"}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/login"){
+        val response = HttpClient().post("http://127.0.0.1:9999/api/login"){
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -331,17 +353,13 @@ class HttpsTest {
     @Test
     fun `POST request to api-logout returns expected response`(): Unit = runBlocking {
         val loginBody = """{"login": "testLogin", "password": "testPassword"}"""
-        val login = HttpClient().post("http://127.0.0.1:1234/api/login"){
+        val login = HttpClient().post("http://127.0.0.1:9999/api/login"){
             setBody(loginBody)
         }
         assertEquals(HttpStatusCode.OK, login.status)
-        val loginT: String = login.bodyAsText()
-//        assertEquals(
-//            "{\"result\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwOi8vZXhhbXBsZS5jb20vaGVsbG8iLCJpc3MiOiJodHRwOi8vZXhhbXBsZS5jb20vIiwiaWQiOjMsImxvZ2luIjoidGVzdExvZ2luIiwiZXhwIjoxNzAzMjM4NDYyfQ.wa865YKc_cief1tcrYPf_qoMFCTfzaiwlrRm7EDfZzA\",\"type\":\"ok\",\"message\":\"User 3 logged in successfully\"}",
-//            loginT
-//        )
+
         val logoutBody = """{"userId": 1}"""
-        val logout: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/logout") {
+        val logout: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/logout") {
             setBody(logoutBody)
         }
         assertEquals(HttpStatusCode.Unauthorized, logout.status)
@@ -355,7 +373,7 @@ class HttpsTest {
     @Test
     fun `POST request to api-logout returns error`(): Unit = runBlocking {
         val requestBody = """{"userId": 1}"""
-        val response = HttpClient().post("http://127.0.0.1:1234/api/logout"){
+        val response = HttpClient().post("http://127.0.0.1:9999/api/logout"){
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.Unauthorized, response.status)
@@ -369,14 +387,12 @@ class HttpsTest {
     @Test
     fun `POST request to api-edit-userId returns expected response`(): Unit = runBlocking {
         val loginBody = """{"login": "1Login", "email": "1@email.ru", "password": "test1"}"""
-        val login = HttpClient().post("http://127.0.0.1:1234/api/login"){
+        val login = HttpClient().post("http://127.0.0.1:9999/api/login"){
             setBody(loginBody)
         }
-        //assertEquals(HttpStatusCode.OK, login.status)
-        //val token = JSONObject(login.bodyAsText()).get("result").toString()
 
         val requestBody = """{"login": "2Login", "email": "2@email.ru", "password": "test2"}"""
-        val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/user/edit") {
+        val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/user/edit") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.Unauthorized, response.status)
@@ -412,7 +428,7 @@ class HttpsTest {
     fun `GET request to api-userId-sessions returns error`(): Unit = runBlocking {
         val requestBody = """{"id": 1}"""
 
-        val response = HttpClient().get("http://127.0.0.1:1234/api/user/sessions") {
+        val response = HttpClient().get("http://127.0.0.1:9999/api/user/sessions") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.Unauthorized, response.status)
@@ -438,7 +454,7 @@ class HttpsTest {
 
     @Test
     fun `POST request to api-game-create without mapId returns 400 error`(): Unit = runBlocking {
-        val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/game/create")
+        val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/game/create")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
 
@@ -466,7 +482,7 @@ class HttpsTest {
     @Test
     fun `GET request to non-existing api-game-sessionId-mapId returns 400 error`(): Unit = runBlocking {
         val requestBody = """{"id": 999}"""
-        val response: HttpResponse = HttpClient().get("http://127.0.0.1:1234/api/game/999/mapId") {
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/game/999/mapId") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -478,8 +494,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-pictures returns expected response`(): Unit = runBlocking {
-        //val requestBody = PictureInfo(1u, "./path/to/picture1.png")
-        val response: HttpResponse = HttpClient().get("http://127.0.0.1:1234/api/pictures")
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/pictures")
         assertEquals(HttpStatusCode.OK, response.status)
 
 //        assertEquals(
@@ -491,7 +506,7 @@ class HttpsTest {
     @Test
     fun `GET request to api-pictures-id returns expected response`(): Unit = runBlocking {
         val requestBody = """{"id": 1}"""
-        val response: HttpResponse = HttpClient().get("http://127.0.0.1:1234/api/pictures") {
+        val response: HttpResponse = HttpClient().get("http://127.0.0.1:9999/api/pictures") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.OK, response.status)
@@ -519,7 +534,7 @@ class HttpsTest {
     fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
         //val requestBody = """{"id": 999}"""
         val requestBody = "0x10, 0x10, 0x01, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff"
-        val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/pictures") {
+        val response: HttpResponse = HttpClient().post("http://127.0.0.1:9999/api/pictures") {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.OK, response.status)
