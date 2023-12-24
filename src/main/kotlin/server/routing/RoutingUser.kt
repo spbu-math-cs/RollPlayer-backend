@@ -161,8 +161,12 @@ fun Route.requestsUser(jwtParams: JWTParams){
                     logger.info("Password for User $userId edit successfully")
                 }
                 if (data.has("avatarId")) {
-                    val newAvatarId = data.getInt("avatarId").toUInt()
-                    DBOperator.updateUserAvatar(userId, newAvatarId)
+                    if (data.isNull("avatarId")) {
+                        DBOperator.updateUserAvatar(userId, null)
+                    } else {
+                        val newAvatarId = data.getInt("avatarId").toUInt()
+                        DBOperator.updateUserAvatar(userId, newAvatarId)
+                    }
                     logger.info("Avatar for User $userId edit successfully")
                 }
 
