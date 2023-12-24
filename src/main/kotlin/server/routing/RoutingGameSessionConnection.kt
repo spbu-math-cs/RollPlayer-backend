@@ -153,6 +153,7 @@ fun Route.gameSessionConnection(
 
                                 session.moveCharacter(newCharacter)
                                 session.checkIfDefeated(character.id)
+                                session.updateActionProperties()
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:move", e)
                             } catch (e: MoveException) {
@@ -195,6 +196,7 @@ fun Route.gameSessionConnection(
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
                                 session.checkIfDefeated(character.id)
                                 session.checkIfDefeated(opponent.id)
+                                session.updateActionProperties()
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:attack", e)
                             } catch (e: AttackException) {
@@ -214,6 +216,7 @@ fun Route.gameSessionConnection(
                                 if (characterAfterRevival != null) {
                                     session.sendCharacterDefeatedStatus(characterAfterRevival, false)
                                 }
+
                                 session.updateActionProperties()
                             } catch (e: ReviveException) {
                                 sendReviveExceptionReason(conn, e)
