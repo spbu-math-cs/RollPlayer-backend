@@ -40,7 +40,7 @@ You can click on an eye near the name of a layer in the 'Layers' box to hide all
 
 ## Saving your map
 
-To use your map in RollPlayer, you need it to be saved in the JSON format. Choose 'JSON map files (*.tmj, *.json)' in the save box. Then, for the map to appear in the game, you need move it to `resources/maps/` subfolder of the app server's folder and launch the server locally. If you were using a custom tileset/texture for your map, you should also move them to `resources/tilesets/` and `resources/textures/`, respectively. You can also email us at `TODO`@mail.ru and request adding your map to the global server.
+To use your map in RollPlayer, you need it to be saved in the JSON format. Choose 'JSON map files (*.tmj, *.json)' in the save box. Then, for the map to appear in the game, you need move it to `resources/maps/` subfolder of the app server's folder and launch the server locally. If you were using a custom tileset/texture for your map, you should also move them to `resources/tilesets/` and `resources/textures/`, respectively. You can also contact us at Telegram: ([@IDKWNTC](https://t.me/IDKWNTC), [@graphtreeheap](https://t.me/graphtreeheap)),  and request adding your map to the global server.
 
 ## More at...
 
