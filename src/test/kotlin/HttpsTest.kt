@@ -134,27 +134,11 @@ class HttpsTest {
         server.stop(1000, 2000)
         DBOperator.deleteDatabase()
     }
-//    @Test
-//    fun `GET request to api-textures returns expected response`(): Unit = runBlocking {
-//        val response = HttpClient().get("http://127.0.0.1:1234/api/textures")
-//        assertEquals(HttpStatusCode.OK, response.status)
-//        val responseBody = response.body<String>()
-//        assertEquals(
-//            "{\"result\":[{\"filepath\":\".\\\\resources\\\\textures\\\\tileset_packed.png\",\"id\":\"1\"},{\"filepath\":\".\\\\resources\\\\textures\\\\tileset_packed_plus.png\",\"id\":\"2\"}],\"type\":\"ok\"}",
-////            """{"result":[{"filepath":"./resources/textures/tileset_packed.png","id":"2"},{"filepath":"./resources/textures/tileset_packed_plus.png","id":"1"}],"type":"ok"}""",
-//            responseBody
-//        )
-//    }
 
     @Test
     fun `GET request to api-textures-id returns expected response`(): Unit = runBlocking {
         val response = HttpClient().get("http://127.0.0.1:1234/api/textures/1")
         assertEquals(HttpStatusCode.OK, response.status)
-        val responseBody: ByteArray = response.body()
-//        assertEquals(
-//            "[B@10641c09",
-//            responseBody.toString()
-//        )
     }
 
     @Test
@@ -256,7 +240,6 @@ class HttpsTest {
         )
     }
 
-    // проходит нормально ровно один раз - когда впервые запускаешь и юзер создается
     @Test
     fun `POST request to api-register returns expected response`(): Unit = runBlocking {
         val requestBody = """{"login": "testLogin9999", "email": "test9999@email.ru", "password": "test9999Password"}"""
@@ -351,11 +334,7 @@ class HttpsTest {
             setBody(loginBody)
         }
         assertEquals(HttpStatusCode.OK, login.status)
-        val loginT: String = login.bodyAsText()
-//        assertEquals(
-//            "{\"result\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwOi8vZXhhbXBsZS5jb20vaGVsbG8iLCJpc3MiOiJodHRwOi8vZXhhbXBsZS5jb20vIiwiaWQiOjMsImxvZ2luIjoidGVzdExvZ2luIiwiZXhwIjoxNzAzMjM4NDYyfQ.wa865YKc_cief1tcrYPf_qoMFCTfzaiwlrRm7EDfZzA\",\"type\":\"ok\",\"message\":\"User 3 logged in successfully\"}",
-//            loginT
-//        )
+
         val logoutBody = """{"userId": 1}"""
         val logout: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/logout") {
             setBody(logoutBody)
@@ -388,9 +367,6 @@ class HttpsTest {
         val login = HttpClient().post("http://127.0.0.1:1234/api/login"){
             setBody(loginBody)
         }
-        //assertEquals(HttpStatusCode.OK, login.status)
-//        val token = JSONObject(login.bodyAsText()).get("result").toString()
-
         val requestBody = """{"login": "testLogin2", "email": "1@email.ru", "password": "testPassword"}"""
         val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/user/edit") {
             setBody(requestBody)
@@ -483,14 +459,9 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-pictures returns expected response`(): Unit = runBlocking {
-        //val requestBody = PictureInfo(1u, "./path/to/picture1.png")
         val response: HttpResponse = HttpClient().get("http://127.0.0.1:1234/api/pictures")
         assertEquals(HttpStatusCode.OK, response.status)
 
-//        assertEquals(
-//            "{\"result\":{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:49.105280400.png\",\"id\":\"8\"},\"type\":\"ok\"}",
-//            response.bodyAsText()
-//        )
     }
 
     @Test
@@ -500,17 +471,12 @@ class HttpsTest {
             setBody(requestBody)
         }
         assertEquals(HttpStatusCode.OK, response.status)
-//        assertEquals(
-//            "{\"result\":[{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:40.758162900.png\",\"id\":\"4\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:54:53.159829700.png\",\"id\":\"5\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:05.662137600.png\",\"id\":\"6\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:30.200976600.png\",\"id\":\"7\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T21:55:49.105280400.png\",\"id\":\"8\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:15.016607900.png\",\"id\":\"9\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:12:48.981366100.png\",\"id\":\"10\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:14:01.303129.png\",\"id\":\"11\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:20:59.605302.png\",\"id\":\"12\"},{\"filepath\":\"./resources/pictures/img_2023-12-19T22:26:32.474949400.png\",\"id\":\"13\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:03:59.439532700.png\",\"id\":\"14\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:12:51.205454400.png\",\"id\":\"15\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:29:28.991237.png\",\"id\":\"16\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:29:58.590485700.png\",\"id\":\"17\"},{\"filepath\":\"./resources/pictures/img_2023-12-21T12:32:24.953699900.png\",\"id\":\"18\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar01.png\",\"id\":\"1\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar02.png\",\"id\":\"2\"},{\"filepath\":\".\\\\resources\\\\pictures\\\\avatar03.png\",\"id\":\"3\"}],\"type\":\"ok\"}",
-//            response.bodyAsText()
-//        )
 
     }
 
 
     @Test
     fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
-        //val requestBody = """{"id": 999}"""
         val requestBody = "0x10, 0x10, 0x01, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff"
         val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/pictures") {
             setBody(requestBody)
@@ -524,7 +490,6 @@ class HttpsTest {
         val login: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/login") {
             setBody(loginBody)
         }
-//        assertEquals(HttpStatusCode.OK, login.status)
         val requestBody = """{"id": 1}"""
 
         val token = JSONObject(login.bodyAsText()).get("result").toString()
@@ -533,8 +498,6 @@ class HttpsTest {
             headers["Authorization"] = "Bearer $token"
             setBody(requestBody)
         }
-
-//        assertEquals(HttpStatusCode.OK, response.status)
 
         assertEquals(
             "Get userdata successfully",
