@@ -213,8 +213,6 @@ class ActiveSessionData(
         }
         logger.info("Session #$sessionId for user #${character.userId}: " +
                 "move character #${character.id} to (${character.row}, ${character.col})")
-
-        updateActionProperties()
     }
 
     suspend fun attackOneWithoutCounterAttack(characterId: UInt, opponentId: UInt, type: String) {
@@ -231,8 +229,6 @@ class ActiveSessionData(
         }
         logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " + type +
             " attack from character #$characterId to character #$opponentId")
-
-        updateActionProperties()
     }
 
     fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
