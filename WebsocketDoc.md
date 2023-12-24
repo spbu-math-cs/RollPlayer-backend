@@ -148,6 +148,18 @@ Handling exceptions related to WebSocket communication.
 
 ### Regular error messages
 
+#### New
+Handling exceptions related to character creation during WebSocket communication
+
+```
+{
+  "type": "error",
+  "on": "character:new",
+  "reason": "tile_obstacle"
+  "message": <String>
+}
+```
+
 #### Action
 Handling exceptions related to not defeated character actions during WebSocket communication
 
