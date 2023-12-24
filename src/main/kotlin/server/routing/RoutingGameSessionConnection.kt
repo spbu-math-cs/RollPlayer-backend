@@ -111,6 +111,8 @@ fun Route.gameSessionConnection(
                                 )
 
                                 session.addCharacter(character)
+                            } catch (e: CreationException) {
+                                sendCreationExceptionReason(conn, e)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:new", e)
                             }

@@ -292,7 +292,7 @@ class ActiveSessionData(
 
     fun validateTile(pos: Position) {
         if (map.isObstacleTile(pos))
-            throw Exception("Target tile is obstacle")
+            throw CreationException(CreationFailReason.TileObstacle, "Target tile is obstacle")
     }
 
     fun validateMoveCharacter(character: CharacterInfo, pos: Position) {
