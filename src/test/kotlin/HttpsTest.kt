@@ -45,24 +45,30 @@ fun Application.extractedT(jwtParams: JWTParams) {
     install(io.ktor.server.plugins.cors.routing.CORS) {
         anyHost()
     }
+
     install(ContentNegotiation) {
         json()
     }
+
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
         pingPeriod = Duration.ofSeconds(2)
         maxFrameSize = Long.MAX_VALUE
         masking = false
     }
+
+    val jwtVerifier = JWT
+        .require(Algorithm.HMAC256(jwtParams.secret))
+        .withAudience(jwtParams.audience)
+        .withIssuer(jwtParams.issuer)
+        .build()
+
     install(Authentication) {
         jwt ("auth-jwt") {
             realm = jwtParams.myRealm
-            verifier(
-                JWT
-                    .require(Algorithm.HMAC256(jwtParams.secret))
-                    .withAudience(jwtParams.audience)
-                    .withIssuer(jwtParams.issuer)
-                    .build())
+
+            verifier(jwtVerifier)
+
             validate { credential ->
                 if (credential.payload.getClaim("id").asString() != "" &&
                     credential.payload.getClaim("login").asString() != "" &&
@@ -73,6 +79,7 @@ fun Application.extractedT(jwtParams: JWTParams) {
                     null
                 }
             }
+
             challenge { _, _ ->
                 call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
             }
@@ -92,8 +99,9 @@ fun Application.extractedT(jwtParams: JWTParams) {
         requestsPictures()
 
         gameSession()
-        gameSessionConnection(activeSessions)
+        gameSessionConnection(activeSessions, jwtVerifier)
     }
+
 }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
