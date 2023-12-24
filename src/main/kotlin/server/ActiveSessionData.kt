@@ -21,10 +21,10 @@ import kotlin.reflect.full.memberProperties
 const val initPrevCharacterId: Int = -1
 
 class ActiveSessionData(
-    val sessionId: UInt,
-    val mapId: UInt,
-    val started: Instant,
-    var actionProperties: ActionProperties = ActionProperties(),
+    private val sessionId: UInt,
+    private val mapId: UInt,
+    private val started: Instant,
+    private var actionProperties: ActionProperties = ActionProperties(),
     val activeUsers: MutableMap<UInt, UserData> = Collections.synchronizedMap(mutableMapOf())
 ) {
     data class UserData(
@@ -45,7 +45,7 @@ class ActiveSessionData(
         ActionProperties(AtomicInteger(sessionInfo.prevCharacterId))
     )
 
-    fun toJson(): String {
+    private fun toJson(): String {
         val json = JSONObject()
             .put("sessionId", sessionId)
             .put("mapId", mapId)
@@ -63,6 +63,9 @@ class ActiveSessionData(
         )
     }
 
+    val map = DBOperator.getMapByID(mapId)?.load()
+        ?: throw Exception("Map #$mapId does not exist")
+
     suspend fun startConnection(userId: UInt, connection: Connection) {
         sendSafety(connection.connection, toJson())
 
@@ -79,7 +82,11 @@ class ActiveSessionData(
             it.value.characters.forEach { characterId ->
                 val character = DBOperator.getCharacterByID(characterId)
                     ?: throw Exception("Character with ID $characterId does not exist")
+
                 showCharacter(character, connection, own)
+                if (character.isDefeated) {
+                    sendCharacterDefeatedStatusToConn(character, true, connection)
+                }
             }
         }
         logger.info("Session #$sessionId for user #$userId: show all active characters")
@@ -87,6 +94,9 @@ class ActiveSessionData(
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
                 addCharacter(it)
+                if (it.isDefeated) {
+                    sendCharacterDefeatedStatus(it, true)
+                }
             }
         } else {
             userData.characters.forEach {
@@ -281,15 +291,11 @@ class ActiveSessionData(
     }
 
     fun validateTile(pos: Position) {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         if (map.isObstacleTile(pos))
-            throw Exception("Target tile is obstacle")
+            throw CreationException(CreationFailReason.TileObstacle, "Target tile is obstacle")
     }
 
     fun validateMoveCharacter(character: CharacterInfo, pos: Position) {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         if (map.isObstacleTile(pos))
             throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
 
@@ -299,8 +305,6 @@ class ActiveSessionData(
     }
 
     fun processTileEffects(characterId: UInt, pos: Position): CharacterInfo {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
         val healthUpdate = map.getTileHealthUpdate(pos)
         val manaUpdate = map.getTileManaUpdate(pos)
 
@@ -434,6 +438,19 @@ class ActiveSessionData(
 
         val info = if (isDefeated) "defeat" else "revive"
         logger.info("Session #$sessionId for user #${character.userId}: $info character #${character.id}")
+    }
+
+    private suspend fun sendCharacterDefeatedStatusToConn(character: CharacterInfo, isDefeated: Boolean,
+                                                          connection: Connection) {
+        assert(character.isDefeated == isDefeated)
+
+        val message = JSONObject()
+            .put("type", "character:status")
+            .put("is_defeated", isDefeated)
+            .put("id", character.id.toLong())
+            .put("character", JSONObject(Json.encodeToString(character)))
+
+        sendSafety(connection.connection, message.toString())
     }
 
     suspend fun checkIfDefeated(characterId: UInt) {

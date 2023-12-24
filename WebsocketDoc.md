@@ -68,12 +68,12 @@ CharacterInfo:
     "isDefeated": <Boolean>
     "basicProperties": 
         {
-          "strength": <Int, 0 = default>,
-          "dexterity": <Int, 0 = default>,
-          "constitution": <Int, 0 = default>,
-          "intelligence": <Int, 0 = default>,
-          "wisdom": <Int, 0 = default>,
-          "charisma": <Int, 0 = default>
+          "strength": <Int, 1 = default>,
+          "dexterity": <Int, 1 = default>,
+          "constitution": <Int, 1 = default>,
+          "intelligence": <Int, 1 = default>,
+          "wisdom": <Int, 1 = default>,
+          "charisma": <Int, 1 = default>
         }
     "properties": [
         {
@@ -147,6 +147,18 @@ Handling exceptions related to WebSocket communication.
 ```
 
 ### Regular error messages
+
+#### New
+Handling exceptions related to character creation during WebSocket communication
+
+```
+{
+  "type": "error",
+  "on": "character:new",
+  "reason": "tile_obstacle"
+  "message": <String>
+}
+```
 
 #### Action
 Handling exceptions related to not defeated character actions during WebSocket communication

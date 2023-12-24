@@ -1,5 +1,13 @@
 package server.utils
 
+enum class CreationFailReason(val str: String) {
+    TileObstacle("tile_obstacle")
+}
+
+class CreationException(reason: CreationFailReason, message:String): Exception(message) {
+    val reason by lazy { reason }
+}
+
 enum class ActionFailReason(val str: String) {
     NotYourTurn("not_your_turn"),
     IsDefeated("is_defeated")

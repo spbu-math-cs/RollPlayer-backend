@@ -29,8 +29,7 @@ val exposedVersion = "0.40.1"
 val junitVersion = "5.7.0"
 
 dependencies {
-    runtimeOnly(group= "ch.qos.logback", name = "logback-classic", version =  "1.2.6" )
-//    runtimeOnly("org.slf4j:slf4j-simple:1.7.32")
+    runtimeOnly(group = "ch.qos.logback", name = "logback-classic", version = "1.2.6")
 
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
@@ -55,7 +54,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
 
-    // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.214")
     implementation("io.mockk:mockk:1.12.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
@@ -63,7 +61,6 @@ dependencies {
     implementation ("io.github.microutils:kotlin-logging-jvm:2.0.11")
 
 }
-
 
 tasks.test {
     useJUnitPlatform()

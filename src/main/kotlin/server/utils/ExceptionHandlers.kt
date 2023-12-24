@@ -1,13 +1,12 @@
 package server.utils
 
 import io.ktor.http.*
-import io.ktor.network.sockets.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.response.*
 import org.json.JSONObject
-import server.logger
 import server.Connection
+import server.logger
 
 suspend fun handleHTTPRequestException(
     call: ApplicationCall,
@@ -33,6 +32,20 @@ suspend fun handleWebsocketIncorrectMessage(
     sendSafety(connection.connection, JSONObject(mapOf(
         "type" to "error",
         "on" to on,
+        "message" to e.message.orEmpty()
+    )).toString())
+}
+
+suspend fun sendCreationExceptionReason(
+    connection: Connection,
+    e: CreationException
+) {
+    logger.info("Session #${connection.sessionId} for user #${connection.userId}: " +
+            "failed character:new because of ${e.reason.str}")
+    sendSafety(connection.connection, JSONObject(mapOf(
+        "type" to "error",
+        "on" to "character:new",
+        "reason" to e.reason.str,
         "message" to e.message.orEmpty()
     )).toString())
 }

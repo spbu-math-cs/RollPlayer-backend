@@ -1,28 +1,27 @@
 package server
 
-import db.*
-import server.routing.*
-
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import db.DBOperator
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.response.*
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
+import server.routing.*
 import java.io.File
 import java.time.Duration
 import java.util.*
-import mu.KotlinLogging
 
 val logger = KotlinLogging.logger {}
 
@@ -53,24 +52,30 @@ private fun Application.extracted(jwtParams: JWTParams) {
     install(io.ktor.server.plugins.cors.routing.CORS) {
         anyHost()
     }
+
     install(ContentNegotiation) {
         json()
     }
+
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
         pingPeriod = Duration.ofSeconds(2)
         maxFrameSize = Long.MAX_VALUE
         masking = false
     }
+
+    val jwtVerifier = JWT
+        .require(Algorithm.HMAC256(jwtParams.secret))
+        .withAudience(jwtParams.audience)
+        .withIssuer(jwtParams.issuer)
+        .build()
+
     install(Authentication) {
         jwt ("auth-jwt") {
             realm = jwtParams.myRealm
-            verifier(
-                JWT
-                .require(Algorithm.HMAC256(jwtParams.secret))
-                .withAudience(jwtParams.audience)
-                .withIssuer(jwtParams.issuer)
-                .build())
+
+            verifier(jwtVerifier)
+
             validate { credential ->
                 if (credential.payload.getClaim("id").asString() != "" &&
                     credential.payload.getClaim("login").asString() != "" &&
@@ -81,6 +86,7 @@ private fun Application.extracted(jwtParams: JWTParams) {
                     null
                 }
             }
+
             challenge { _, _ ->
                 call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
             }
@@ -100,6 +106,6 @@ private fun Application.extracted(jwtParams: JWTParams) {
         requestsPictures()
 
         gameSession()
-        gameSessionConnection(activeSessions)
+        gameSessionConnection(activeSessions, jwtVerifier)
     }
 }
