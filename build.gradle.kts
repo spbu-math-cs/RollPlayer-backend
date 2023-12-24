@@ -33,6 +33,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+    testImplementation("io.ktor:ktor-client-content-negotiation:2.1.1")
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
@@ -42,7 +43,7 @@ dependencies {
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
     implementation("io.ktor:ktor-server-auth:$ktorVersion")
     implementation("io.ktor:ktor-server-auth-jwt:$ktorVersion")
-    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:2.1.1")
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
@@ -54,13 +55,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
 
     implementation("com.h2database:h2:2.1.214")
+    implementation("io.mockk:mockk:1.12.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.5")
     implementation("org.json:json:20230618")
     implementation ("io.github.microutils:kotlin-logging-jvm:2.0.11")
+
 }
 
 tasks.test {
     useJUnitPlatform()
-    include("HttpServerTest.*")
+    include("HttpsTest.*")
 }
 
 tasks.withType<Jar> {
