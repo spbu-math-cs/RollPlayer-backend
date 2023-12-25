@@ -2,7 +2,6 @@ package db
 
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlin.collections.Map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.dao.IntEntity
@@ -10,6 +9,7 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
+import kotlin.collections.Map
 
 object CharacterTable: IntIdTable("character", "character_id") {
     val sessionID = reference("session_id", SessionTable,
@@ -69,12 +69,12 @@ class CharacterData(id: EntityID<Int>): IntEntity(id) {
 
 @Serializable
 data class BasicProperties @OptIn(ExperimentalSerializationApi::class) constructor(
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val strength: Int = 0, // FIXME: значение по умолчанию 0 или нет??
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val dexterity: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val constitution: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val intelligence: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val wisdom: Int = 0,
-    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val charisma: Int = 0
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val strength: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val dexterity: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val constitution: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val intelligence: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val wisdom: Int = 1,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS) val charisma: Int = 1,
 )
 
 @Serializable

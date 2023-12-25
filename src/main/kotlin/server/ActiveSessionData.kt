@@ -1,5 +1,6 @@
 package server
 
+import db.BasicProperties
 import db.CharacterInfo
 import db.DBOperator
 import db.Map.Companion.Position
@@ -15,14 +16,15 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.random.Random
+import kotlin.reflect.full.memberProperties
 
 const val initPrevCharacterId: Int = -1
 
 class ActiveSessionData(
-    val sessionId: UInt,
-    val mapId: UInt,
-    val started: Instant,
-    var actionProperties: ActionProperties = ActionProperties(),
+    private val sessionId: UInt,
+    private val mapId: UInt,
+    private val started: Instant,
+    private var actionProperties: ActionProperties = ActionProperties(),
     val activeUsers: MutableMap<UInt, UserData> = Collections.synchronizedMap(mutableMapOf())
 ) {
     data class UserData(
@@ -43,7 +45,7 @@ class ActiveSessionData(
         ActionProperties(AtomicInteger(sessionInfo.prevCharacterId))
     )
 
-    fun toJson(): String {
+    private fun toJson(): String {
         val json = JSONObject()
             .put("sessionId", sessionId)
             .put("mapId", mapId)
@@ -61,6 +63,9 @@ class ActiveSessionData(
         )
     }
 
+    val map = DBOperator.getMapByID(mapId)?.load()
+        ?: throw Exception("Map #$mapId does not exist")
+
     suspend fun startConnection(userId: UInt, connection: Connection) {
         sendSafety(connection.connection, toJson())
 
@@ -77,7 +82,11 @@ class ActiveSessionData(
             it.value.characters.forEach { characterId ->
                 val character = DBOperator.getCharacterByID(characterId)
                     ?: throw Exception("Character with ID $characterId does not exist")
+
                 showCharacter(character, connection, own)
+                if (character.isDefeated) {
+                    sendCharacterDefeatedStatusToConn(character, true, connection)
+                }
             }
         }
         logger.info("Session #$sessionId for user #$userId: show all active characters")
@@ -85,6 +94,9 @@ class ActiveSessionData(
         if (isFirstConnectionForThisUser) {
             DBOperator.getAllCharactersOfUserInSession(userId, sessionId).forEach {
                 addCharacter(it)
+                if (it.isDefeated) {
+                    sendCharacterDefeatedStatus(it, true)
+                }
             }
         } else {
             userData.characters.forEach {
@@ -201,8 +213,6 @@ class ActiveSessionData(
         }
         logger.info("Session #$sessionId for user #${character.userId}: " +
                 "move character #${character.id} to (${character.row}, ${character.col})")
-
-        updateActionProperties()
     }
 
     suspend fun attackOneWithoutCounterAttack(characterId: UInt, opponentId: UInt, type: String) {
@@ -219,8 +229,6 @@ class ActiveSessionData(
         }
         logger.info("Session #$sessionId for user #${updatedCharacter.userId}: " + type +
             " attack from character #$characterId to character #$opponentId")
-
-        updateActionProperties()
     }
 
     fun processingMeleeAttack(characterId: UInt, opponentId: UInt) {
@@ -264,9 +272,26 @@ class ActiveSessionData(
         } ?: charactersIdInOrderAdded.first()
     }
 
-    fun validateMoveCharacter(character: CharacterInfo, mapId: UInt, pos: Position) {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
+    fun validateBasicProperties(basicProperties: BasicProperties) {
+        var propsSum = 0
+        for (prop in BasicProperties::class.memberProperties) {
+            val value = prop.get(basicProperties) as Int
+            if (value < -4 || value > 4) {
+                throw Exception("Incorrect basic property: must be from -4 to 4")
+            }
+            propsSum += value
+        }
+        if (propsSum < 6 || propsSum > 8) {
+            throw Exception("Incorrect basic properties sum: must be from 6 to 8")
+        }
+    }
+
+    fun validateTile(pos: Position) {
+        if (map.isObstacleTile(pos))
+            throw CreationException(CreationFailReason.TileObstacle, "Target tile is obstacle")
+    }
+
+    fun validateMoveCharacter(character: CharacterInfo, pos: Position) {
         if (map.isObstacleTile(pos))
             throw MoveException(MoveFailReason.TileObstacle, "Can't move: target tile is obstacle")
 
@@ -275,9 +300,7 @@ class ActiveSessionData(
             throw MoveException(MoveFailReason.BigDist, "Can't move: target tile is too far")
     }
 
-    fun processTileEffects(characterId: UInt, mapId: UInt, pos: Position): CharacterInfo {
-        val map = DBOperator.getMapByID(mapId)?.load()
-            ?: throw Exception("Map #$mapId does not exist")
+    fun processTileEffects(characterId: UInt, pos: Position): CharacterInfo {
         val healthUpdate = map.getTileHealthUpdate(pos)
         val manaUpdate = map.getTileManaUpdate(pos)
 
@@ -300,6 +323,11 @@ class ActiveSessionData(
 
     private fun inAttackRange(character: CharacterInfo, opponent: CharacterInfo, distance: Int): Boolean {
         return abs(character.row - opponent.row) <= distance && abs(character.col - opponent.col) <= distance
+    }
+
+    fun validateAttack(opponent: CharacterInfo) {
+        if (opponent.isDefeated)
+            throw AttackException("", AttackFailReason.OpponentIsDefeated, "Can't attack: opponent is defeated")
     }
 
     fun validateMeleeAttack(character: CharacterInfo, opponent: CharacterInfo) {
@@ -375,7 +403,11 @@ class ActiveSessionData(
     fun validateRevival(character: CharacterInfo) {
         val characterForActionId = getCurrentCharacterForActionId()
         if (characterForActionId != character.id)
-            throw ActionException(ActionFailReason.NotYourTurn, "Can't reborn: not your turn now")
+            throw ReviveException(ReviveFailReason.NotYourTurn, "Can't revive: not your turn now")
+
+        if (!character.isDefeated) {
+            throw ReviveException(ReviveFailReason.IsNotDefeated, "Can't revive: character is not defeated")
+        }
     }
 
     fun processingRevival(characterId: UInt): CharacterInfo? {
@@ -402,6 +434,19 @@ class ActiveSessionData(
 
         val info = if (isDefeated) "defeat" else "revive"
         logger.info("Session #$sessionId for user #${character.userId}: $info character #${character.id}")
+    }
+
+    private suspend fun sendCharacterDefeatedStatusToConn(character: CharacterInfo, isDefeated: Boolean,
+                                                          connection: Connection) {
+        assert(character.isDefeated == isDefeated)
+
+        val message = JSONObject()
+            .put("type", "character:status")
+            .put("is_defeated", isDefeated)
+            .put("id", character.id.toLong())
+            .put("character", JSONObject(Json.encodeToString(character)))
+
+        sendSafety(connection.connection, message.toString())
     }
 
     suspend fun checkIfDefeated(characterId: UInt) {

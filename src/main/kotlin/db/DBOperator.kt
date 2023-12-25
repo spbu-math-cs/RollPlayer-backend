@@ -1,13 +1,16 @@
 package db
 
-import kotlin.collections.Map
 import kotlinx.datetime.toJavaInstant
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.io.*
+import java.io.File
 import java.time.Instant
-import java.util.Random
+import java.util.*
+import kotlin.collections.Map
 
 const val dbPath = "./data/roll_player"
 const val dbTestPath = "./data/test_db"
@@ -472,9 +475,14 @@ object DBOperator {
         user.passwordHash = hashPassword(newPassword, user.pswHashInitial, user.pswHashFactor)
     }
 
-    fun updateUserAvatar(userId: UInt, newAvatarId: UInt) = transaction {
+    fun updateUserAvatar(userId: UInt, newAvatarId: UInt?) = transaction {
         val user = UserData.findById(userId.toInt())
             ?: throw IllegalArgumentException("User #$userId does not exist")
+
+        if (newAvatarId == null) {
+            user.avatar = null
+            return@transaction true
+        }
 
         val pictureData = PictureData.findById(newAvatarId.toInt())
         if (pictureData != null) {

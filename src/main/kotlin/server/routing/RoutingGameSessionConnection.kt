@@ -1,22 +1,50 @@
 package server.routing
 
+import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.exceptions.JWTVerificationException
 import db.BasicProperties
 import db.DBOperator
 import db.Map.Companion.Position
-
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
-import server.*
+import server.ActiveSessionData
+import server.Connection
+import server.logger
 import server.utils.*
 
-fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
-    webSocket("/api/connect/{userId}/{sessionId}") {
-        val userId = call.parameters["userId"]?.toUIntOrNull()
+const val DEFAULT_CHARACTER_NAME = "Dovahkiin"
+
+fun Route.gameSessionConnection(
+    activeSessions: MutableMap<UInt, ActiveSessionData>,
+    jwtVerifier: JWTVerifier
+) {
+    webSocket("/api/user/sessions/{sessionId}/connect") {
+        val tokenFrame = incoming.receive() as? Frame.Text
+        if (tokenFrame == null) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "First message in WS must be a user token"))
+            return@webSocket
+        }
+
+        val token = tokenFrame.readText()
+        val decodedJWT = try {
+            jwtVerifier.verify(token)
+        } catch (e: JWTVerificationException) {
+            close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Can't accept token: $e"))
+            return@webSocket
+        }
+
+        val userId = try {
+            decodedJWT.getClaim("id").asInt().toUInt()
+        } catch (e: Exception) {
+            close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Can't accept token: $e"))
+            return@webSocket
+        }
+
         val sessionId = call.parameters["sessionId"]?.toUIntOrNull()
-        if (userId == null || sessionId == null) {
+        if (sessionId == null) {
             close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Invalid userId or sessionId: must be UInt"))
             return@webSocket
         }
@@ -52,16 +80,20 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                     when (message.getString("type")) {
                         "character:new" -> {
                             try {
-                                val characterName = message.optString("name", "Dovakin")
-                                val characterRow = message.optInt("row", 0)
-                                val characterCol = message.optInt("col", 0)
+                                val characterName = message.optString("name", DEFAULT_CHARACTER_NAME)
+                                val characterRow = message.optInt("row")
+                                val characterCol = message.optInt("col")
                                 val characterBasicProps = Json.decodeFromString<BasicProperties>(
-                                    message.optString("basicProperties", "{}"))
+                                    message.optString("basicProperties", "{}")
+                                )
                                 val characterAvatarId = if (message.has("avatarId")) {
                                     message.getInt("avatarId").toUInt()
                                 } else {
                                     null
                                 }
+
+                                session.validateBasicProperties(characterBasicProps)
+                                session.validateTile(Position(characterRow, characterCol))
 
                                 val character = DBOperator.addCharacter(
                                     userId,
@@ -73,27 +105,35 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                     false,
                                     characterBasicProps
                                 )
-                                logger.info("Session #$sessionId for user #$userId: " +
-                                        "add new character #${character.id} in db")
+                                logger.info(
+                                    "Session #$sessionId for user #$userId: " +
+                                            "add new character #${character.id} in db"
+                                )
 
                                 session.addCharacter(character)
+                            } catch (e: CreationException) {
+                                sendCreationExceptionReason(conn, e)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:new", e)
                             }
                         }
+
                         "character:remove" -> {
                             try {
                                 val character = session.getValidCharacter(message, userId)
 
                                 DBOperator.deleteCharacterById(character.id)
-                                logger.info("Session #$sessionId for user #$userId: " +
-                                        "delete character #${character.id} from db")
+                                logger.info(
+                                    "Session #$sessionId for user #$userId: " +
+                                            "delete character #${character.id} from db"
+                                )
 
                                 session.removeCharacter(character)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:remove", e)
                             }
                         }
+
                         "character:move" -> {
                             try {
                                 val character = session.getValidCharacter(message, userId)
@@ -101,17 +141,19 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 val newCol = message.getInt("col")
 
                                 session.validateAction(character)
-                                session.validateMoveCharacter(character, session.mapId, Position(newRow, newCol))
+                                session.validateMoveCharacter(character, Position(newRow, newCol))
 
                                 DBOperator.moveCharacter(character.id, newRow, newCol)
-                                logger.info("Session #$sessionId for user #$userId: " +
-                                        "change coords of character #${character.id} in db")
-
+                                logger.info(
+                                    "Session #$sessionId for user #$userId: " +
+                                            "change coords of character #${character.id} in db"
+                                )
                                 val newCharacter =
-                                    session.processTileEffects(character.id, session.mapId, Position(newRow, newCol))
+                                    session.processTileEffects(character.id, Position(newRow, newCol))
 
                                 session.moveCharacter(newCharacter)
                                 session.checkIfDefeated(character.id)
+                                session.updateActionProperties()
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:move", e)
                             } catch (e: MoveException) {
@@ -120,34 +162,41 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 handleWebsocketIncorrectMessage(conn, "character:move", e)
                             }
                         }
+
                         "character:attack" -> {
                             try {
                                 val character = session.getValidCharacter(message, userId)
                                 val opponent = session.getValidOpponentCharacter(message)
+                                val attackType = message.optString("attackType", "melee")
 
                                 session.validateAction(character)
+                                session.validateAttack(opponent)
 
-                                val attackType = message.optString("attackType", "melee")
                                 when (attackType) {
                                     "melee" -> {
                                         session.validateMeleeAttack(character, opponent)
                                         session.processingMeleeAttack(character.id, opponent.id)
                                     }
+
                                     "ranged" -> {
                                         session.validateRangedAttack(character, opponent)
                                         session.processingRangedAttack(character.id, opponent.id)
                                     }
+
                                     "magic" -> {
                                         session.validateMagicAttack(character, opponent)
                                         session.processingMagicAttack(character.id, opponent.id)
                                     }
+
                                     else -> {
                                         throw Exception("Incorrect field \"attackType\" in message")
                                     }
                                 }
+
                                 session.attackOneWithoutCounterAttack(character.id, opponent.id, attackType)
                                 session.checkIfDefeated(character.id)
                                 session.checkIfDefeated(opponent.id)
+                                session.updateActionProperties()
                             } catch (e: ActionException) {
                                 sendActionExceptionReason(conn, "character:attack", e)
                             } catch (e: AttackException) {
@@ -156,20 +205,26 @@ fun Route.connection(activeSessions: MutableMap<UInt, ActiveSessionData>) {
                                 handleWebsocketIncorrectMessage(conn, "character:attack", e)
                             }
                         }
+
                         "character:revive" -> {
                             try {
                                 val character = session.getValidCharacter(message, userId)
 
                                 session.validateRevival(character)
+
                                 val characterAfterRevival = session.processingRevival(character.id)
                                 if (characterAfterRevival != null) {
                                     session.sendCharacterDefeatedStatus(characterAfterRevival, false)
                                 }
+
                                 session.updateActionProperties()
+                            } catch (e: ReviveException) {
+                                sendReviveExceptionReason(conn, e)
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:revive", e)
                             }
                         }
+
                         else -> {
                             throw Exception("Incorrect field \"type\" in message")
                         }

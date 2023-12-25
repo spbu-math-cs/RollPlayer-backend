@@ -1,190 +1,11 @@
 # Http Documentation
 
-### POST /api/game/create
-Create a new game session based on the provided mapId.
-
-#### Request Query Parameters:
-- mapId (UInt, required): ID of the map for the session.
-
-#### Example Request:
-```bash
-POST /api/game/create?mapId=123 HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "message": "Session created",
-  "result": {
-    "id": 1,
-    "mapID": 123,
-    "active": false,
-    "started": "2023-11-28T12:34:56Z"
-  }
-}
-```
-
-### GET /api/game/{sessionId}/mapId
-Retrieves the map ID associated with a specific game session.
-
-#### Request Parameters:
-- {sessionId} (UInt): Session ID.
-
-#### Example Request:
-```bash
-GET /api/game/1/mapId HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": "1"
-}
-```
-
-### GET /api/textures
-Get a list of all textures.
-
-#### Example Request:
-```bash
-GET /api/textures HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": [
-    {"filepath": ".\\textures\\tileset_packed.png", "id": "1"}
-  ]
-}
-```
-
-### GET /api/textures/{id}
-Get a specific texture by ID.
-
-#### Request Parameters:
-- {id} (UInt): Texture ID.
-
-#### Example Request:
-```bash
-GET /api/textures/1 HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": {
-    "filepath": ".\\textures\\texture1.png",
-    "id": "1"
-  }
-}
-```
-
-### GET /api/tilesets
-Get a list of all tilesets.
-
-#### Example Request:
-```bash
-GET /api/tilesets HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": 
-  [
-    {
-      "id": "1",
-      "filepath": ".\\tilesets\\tileset1.json"
-    }
-  ]
-}
-```
-
-### GET /api/tilesets/{id}
-Get a specific tileset by ID.
-
-#### Request Parameters:
-- {id} (UInt): Tileset ID.
-
-#### Example Request:
-```bash
-GET /api/tilesets/1 HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": {
-    "id": "1",
-    "filepath": ".\\tilesets\\tileset1.json"
-  }
-}
-```
-
-
-### GET /api/maps
-Get a list of all maps.
-
-#### Example Request:
-```bash
-GET /api/maps HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": [
-    {
-      "id": "1",
-      "filepath": ".\\maps\\map1.json"
-    },
-    {
-      "id": "2",
-      "filepath": ".\\maps\\map2.json"
-    }
-  ]
-}
-```
-
-### GET /api/maps/{id}
-Get a specific map by ID.
-
-#### Request Parameters:
-- {id} (UInt): Map ID.
-
-#### Example Request:
-```bash
-GET /api/maps/1 HTTP/1.1
-```
-
-#### Type of response:
-```json
-{
-  "type": "ok",
-  "result": {
-    "id": "1",
-    "filepath": ".\\maps\\map1.json"
-  }
-}
-```
+## Pictures
 
 ### GET /api/pictures
 Retrieves a list of all pictures.
 
-#### Example Request:
-```bash
-GET /api/pictures HTTP/1.1
-```
-
-#### Type of response:
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -207,12 +28,7 @@ Retrieves a specific picture by ID.
 #### Request Parameters:
 - {id} (UInt): Picture ID.
 
-#### Example Request:
-```bash
-GET /api/pictures/1 HTTP/1.1
-```
-
-#### Type of response:
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -226,12 +42,10 @@ GET /api/pictures/1 HTTP/1.1
 ### POST /api/pictures
 Uploads a new picture.
 
-#### Example Request:
-```bash
-POST /api/pictures HTTP/1.1
-```
+#### Body:
+Picture as bytes
 
-#### Type of response:
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -242,18 +56,121 @@ POST /api/pictures HTTP/1.1
 }
 ```
 
-### POST /api/register
-Registers a new user with the provided login, email, and password.
 
-#### Example Request:
-```bash
-POST /api/register HTTP/1.1
+## Maps
+
+### GET /api/textures
+Get a list of all textures.
+
+#### Response example:
+```json
 {
-  "login": "newuser",
-  "email": "newuser@example.com",
-  "password": "password123"
+  "type": "ok",
+  "result": [
+    {"filepath": ".\\textures\\tileset_packed.png", "id": "1"}
+  ]
 }
 ```
+
+### GET /api/textures/{id}
+Get a specific texture by ID.
+
+#### Request Parameters:
+- {id} (UInt): Texture ID.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": {
+    "filepath": ".\\textures\\texture1.png",
+    "id": "1"
+  }
+}
+```
+
+### GET /api/tilesets
+Get a list of all tilesets.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": 
+  [
+    {
+      "id": "1",
+      "filepath": ".\\tilesets\\tileset1.json"
+    }
+  ]
+}
+```
+
+### GET /api/tilesets/{id}
+Get a specific tileset by ID.
+
+#### Request Parameters:
+- {id} (UInt): Tileset ID.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": {
+    "id": "1",
+    "filepath": ".\\tilesets\\tileset1.json"
+  }
+}
+```
+
+### GET /api/maps
+Get a list of all maps.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "filepath": ".\\maps\\map1.json"
+    },
+    {
+      "id": "2",
+      "filepath": ".\\maps\\map2.json"
+    }
+  ]
+}
+```
+
+### GET /api/maps/{id}
+Get a specific map by ID.
+
+#### Request Parameters:
+- {id} (UInt): Map ID.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": {
+    "id": "1",
+    "filepath": ".\\maps\\map1.json"
+  }
+}
+```
+
+
+## User
+
+### POST /api/register
+Registers a new user with the provided login, email and password.
+
+#### Body:
+Json:
+- "login": String
+- "email": String
+- "password": String
 
 #### Example Response:
 ```json
@@ -264,50 +181,34 @@ POST /api/register HTTP/1.1
     "id": "1",
     "login": "newuser",
     "email": "newuser@example.com",
-    "password": "password123"
+    "password": "password123",
+    "avatarId": null
   }
 }
 ```
 
 ### POST /api/login
-Logs in a user with the provided login, email, and password.
+Logs in a user with the provided login/email and password and return jwt token.
 
-#### Example Request:
-```bash
-POST /api/login HTTP/1.1
-{
-  "login": "newuser",
-  "email": "newuser@example.com",
-  "password": "password123"
-}
-```
+#### Body:
+Json:
+- "login": String
+- "email": String
+- "password": String
 
-#### Type of response:
+#### Response example:
 ```json
 {
   "type": "ok",
   "message": "User 1 logged in successfully",
-  "result": {
-    "id": "1",
-    "login": "existinguser",
-    "email": "existinguser@example.com",
-    "password": "password123"
-  }
+  "result": "kvdnjnonv;kvsv"
 }
 ```
 
-### POST /api/logout
+### POST /api/logout (authorization)
 Logs out a user.
 
-#### Example Request:
-```bash
-POST /api/logout HTTP/1.1
-{
-  "userId": 1
-}
-```
-
-#### Type of response:
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -315,23 +216,28 @@ POST /api/logout HTTP/1.1
 }
 ```
 
-### POST /api/edit/{userId}
-Edits user information, such as login, email, or password.
+### GET /api/user (authorization)
+Return user data.
 
-#### Request Parameters:
-- {userId} (UInt): User ID.
-
-#### Example Request:
-```bash
-POST /api/edit/1 HTTP/1.1
+#### Response example:
+```json
 {
-  "login": "newlogin",
-  "email": "newemail@example.com",
-  "password": "newpassword"
+  "type": "ok",
+  "message": "User data get successfully",
+  "result": {
+    "id": "1",
+    "login": "newlogin",
+    "email": "newemail@example.com",
+    "password": "newpassword",
+    "avatarId": null
+  }
 }
 ```
 
-#### Type of response:
+### POST /api/user/edit (authorization)
+Edits user data and return new user data.
+
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -340,20 +246,40 @@ POST /api/edit/1 HTTP/1.1
     "id": "1",
     "login": "newlogin",
     "email": "newemail@example.com",
-    "password": "newpassword"
+    "password": "newpassword",
+    "avatarId": null
   }
 }
 ```
 
-### GET /api/users
-Retrieves a list of all users.
+### GET /api/user/sessions (authorization)
+Retrieves a list of sessions associated with a specific user.
 
-#### Example Request:
-```bash
-GET /api/users HTTP/1.1
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": [
+    {
+      "id": "1",
+      "mapID": "1",
+      "active": true,
+      "started": "2023-01-01T00:00:00Z"
+    },
+    {
+      "id": "2",
+      "mapID": "2",
+      "active": false,
+      "started": "2023-01-02T00:00:00Z"
+    }
+  ]
+}
 ```
 
-#### Type of response:
+### GET /api/users (now not safety)
+Retrieves a list of all users.
+
+#### Response example:
 ```json
 {
   "type": "ok",
@@ -374,34 +300,39 @@ GET /api/users HTTP/1.1
 }
 ```
 
-### GET /api/{userId}/sessions
-Retrieves a list of sessions associated with a specific user.
 
-#### Request Parameters:
-- {userId} (UInt): User ID.
+## Game Session
 
-#### Example Request:
-```bash
-GET /api/1/sessions HTTP/1.1
-```
+### POST /api/game/create
+Create a new game session based on the provided mapId.
 
-#### Type of response:
+#### Request Query Parameters:
+- mapId (UInt, required): ID of the map for the session.
+
+#### Response example:
 ```json
 {
   "type": "ok",
-  "result": [
-    {
-      "id": "1",
-      "mapID": "1",
-      "active": true,
-      "started": "2023-01-01T00:00:00Z"
-    },
-    {
-      "id": "2",
-      "mapID": "2",
-      "active": false,
-      "started": "2023-01-02T00:00:00Z"
-    }
-  ]
+  "message": "Session created",
+  "result": {
+    "id": 1,
+    "mapID": 123,
+    "active": false,
+    "started": "2023-11-28T12:34:56Z"
+  }
+}
+```
+
+### GET /api/game/{sessionId}/mapId
+Retrieves the map ID associated with a specific game session.
+
+#### Request Parameters:
+- {sessionId} (UInt): Session ID.
+
+#### Response example:
+```json
+{
+  "type": "ok",
+  "result": "1"
 }
 ```

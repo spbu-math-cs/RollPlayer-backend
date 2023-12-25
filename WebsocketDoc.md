@@ -1,16 +1,10 @@
 # WebSocket Documentation
 
-### /api/connect/{userId}/{sessionId}
+### /api/user/sessions/{sessionId}/connect (authorization)
 Connect to WebSocket for real-time communication.
 
 #### Parameters:
-- {userId} (UInt): User ID.
 - {sessionId} (UInt): Session ID.
-
-#### Example Request:
-```bash
-ws/api/connect/1/2
-```
 
 ### Messages from client:
 
@@ -19,10 +13,9 @@ ws/api/connect/1/2
 {
   "type": "character:new",
   "id": <UInt, required>,
-  "name": <String, opt, "Dovakin">, 
+  "name": <String, opt, "Dovahkiin">, 
   "row": <Int, opt, 0>,
   "col": <Int, opt, 0>,
-  "own": <bool, required>,
   "basicProperties": <bool, opt, {}>,
   "avatarId": <UInt, opt, null>
 }
@@ -38,7 +31,7 @@ ws/api/connect/1/2
 ```
 {
   "type": "character:move",
-  "id": <Int, required>,
+  "id": <UInt, required>,
   "row": <Int, required>,
   "col": <Int, required>
 }
@@ -56,7 +49,7 @@ ws/api/connect/1/2
 ```
 {
   "type": "character:revive",
-  "id": <Int, required>
+  "id": <UInt, required>
 }
 ```
 
@@ -75,12 +68,12 @@ CharacterInfo:
     "isDefeated": <Boolean>
     "basicProperties": 
         {
-          "strength": <Int, 0 = default>,
-          "dexterity": <Int, 0 = default>,
-          "constitution": <Int, 0 = default>,
-          "intelligence": <Int, 0 = default>,
-          "wisdom": <Int, 0 = default>,
-          "charisma": <Int, 0 = default>
+          "strength": <Int, 1 = default>,
+          "dexterity": <Int, 1 = default>,
+          "constitution": <Int, 1 = default>,
+          "intelligence": <Int, 1 = default>,
+          "wisdom": <Int, 1 = default>,
+          "charisma": <Int, 1 = default>
         }
     "properties": [
         {
@@ -155,8 +148,20 @@ Handling exceptions related to WebSocket communication.
 
 ### Regular error messages
 
+#### New
+Handling exceptions related to character creation during WebSocket communication
+
+```
+{
+  "type": "error",
+  "on": "character:new",
+  "reason": "tile_obstacle"
+  "message": <String>
+}
+```
+
 #### Action
-Handling reasons of exceptions related to WebSocket communication.
+Handling exceptions related to not defeated character actions during WebSocket communication
 
 ```
 {
@@ -187,8 +192,19 @@ Handling exceptions related to character attacks during WebSocket communication.
   "type": "error",
   "on": "character:attack",
   "attackType": "melee"/"ranged"/"magic",
-  "reason": "big_dist"/"low_mana"
+  "reason": "big_dist"/"low_mana"/"opponent_is_defeated"
   "message": <String>
 }
 ```
 
+#### Revive
+Handling exceptions related to character revival during WebSocket communication.
+
+```
+{
+  "type": "error",
+  "on": "character:revive",
+  "reason": "not_your_turn"/"is_not_defeated"
+  "message": <String>
+}
+```

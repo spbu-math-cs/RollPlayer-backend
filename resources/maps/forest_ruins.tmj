@@ -112,13 +112,13 @@
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          "height":48,
          "id":5,
-         "name":"Bonus10HPLayer",
+         "name":"Bonus15HPLayer",
          "opacity":1,
          "properties":[
                 {
                  "name":"Restore HP",
                  "type":"int",
-                 "value":10
+                 "value":15
                 }],
          "type":"tilelayer",
          "visible":true,
@@ -177,13 +177,13 @@
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          "height":48,
          "id":6,
-         "name":"Bonus50HP50MPLayer",
+         "name":"Bonus30HP50MPLayer",
          "opacity":1,
          "properties":[
                 {
                  "name":"Restore HP",
                  "type":"int",
-                 "value":50
+                 "value":30
                 }, 
                 {
                  "name":"Restore MP",
@@ -253,7 +253,7 @@
                 {
                  "name":"Lose HP",
                  "type":"int",
-                 "value":50
+                 "value":30
                 }, 
                 {
                  "name":"Lose MP",
@@ -385,11 +385,6 @@
          "name":"HigherCostLayer",
          "opacity":1,
          "properties":[
-                {
-                 "name":"Lose HP",
-                 "type":"int",
-                 "value":20
-                }, 
                 {
                  "name":"Pass cost",
                  "type":"int",

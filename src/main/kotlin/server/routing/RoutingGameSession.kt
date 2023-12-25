@@ -1,8 +1,6 @@
 package server.routing
 
 import db.DBOperator
-import server.*
-
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -11,9 +9,10 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
+import server.logger
 import server.utils.handleHTTPRequestException
 
-fun Route.createSession() {
+fun Route.gameSession() {
     post("/api/game/create") {
         try {
             val mapId = call.request.queryParameters["mapId"]?.toUIntOrNull()

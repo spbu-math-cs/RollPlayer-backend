@@ -23,22 +23,36 @@ The server will start running at http://localhost:9999 by default. You can chang
 
 ## Configuration
 
-You can configure the server port in the application.conf file located in the resources' directory.
+You can configure project in src/main/resources/application.conf.
+Configure:
+- host/port
+- jwt authentication parameters (you can use environment variables)
 
-```properties
+```
 ktor {
     deployment {
         port = 9999 # Change this port number to your desired port
-        host = "127.0.0.1"
+        host = "0.0.0.0"
     }
-    # Other configurations...
+}
+jwt {
+    secret = <String>
+    issuer = <String>
+    audience = <String>
+    realm = <String>
 }
 ```
 
 ## Logging Configuration
-Logging is configured in the server code. Logs are written to both the console and a log file named server.log. You can also configure logging in the file logback.xml.
+Logging is configured in the server code. Logs are written to both the console and a log file named server.log. 
+You can also configure logging in the file logback.xml.
 
 ## Documentation
+
+If *(authorization)* is written next to the request body, then access to this page is possible only with a token for the logged in user.
+
+Add in request header for key "Authorization": "Bearer <token>"
+
 - [Http](HttpDoc.md)
 - [Websocket](WebsocketDoc.md)
 
