@@ -176,7 +176,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-tilesets-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/2")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/1")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -209,7 +209,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-maps-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/2")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/4")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
