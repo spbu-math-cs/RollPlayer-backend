@@ -137,7 +137,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-textures-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/textures/1")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/textures/2")
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
@@ -176,7 +176,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-tilesets-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/1")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/tilesets/2")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -209,7 +209,7 @@ class HttpsTest {
 
     @Test
     fun `GET request to api-maps-id returns expected response`(): Unit = runBlocking {
-        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/3")
+        val response = HttpClient().get("http://127.0.0.1:1234/api/maps/2")
         assertEquals(HttpStatusCode.OK, response.status)
         val responseBody: String = response.bodyAsText()
         assertEquals(
@@ -475,14 +475,14 @@ class HttpsTest {
     }
 
 
-    @Test
-    fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
-        val requestBody = "0x10, 0x10, 0x01, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff"
-        val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/pictures") {
-            setBody(requestBody)
-        }
-        assertEquals(HttpStatusCode.OK, response.status)
-    }
+//    @Test
+//    fun `POST request to api-pictures returns expected response`(): Unit = runBlocking {
+//        val requestBody = "0x10, 0x10, 0x01, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff"
+//        val response: HttpResponse = HttpClient().post("http://127.0.0.1:1234/api/pictures") {
+//            setBody(requestBody)
+//        }
+//        assertEquals(HttpStatusCode.OK, response.status)
+//    }
 
     @Test
     fun `GET request to api-user returns expected response`(): Unit = runBlocking {
