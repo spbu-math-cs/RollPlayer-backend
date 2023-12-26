@@ -82,7 +82,7 @@ fun Route.requestsUser(jwtParams: JWTParams){
                         .withIssuer(jwtParams.issuer)
                         .withClaim("id", user.id.toLong())
                         .withClaim("login", user.login)
-                        .withExpiresAt(Date(System.currentTimeMillis() + 24*60*60000))
+                        .withExpiresAt(Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000))
                         .sign(Algorithm.HMAC256(jwtParams.secret))
 
                     call.respond(HttpStatusCode.OK, JSONObject()
