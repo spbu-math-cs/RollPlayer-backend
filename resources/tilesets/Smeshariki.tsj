@@ -1,0 +1,14 @@
+{ "columns":21,
+ "image":"SmesharikiMap.jpg",
+ "imageheight":768,
+ "imagewidth":1362,
+ "margin":0,
+ "name":"Smeshariki",
+ "spacing":0,
+ "tilecount":252,
+ "tiledversion":"1.10.2",
+ "tileheight":64,
+ "tilewidth":64,
+ "type":"tileset",
+ "version":"1.10"
+}
