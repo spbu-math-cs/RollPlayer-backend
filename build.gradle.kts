@@ -8,7 +8,6 @@ application {
     mainClass.set("io.ktor.server.netty.EngineMain")
 }
 
-
 sourceSets {
     main {
         kotlin {
@@ -77,4 +76,24 @@ kotlin {
 
 project.tasks.named("processResources", Copy::class.java) {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks {
+    register<Jar>("serverFatJar") {
+        dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources"))
+
+        archiveFileName.set("server.jar")
+        destinationDirectory.set(File("."))
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        manifest {
+            attributes(mapOf("Main-Class" to application.mainClass))
+        }
+
+        val sourcesMain = sourceSets.main.get()
+        val contents = configurations.runtimeClasspath.get()
+            .map { if (it.isDirectory) it else zipTree(it) } + sourcesMain.output
+
+        from(contents)
+    }
 }
