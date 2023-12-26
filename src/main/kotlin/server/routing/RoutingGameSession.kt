@@ -13,6 +13,7 @@ import server.logger
 import server.utils.handleHTTPRequestException
 
 fun Route.gameSession() {
+    /*
     post("/api/game/create") {
         try {
             val mapId = call.request.queryParameters["mapId"]?.toUIntOrNull()
@@ -31,6 +32,7 @@ fun Route.gameSession() {
             handleHTTPRequestException(call, "POST /api/game/create", e)
         }
     }
+     */
 
     get("/api/game/{sessionId}/mapId") {
         val sessionId = call.parameters["sessionId"]?.toUIntOrNull() ?: 0u
