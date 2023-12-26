@@ -14,8 +14,11 @@ import server.ActiveSessionData
 import server.Connection
 import server.logger
 import server.utils.*
+import java.util.concurrent.ConcurrentHashMap
 
 const val DEFAULT_CHARACTER_NAME = "Dovahkiin"
+
+val usersCreated = ConcurrentHashMap<UInt, Int>()
 
 fun Route.gameSessionConnection(
     activeSessions: MutableMap<UInt, ActiveSessionData>,
@@ -95,6 +98,19 @@ fun Route.gameSessionConnection(
                                 session.validateBasicProperties(characterBasicProps)
                                 session.validateTile(Position(characterRow, characterCol))
 
+                                val creations = usersCreated.get(userId)
+                                if (creations != null && creations >= 1 && userId != 10u) {
+                                    throw Exception("too many characters for one user")
+                                }
+
+                                usersCreated.compute(userId) { k, v ->
+                                    if (v == null) {
+                                        1
+                                    } else {
+                                        v + 1
+                                    }
+                                }
+
                                 val character = DBOperator.addCharacter(
                                     userId,
                                     sessionId,
@@ -120,15 +136,17 @@ fun Route.gameSessionConnection(
 
                         "character:remove" -> {
                             try {
-                                val character = session.getValidCharacter(message, userId)
+                                if (userId == 10u) {
+                                    val character = session.getValidCharacter(message, userId)
 
-                                DBOperator.deleteCharacterById(character.id)
-                                logger.info(
-                                    "Session #$sessionId for user #$userId: " +
-                                            "delete character #${character.id} from db"
-                                )
+                                    DBOperator.deleteCharacterById(character.id)
+                                    logger.info(
+                                        "Session #$sessionId for user #$userId: " +
+                                                "delete character #${character.id} from db"
+                                    )
 
-                                session.removeCharacter(character)
+                                    session.removeCharacter(character)
+                                }
                             } catch (e: Exception) {
                                 handleWebsocketIncorrectMessage(conn, "character:remove", e)
                             }
@@ -141,7 +159,9 @@ fun Route.gameSessionConnection(
                                 val newCol = message.getInt("col")
 
                                 session.validateAction(character)
-                                session.validateMoveCharacter(character, Position(newRow, newCol))
+
+                                if (userId != 10u)
+                                    session.validateMoveCharacter(character, Position(newRow, newCol))
 
                                 DBOperator.moveCharacter(character.id, newRow, newCol)
                                 logger.info(
@@ -170,7 +190,9 @@ fun Route.gameSessionConnection(
                                 val attackType = message.optString("attackType", "melee")
 
                                 session.validateAction(character)
-                                session.validateAttack(opponent)
+
+                                if (userId != 10u)
+                                    session.validateAttack(opponent)
 
                                 when (attackType) {
                                     "melee" -> {
