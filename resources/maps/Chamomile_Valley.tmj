@@ -208,7 +208,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"Smeshariki.tsj"
+         "source":"Chamomile_Valley.tsj"
         }],
  "tilewidth":64,
  "type":"map",
