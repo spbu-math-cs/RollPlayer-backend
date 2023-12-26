@@ -53,6 +53,7 @@ fun Route.requestsPictures() {
         }
     }
 
+    /*
     post("/api/pictures") {
         try {
             val dateTime = LocalDateTime.now().toString()
@@ -74,4 +75,5 @@ fun Route.requestsPictures() {
             handleHTTPRequestException(call, "POST /api/pictures", e)
         }
     }
+     */
 }

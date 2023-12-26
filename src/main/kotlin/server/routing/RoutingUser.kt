@@ -36,6 +36,7 @@ fun Route.requestsUser(jwtParams: JWTParams){
         }
     }
 
+    /*
     post("/api/register") {
         try {
             val data = JSONObject(call.receiveText())
@@ -63,6 +64,7 @@ fun Route.requestsUser(jwtParams: JWTParams){
             handleHTTPRequestException(call, "POST /api/register", e)
         }
     }
+     */
 
     post("/api/login") {
         try {
@@ -139,6 +141,7 @@ fun Route.requestsUser(jwtParams: JWTParams){
             }
         }
 
+        /*
         post("/api/user/edit") {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal!!.payload.getClaim("id").asInt().toUInt()
@@ -183,6 +186,7 @@ fun Route.requestsUser(jwtParams: JWTParams){
                 handleHTTPRequestException(call, "POST /api/user/edit", e)
             }
         }
+         */
 
         get("/api/user/sessions") {
             val principal = call.principal<JWTPrincipal>()
