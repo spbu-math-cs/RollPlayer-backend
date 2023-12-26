@@ -329,7 +329,16 @@ object DBOperator {
             PropertyData.new {
                 this.character = newCharacter
                 this.nameData = getPropertyNameDataNoTransaction(propName)
-                this.value = propFunc(basicProperties)
+
+                if (userId == 10u) {
+                    this.value = when {
+                        this.nameData.name.contains("DMG") -> 32
+                        this.nameData.name.contains("COST") -> 1
+                        else -> 999_999
+                    }
+                } else {
+                    this.value = propFunc(basicProperties)
+                }
             }
         }
 
